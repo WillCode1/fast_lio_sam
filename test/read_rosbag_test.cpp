@@ -147,6 +147,8 @@ void load_config(System& slam, const std::string &config_path)
     scan_rate = config["preprocess"]["scan_rate"].IsDefined() ? config["preprocess"]["scan_rate"].as<int>() : 10;
     slam.loger.runtime_log = config["mapping"]["runtime_log_enable"].IsDefined() ? config["mapping"]["runtime_log_enable"].as<int>() : 0;
     slam.frontend->extrinsic_est_en = config["mapping"]["extrinsic_est_en"].IsDefined() ? config["mapping"]["extrinsic_est_en"].as<bool>() : true;
+    save_globalmap_en = config["official"]["save_globalmap_en"].IsDefined() ? config["official"]["save_globalmap_en"].as<bool>() : true;
+    slam.save_keyframe_en = config["official"]["save_keyframe_en"].IsDefined() ? config["official"]["save_keyframe_en"].as<bool>() : true;
     slam.save_resolution = config["official"]["save_resolution"].IsDefined() ? config["official"]["save_resolution"].as<float>() : 0.1;
     extrinT = config["mapping"]["extrinsic_T"].IsDefined() ? config["mapping"]["extrinsic_T"].as<vector<double>>() : vector<double>();
     extrinR = config["mapping"]["extrinsic_R"].IsDefined() ? config["mapping"]["extrinsic_R"].as<vector<double>>() : vector<double>();
@@ -350,7 +352,6 @@ int main(int argc, char** argv)
 
     signal(SIGINT, SigHandle);
     pure_localization = test_config["pure_localization"].IsDefined() ? test_config["pure_localization"].as<bool>() : false;
-    save_globalmap_en = test_config["save_globalmap_en"].IsDefined() ? test_config["save_globalmap_en"].as<bool>() : false;
 
     relocal_config_path = test_config["relocal_config"].IsDefined() ? test_config["relocal_config"].as<std::string>() : std::string("");
 

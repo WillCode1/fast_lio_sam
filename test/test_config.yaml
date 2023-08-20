@@ -1,7 +1,5 @@
 pure_localization: false
 
-save_globalmap_en: true
-
 relocal_config: "/config/relocalization.yaml"
 
 dataset_paths: [
