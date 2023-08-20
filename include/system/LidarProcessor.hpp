@@ -20,10 +20,10 @@ enum TIME_UNIT
   NS = 3
 };
 
-#define VEL_TIMESTAMP_TYPE float
-// #define VEL_TIMESTAMP_TYPE double
-#define VEL_TIMESTAMP_FIELD time
-// #define VEL_TIMESTAMP_FIELD timestamp
+// #define VEL_TIMESTAMP_TYPE float
+#define VEL_TIMESTAMP_TYPE double
+// #define VEL_TIMESTAMP_FIELD time
+#define VEL_TIMESTAMP_FIELD timestamp
 
 namespace velodyne_ros
 {
