@@ -22,6 +22,7 @@ public:
     void set_plane_extract_param(const double &fr, const int &min_point, const double &clust_dis, const double &pl_dis, const double &point_percent);
     void set_gicp_param(const double &gicp_ds, const double &search_radi, const double &tep, const double &fep, const double &fit_score);
 
+    bool need_wait_prior_pose_inited = true;
     BnbOptions bnb_option;
     Pose init_pose, lidar_pose, bnb_pose;
     std::shared_ptr<BranchAndBoundMatcher3D> bnb3d;
@@ -31,7 +32,7 @@ private:
     bool plane_estimate(const pcl::PointCloud<PointType>::Ptr cluster, const float &threshold);
     bool fine_tune_pose(PointCloudType::Ptr src, Eigen::Matrix4f &result);
 
-    bool set_pose = false;
+    bool prior_pose_inited = false;
 
 	// plane_seg
     double filter_radius = 1;
@@ -60,7 +61,7 @@ Relocalization::~Relocalization()
 
 bool Relocalization::run(const PointCloudType::Ptr &scan, Eigen::Matrix4f& result)
 {
-    if (!set_pose)
+    if (need_wait_prior_pose_inited && !prior_pose_inited)
         return false;
 
     // bnb3d
@@ -294,7 +295,7 @@ void Relocalization::set_init_pose(const Pose& _init_pose)
     init_pose.roll = DEG2RAD(init_pose.roll);
     init_pose.pitch = DEG2RAD(init_pose.pitch);
     init_pose.yaw = DEG2RAD(init_pose.yaw);
-    set_pose = true;
+    prior_pose_inited = true;
 }
 
 void Relocalization::set_bnb3d_param(const BnbOptions& match_option, const Pose& _init_pose, const Pose& _lidar_pose)

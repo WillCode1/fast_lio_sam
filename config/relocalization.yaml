@@ -18,7 +18,8 @@ bnb3d:
     filter_size_scan: 0.2
     debug_mode: false
 
-    # init pose in map(imu pose)
+    # prior pose in map(imu pose)
+    need_wait_prior_pose_inited: true
     init_pose/x: 0
     init_pose/y: 0
     init_pose/z: 0

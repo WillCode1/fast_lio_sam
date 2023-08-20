@@ -169,6 +169,7 @@ void load_config(System& slam, const std::string &config_path)
     match_option.filter_size_scan = relocal_config["bnb3d"]["filter_size_scan"].IsDefined() ? relocal_config["bnb3d"]["filter_size_scan"].as<double>() : 0.1;
     match_option.debug_mode = relocal_config["bnb3d"]["debug_mode"].IsDefined() ? relocal_config["bnb3d"]["debug_mode"].as<bool>() : false;
 
+    slam.relocalization->need_wait_prior_pose_inited = relocal_config["bnb3d"]["need_wait_prior_pose_inited"].IsDefined() ? relocal_config["bnb3d"]["need_wait_prior_pose_inited"].as<bool>() : true;
     init_pose.x = relocal_config["bnb3d"]["init_pose"]["x"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["x"].as<double>() : 0.;
     init_pose.y = relocal_config["bnb3d"]["init_pose"]["y"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["y"].as<double>() : 0.;
     init_pose.z = relocal_config["bnb3d"]["init_pose"]["z"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["z"].as<double>() : 0.;

@@ -260,6 +260,7 @@ int main(int argc, char **argv)
     node->get_parameter_or("bnb3d/filter_size_scan", match_option.filter_size_scan, 0.1);
     node->get_parameter_or("bnb3d/debug_mode", match_option.debug_mode, false);
 
+    node->get_parameter_or("bnb3d/need_wait_prior_pose_inited", slam.relocalization->need_wait_prior_pose_inited, true);
     node->get_parameter_or("bnb3d/init_pose/x", init_pose.x, 0.);
     node->get_parameter_or("bnb3d/init_pose/y", init_pose.y, 0.);
     node->get_parameter_or("bnb3d/init_pose/z", init_pose.z, 0.);
