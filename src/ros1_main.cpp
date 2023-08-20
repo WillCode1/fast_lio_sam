@@ -146,6 +146,7 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped, const state_ikfom 
     odomAftMapped.child_frame_id = body_frame;
     odomAftMapped.header.stamp = ros::Time().fromSec(lidar_end_time);
     set_posestamp(odomAftMapped.pose, state);
+    pubOdomAftMapped.publish(odomAftMapped);
     auto P = kf.get_P();
     for (int i = 0; i < 6; i++)
     {
@@ -158,7 +159,6 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped, const state_ikfom 
         odomAftMapped.pose.covariance[i * 6 + 4] = P(k, 1);
         odomAftMapped.pose.covariance[i * 6 + 5] = P(k, 2);
     }
-    pubOdomAftMapped.publish(odomAftMapped);
 
     publish_tf(odomAftMapped.pose.pose, lidar_end_time);
 }
