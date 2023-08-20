@@ -1,0 +1,48 @@
+bnb3d:
+    algorithm_type: "BNB_3D"
+    # algorithm_type: "GICP"
+
+    # linear_xy_window_size: 5   # meter
+    linear_xy_window_size: 10   # meter
+    linear_z_window_size: 0.5  # meter
+    angular_search_window: 180  # degree 0~180
+    pc_resolutions: [0.2, 0.3, 0.5]
+    bnb_depth: 3
+    bnb_min_score: 0.3
+
+    min_xy_resolution: 0.2
+    min_z_resolution: 0.125
+    min_angular_resolution: 0.1
+
+    thread_num: 6
+    filter_size_scan: 0.2
+    debug_mode: false
+
+    # init pose in map(imu pose)
+    init_pose/x: 0
+    init_pose/y: 0
+    init_pose/z: 0
+    init_pose/roll: 0
+    init_pose/pitch: 0
+    init_pose/yaw: 0
+
+    # lidar extrinsic to imu
+    lidar_ext/x: 0
+    lidar_ext/y: 0
+    lidar_ext/z: 0
+    lidar_ext/roll: 0
+    lidar_ext/pitch: 0
+    lidar_ext/yaw: 0
+
+gicp:
+    filter_radius: 1
+    min_plane_point: 10
+    cluster_dis: 0.1
+    plane_dis: 0.2
+    plane_point_percent: 0.1
+
+    gicp_downsample: 0.2
+    search_radius: 50
+    teps: 0.001
+    feps: 0.001
+    fitness_score: 0.3
