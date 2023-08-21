@@ -1,67 +1,81 @@
 #pragma once
 #include <deque>
+#include "system/UtmCoordinate.h"
 #include "utility/Header.h"
 
 struct GnssPose
 {
   GnssPose(const double &time = 0, const V3D &pos = ZERO3D, const V3D &cov = ZERO3D)
-      : timestamp(time), position(pos), covariance(cov) {}
+      : timestamp(time), gnss_position(pos), covariance(cov) {}
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   double timestamp;
-  V3D position; // longitude, latitude, altitude
+  V3D gnss_position;
+  V3D rpy;
+  V3D gnss_position_trans2imu; // utm add extrinsic
   V3D covariance;
+  float current_gnss_interval;
 };
 
+/*
+ * Adding gnss factors to the mapping requires a lower speed
+ */
 class GnssProcessor
 {
 public:
+  GnssProcessor()
+  {
+    extrinsic_Imu2Gnss.setIdentity();
+  }
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  void set_extrinsic(const V3D &transl = ZERO3D, const M3D &rot = EYE3D);
-  void gnss_handler(const GnssPose &gps_raw);
+  void set_extrinsic(const Eigen::Matrix4d &extrinsic = Eigen::Matrix4d::Identity());
+  void gnss_handler(const GnssPose &gnss_raw);
   bool get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_time, const double &odom_z);
 
-  float gpsCovThreshold;
-  bool useGpsElevation = false; //  是否使用gps高层优化
+  float gnssValidInterval = 0.2;
+  float gpsCovThreshold = 25;
+  bool useGpsElevation = false; // 是否使用gps高层优化
   deque<GnssPose> gnss_buffer;
 
 private:
-  M3D ext_R_Gnss_Imu;
-  V3D ext_T_Gnss_Imu;
+  Eigen::Matrix4d extrinsic_Imu2Gnss;
 };
 
-void GnssProcessor::set_extrinsic(const V3D &transl, const M3D &rot)
+void GnssProcessor::set_extrinsic(const Eigen::Matrix4d &extrinsic)
 {
-  ext_T_Gnss_Imu = transl;
-  ext_R_Gnss_Imu = rot;
+  extrinsic_Imu2Gnss = extrinsic;
 }
 
-void GnssProcessor::gnss_handler(const GnssPose &gps_raw)
+void GnssProcessor::gnss_handler(const GnssPose &gnss_raw)
 {
   static int count = 0;
-  static GnssPose gnss_origin;
-  static const double R_EARTH = 6371393.0; // m
-  double deg2rad = M_PI / 180.0;
+  static utm_coordinate::utm_point utm_origin;
   count++;
+
+  utm_coordinate::geographic_position lla;
+  utm_coordinate::utm_point utm;
+  lla.latitude = gnss_raw.gnss_position(0);
+  lla.longitude = gnss_raw.gnss_position(1);
+  lla.altitude = gnss_raw.gnss_position(2);
+  utm_coordinate::LLAtoUTM(lla, utm);
 
   if (count < 10)
   {
-    gnss_origin = gps_raw;
-    printf("--gnss_origin: lon: %.7f, lat: %.7f, alt: %.3f \n", gnss_origin.position.x(), gnss_origin.position.y(), gnss_origin.position.z());
+    utm_origin = utm;
+    printf("--utm_origin: east: %.5f, north: %.5f, up: %.5f, zone: %s\n", utm_origin.east, utm_origin.north, utm_origin.up, utm_origin.zone.c_str());
     return;
   }
-  const double &d_lon = gps_raw.position.x() - gnss_origin.position.x();
-  const double &d_lat = gps_raw.position.y() - gnss_origin.position.y();
-  const double &d_alt = gps_raw.position.z() - gnss_origin.position.z();
+  else if (count == 10)
+  {
+    // TODO: 计算方差，判断是否稳定
 
-  V3D enu;
-  enu.x() = d_lon * R_EARTH * cos(gps_raw.position.y() * deg2rad) * deg2rad;
-  enu.y() = d_lat * R_EARTH * deg2rad;
-  enu.z() = d_alt;
-  GnssPose res = gps_raw;
-  res.position = ext_R_Gnss_Imu * enu + ext_T_Gnss_Imu; // frame gnss -> imu
+    LOG_WARN("gnss init successfully! utm_origin: east: %.5f, north: %.5f, up: %.5f, zone: %s.", utm_origin.east, utm_origin.north, utm_origin.up, utm_origin.zone.c_str());
+  }
 
-  gnss_buffer.push_back(res);
+  GnssPose utm_pose = gnss_raw;
+  utm_pose.gnss_position = V3D(utm.east - utm_origin.east, utm.north - utm_origin.north, utm.up - utm_origin.north);
+  gnss_buffer.push_back(utm_pose);
 }
 
 bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_time, const double &odom_z)
@@ -69,18 +83,26 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
   static PointType lastGPSPoint;
   while (!gnss_buffer.empty())
   {
-    if (gnss_buffer.front().timestamp < lidar_end_time - 0.05)
+    if (gnss_buffer.front().timestamp < lidar_end_time - gnssValidInterval)
     {
       gnss_buffer.pop_front();
     }
-    else if (gnss_buffer.front().timestamp > lidar_end_time + 0.05)
+    else if (gnss_buffer.front().timestamp > lidar_end_time + gnssValidInterval)
     {
       return false;
     }
     else
     {
-      thisGPS = gnss_buffer.front();
-      gnss_buffer.pop_front();
+      // 找到时间间隔最小的
+      thisGPS.current_gnss_interval = gnssValidInterval;
+      auto current_gnss_interval = std::abs(gnss_buffer.front().timestamp - lidar_end_time);
+      while (current_gnss_interval <= thisGPS.current_gnss_interval)
+      {
+        thisGPS.current_gnss_interval = current_gnss_interval;
+        thisGPS = gnss_buffer.front();
+        gnss_buffer.pop_front();
+        current_gnss_interval = std::abs(gnss_buffer.front().timestamp - lidar_end_time);
+      }
 
       // GPS噪声协方差太大，不能用
       float noise_x = thisGPS.covariance(0);
@@ -88,12 +110,12 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
       if (noise_x > gpsCovThreshold || noise_y > gpsCovThreshold)
         continue;
 
-      float gps_x = thisGPS.position(0);
-      float gps_y = thisGPS.position(1);
-      float gps_z = thisGPS.position(2);
+      float gps_x = thisGPS.gnss_position(0);
+      float gps_y = thisGPS.gnss_position(1);
+      float gps_z = thisGPS.gnss_position(2);
       if (!useGpsElevation)
       {
-        thisGPS.position(2) = odom_z;
+        thisGPS.gnss_position(2) = odom_z;
         thisGPS.covariance(2) = 0.01;
       }
 
@@ -110,6 +132,12 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
         continue;
       else
         lastGPSPoint = curGPSPoint;
+
+      Eigen::Matrix4d gnss_pose = Eigen::Matrix4d::Identity();
+      gnss_pose.topLeftCorner(3, 3) = EigenRotation::RPY2RotationMatrix(thisGPS.rpy);
+      gnss_pose.topRightCorner(3, 1) = thisGPS.gnss_position;
+      gnss_pose *= extrinsic_Imu2Gnss;
+      thisGPS.gnss_position_trans2imu = gnss_pose.topRightCorner(3, 1);
       return true;
     }
   }

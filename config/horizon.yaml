@@ -23,6 +23,7 @@ mapping:
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2
     pose_cov_threshold: 25      # for add GNSS factor
+    gnssValidInterval: 0.2
     recontruct_kdtree: true
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1

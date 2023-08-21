@@ -48,7 +48,6 @@ public:
 
     ~System()
     {
-        loop_closure_enable_flag = false;
     }
 
     void init_system_mode(bool pure_localization)

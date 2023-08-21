@@ -121,6 +121,7 @@ void load_config(System& slam, const std::string &config_path)
     slam.backend->keyframe_add_dist_threshold = config["mapping"]["keyframe_add_dist_threshold"].IsDefined() ? config["mapping"]["keyframe_add_dist_threshold"].as<float>() : 1;
     slam.backend->keyframe_add_angle_threshold = config["mapping"]["keyframe_add_angle_threshold"].IsDefined() ? config["mapping"]["keyframe_add_angle_threshold"].as<float>() : 0.2;
     slam.backend->pose_cov_threshold = config["mapping"]["pose_cov_threshold"].IsDefined() ? config["mapping"]["pose_cov_threshold"].as<float>() : 25;
+    slam.gnss->gnssValidInterval = config["mapping"]["gnssValidInterval"].IsDefined() ? config["mapping"]["gnssValidInterval"].as<float>() : 0.2;
     slam.backend->recontruct_kdtree = config["mapping"]["recontruct_kdtree"].IsDefined() ? config["mapping"]["recontruct_kdtree"].as<bool>() : true;
     slam.backend->ikdtree_reconstruct_keyframe_num = config["mapping"]["ikdtree_reconstruct_keyframe_num"].IsDefined() ? config["mapping"]["ikdtree_reconstruct_keyframe_num"].as<float>() : 10;
     slam.backend->ikdtree_reconstruct_downsamp_size = config["mapping"]["ikdtree_reconstruct_downsamp_size"].IsDefined() ? config["mapping"]["ikdtree_reconstruct_downsamp_size"].as<float>() : 0.1;
