@@ -32,6 +32,7 @@ mapping:
     ikdtree_reconstruct_downsamp_size: 0.1
 
     loop_closure_enable_flag: true
+    manually_fine_tune_loop_closure: false
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 3
     loop_closure_search_time_interval: 30
