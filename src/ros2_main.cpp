@@ -214,6 +214,8 @@ int main(int argc, char **argv)
     node->get_parameter_or("mapping/keyframe_add_angle_threshold", slam.backend->keyframe_add_angle_threshold, 0.2);
     node->get_parameter_or("mapping/pose_cov_threshold", slam.backend->pose_cov_threshold, 25);
     node->get_parameter_or("mapping/gnssValidInterval", slam.gnss->gnssValidInterval, 0.2);
+    node->get_parameter_or("mapping/gpsCovThreshold", slam.gnss->gpsCovThreshold, 2);
+    node->get_parameter_or("mapping/useGpsElevation", slam.gnss->useGpsElevation, false);
     node->get_parameter_or("mapping/recontruct_kdtree", slam.backend->recontruct_kdtree, true);
     node->get_parameter_or("mapping/ikdtree_reconstruct_keyframe_num", slam.backend->ikdtree_reconstruct_keyframe_num, 10);
     node->get_parameter_or("mapping/ikdtree_reconstruct_downsamp_size", slam.backend->ikdtree_reconstruct_downsamp_size, 0.1);

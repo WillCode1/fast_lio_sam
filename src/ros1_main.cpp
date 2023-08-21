@@ -248,6 +248,8 @@ int main(int argc, char **argv)
     nh.param<float>("mapping/keyframe_add_angle_threshold", slam.backend->keyframe_add_angle_threshold, 0.2);
     nh.param<float>("mapping/pose_cov_threshold", slam.backend->pose_cov_threshold, 25);
     nh.param<float>("mapping/gnssValidInterval", slam.gnss->gnssValidInterval, 0.2);
+    nh.param<float>("mapping/gpsCovThreshold", slam.gnss->gpsCovThreshold, 2);
+    nh.param<bool>("mapping/useGpsElevation", slam.gnss->useGpsElevation, false);
     nh.param<bool>("mapping/recontruct_kdtree", slam.backend->recontruct_kdtree, true);
     nh.param<float>("mapping/ikdtree_reconstruct_keyframe_num", slam.backend->ikdtree_reconstruct_keyframe_num, 10);
     nh.param<float>("mapping/ikdtree_reconstruct_downsamp_size", slam.backend->ikdtree_reconstruct_downsamp_size, 0.1);

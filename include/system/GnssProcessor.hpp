@@ -34,8 +34,8 @@ public:
   bool get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_time, const double &odom_z);
 
   float gnssValidInterval = 0.2;
-  float gpsCovThreshold = 25;
-  bool useGpsElevation = false; // 是否使用gps高层优化
+  float gpsCovThreshold = 2;
+  bool useGpsElevation = false; // 是否使用gps高程优化
   deque<GnssPose> gnss_buffer;
 
 private:
