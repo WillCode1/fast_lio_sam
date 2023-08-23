@@ -6,7 +6,7 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/segmentation/extract_clusters.h>
-#include "bnb3d.h"
+#include "global_localization/bnb3d.h"
 
 
 class Relocalization
