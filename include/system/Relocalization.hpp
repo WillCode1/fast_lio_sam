@@ -106,6 +106,13 @@ bool Relocalization::run(const PointCloudType::Ptr &scan, Eigen::Matrix4f& resul
     // auto plane_points = plane_seg(scan);
     if (!fine_tune_pose(scan, result))
     {
+#ifdef DEDUB_MODE
+        // for relocalization_debug
+        Eigen::Quaterniond res_quat = EigenRotation::RPY2Quaternion(V3D(init_pose.roll, init_pose.pitch, init_pose.yaw));
+        result.setIdentity();
+        result.topLeftCorner(3, 3) = res_quat.toRotationMatrix().cast<float>();
+        result.topRightCorner(3, 1) = V3F(init_pose.x, init_pose.y, init_pose.z);
+#endif
         return false;
     }
     result *= lidar_ext.inverse().cast<float>();

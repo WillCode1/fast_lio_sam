@@ -364,6 +364,7 @@ int main(int argc, char **argv)
 
     ros::Publisher pubGlobalmap = nh.advertise<sensor_msgs::PointCloud2>("/map_global", 1);
     std::thread visualizeMapThread(&visualize_globalmap_thread, pubGlobalmap);
+    ros::Publisher pubrelocalizationDebug = nh.advertise<sensor_msgs::PointCloud2>("/relocalization_debug", 1);
 
     //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
@@ -398,6 +399,13 @@ int main(int argc, char **argv)
                 publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.lidar_end_time);
             }
         }
+#ifdef DEDUB_MODE
+        else
+        {
+            // for relocalization_debug
+            publish_cloud_world(pubrelocalizationDebug, slam.measures->lidar, slam.frontend->state, slam.lidar_end_time);
+        }
+#endif
 
         rate.sleep();
     }

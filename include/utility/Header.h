@@ -103,3 +103,5 @@ Eigen::Affine3f pclPointToAffine3f(const PointXYZIRPYT &thisPoint)
 {
     return pcl::getTransformation(thisPoint.x, thisPoint.y, thisPoint.z, thisPoint.roll, thisPoint.pitch, thisPoint.yaw);
 }
+
+#define DEDUB_MODE
