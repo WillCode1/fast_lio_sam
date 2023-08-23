@@ -2,9 +2,9 @@ bnb3d:
     algorithm_type: "BNB_3D"
     # algorithm_type: "GICP"
 
-    # linear_xy_window_size: 5   # meter
-    linear_xy_window_size: 10   # meter
-    linear_z_window_size: 10  # meter
+    linear_xy_window_size: 5   # meter
+    # linear_xy_window_size: 10   # meter
+    linear_z_window_size: 6  # meter
     angular_search_window: 180  # degree 0~180
     pc_resolutions: [0.2, 0.3, 0.5]
     bnb_depth: 3

@@ -72,9 +72,9 @@ bool Relocalization::run(const PointCloudType::Ptr &scan, Eigen::Matrix4f& resul
         bool bnb_success = true;
         if (!bnb3d->MatchWithMatchOptions(init_pose, bnb_pose, scan, bnb_option, lidar_ext))
         {
-            LOG_ERROR("bnb_failed, when bnb min_score = %.2f! min_score set to %.2f and try again.", bnb_option.min_score, 0.1);
             auto bnb_opt_tmp = bnb_option;
             bnb_opt_tmp.min_score = 0.1;
+            LOG_ERROR("bnb_failed, when bnb min_score = %.2f! min_score set to %.2f and try again.", bnb_option.min_score, bnb_opt_tmp.min_score);
             if (!bnb3d->MatchWithMatchOptions(init_pose, bnb_pose, scan, bnb_opt_tmp, lidar_ext))
             {
                 bnb_success = false;

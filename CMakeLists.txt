@@ -70,6 +70,7 @@ catkin_package(
 
 add_library(${PROJECT_NAME} SHARED
   include/ikd-Tree/ikd_Tree.cpp
+  include/global_localization/scancontext/Scancontext.cpp
   include/system/ImuProcessor.cpp
   include/system/System.hpp)
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)

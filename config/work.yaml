@@ -19,7 +19,6 @@ mapping:
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
     ikdtree_resolution: 0.5
-    # ikdtree_resolution: 0.1      # for mapping, Increase accuracy 0.5 -> 0.1
     lidar_model_search_range: 5
     cube_side_length: 200
     runtime_log_enable: 0
