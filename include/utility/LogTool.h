@@ -38,7 +38,7 @@ enum LogLevel
 // #define LOG_LEVEL (debug)
 #define LOG_LEVEL (info)
 
-#define LOG(level, color, ...)                                        \
+#define LOG_PRINT(level, color, ...)                                  \
     do                                                                \
     {                                                                 \
         if (level >= LOG_LEVEL)                                       \
@@ -53,11 +53,11 @@ enum LogLevel
         }                                                             \
     } while (0)
 
-#define LOG_DEBUG(...) LOG(debug, "\033[0;32m", __VA_ARGS__)
-#define LOG_INFO(...) LOG(info, "\033[0m", __VA_ARGS__)
-#define LOG_WARN(...) LOG(warn, "\033[1;33m", __VA_ARGS__)
-#define LOG_ERROR(...) LOG(error, "\033[1;31m", __VA_ARGS__)
-#define LOG_FATAL(...) LOG(fatal, "\033[1;31m", __VA_ARGS__)
+#define LOG_DEBUG(...) LOG_PRINT(debug, "\033[0;32m", __VA_ARGS__)
+#define LOG_INFO(...) LOG_PRINT(info, "\033[0m", __VA_ARGS__)
+#define LOG_WARN(...) LOG_PRINT(warn, "\033[1;33m", __VA_ARGS__)
+#define LOG_ERROR(...) LOG_PRINT(error, "\033[1;31m", __VA_ARGS__)
+#define LOG_FATAL(...) LOG_PRINT(fatal, "\033[1;31m", __VA_ARGS__)
 
 #define LOG_DEBUG_COND(cond, ...) if (cond) LOG_DEBUG(__VA_ARGS__)
 #define LOG_INFO_COND(cond, ...) if (cond) LOG_INFO(__VA_ARGS__)
