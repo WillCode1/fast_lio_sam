@@ -156,54 +156,57 @@ void load_config(System& slam, const std::string &config_path)
     extrinT = config["mapping"]["extrinsic_T"].IsDefined() ? config["mapping"]["extrinsic_T"].as<vector<double>>() : vector<double>();
     extrinR = config["mapping"]["extrinsic_R"].IsDefined() ? config["mapping"]["extrinsic_R"].as<vector<double>>() : vector<double>();
 
-    BnbOptions match_option;
-    Pose init_pose, lidar_pose;
-    match_option.algorithm_type = relocal_config["bnb3d"]["algorithm_type"].IsDefined() ? relocal_config["bnb3d"]["algorithm_type"].as<string>() : std::string("UNKONW");
-    match_option.linear_xy_window_size = relocal_config["bnb3d"]["linear_xy_window_size"].IsDefined() ? relocal_config["bnb3d"]["linear_xy_window_size"].as<double>() : 10;
-    match_option.linear_z_window_size = relocal_config["bnb3d"]["linear_z_window_size"].IsDefined() ? relocal_config["bnb3d"]["linear_z_window_size"].as<double>() : 1.;
-    match_option.angular_search_window = relocal_config["bnb3d"]["angular_search_window"].IsDefined() ? relocal_config["bnb3d"]["angular_search_window"].as<double>() : 30;
-    match_option.pc_resolutions = relocal_config["bnb3d"]["pc_resolutions"].IsDefined() ? relocal_config["bnb3d"]["pc_resolutions"].as<vector<double>>() : vector<double>();
-    match_option.bnb_depth = relocal_config["bnb3d"]["bnb_depth"].IsDefined() ? relocal_config["bnb3d"]["bnb_depth"].as<int>() : 5;
-    match_option.min_score = relocal_config["bnb3d"]["min_score"].IsDefined() ? relocal_config["bnb3d"]["min_score"].as<double>() : 0.1;
-    match_option.min_xy_resolution = relocal_config["bnb3d"]["min_xy_resolution"].IsDefined() ? relocal_config["bnb3d"]["min_xy_resolution"].as<double>() : 0.2;
-    match_option.min_z_resolution = relocal_config["bnb3d"]["min_z_resolution"].IsDefined() ? relocal_config["bnb3d"]["min_z_resolution"].as<double>() : 0.1;
-    match_option.min_angular_resolution = relocal_config["bnb3d"]["min_angular_resolution"].IsDefined() ? relocal_config["bnb3d"]["min_angular_resolution"].as<double>() : 0.1;
-    match_option.thread_num = relocal_config["bnb3d"]["thread_num"].IsDefined() ? relocal_config["bnb3d"]["thread_num"].as<int>() : 4;
-    match_option.filter_size_scan = relocal_config["bnb3d"]["filter_size_scan"].IsDefined() ? relocal_config["bnb3d"]["filter_size_scan"].as<double>() : 0.1;
-    match_option.debug_mode = relocal_config["bnb3d"]["debug_mode"].IsDefined() ? relocal_config["bnb3d"]["debug_mode"].as<bool>() : false;
+    if (pure_localization)
+    {
+        BnbOptions match_option;
+        Pose init_pose, lidar_pose;
+        match_option.algorithm_type = relocal_config["bnb3d"]["algorithm_type"].IsDefined() ? relocal_config["bnb3d"]["algorithm_type"].as<string>() : std::string("UNKONW");
+        match_option.linear_xy_window_size = relocal_config["bnb3d"]["linear_xy_window_size"].IsDefined() ? relocal_config["bnb3d"]["linear_xy_window_size"].as<double>() : 10;
+        match_option.linear_z_window_size = relocal_config["bnb3d"]["linear_z_window_size"].IsDefined() ? relocal_config["bnb3d"]["linear_z_window_size"].as<double>() : 1.;
+        match_option.angular_search_window = relocal_config["bnb3d"]["angular_search_window"].IsDefined() ? relocal_config["bnb3d"]["angular_search_window"].as<double>() : 30;
+        match_option.pc_resolutions = relocal_config["bnb3d"]["pc_resolutions"].IsDefined() ? relocal_config["bnb3d"]["pc_resolutions"].as<vector<double>>() : vector<double>();
+        match_option.bnb_depth = relocal_config["bnb3d"]["bnb_depth"].IsDefined() ? relocal_config["bnb3d"]["bnb_depth"].as<int>() : 5;
+        match_option.min_score = relocal_config["bnb3d"]["min_score"].IsDefined() ? relocal_config["bnb3d"]["min_score"].as<double>() : 0.1;
+        match_option.min_xy_resolution = relocal_config["bnb3d"]["min_xy_resolution"].IsDefined() ? relocal_config["bnb3d"]["min_xy_resolution"].as<double>() : 0.2;
+        match_option.min_z_resolution = relocal_config["bnb3d"]["min_z_resolution"].IsDefined() ? relocal_config["bnb3d"]["min_z_resolution"].as<double>() : 0.1;
+        match_option.min_angular_resolution = relocal_config["bnb3d"]["min_angular_resolution"].IsDefined() ? relocal_config["bnb3d"]["min_angular_resolution"].as<double>() : 0.1;
+        match_option.thread_num = relocal_config["bnb3d"]["thread_num"].IsDefined() ? relocal_config["bnb3d"]["thread_num"].as<int>() : 4;
+        match_option.filter_size_scan = relocal_config["bnb3d"]["filter_size_scan"].IsDefined() ? relocal_config["bnb3d"]["filter_size_scan"].as<double>() : 0.1;
+        match_option.debug_mode = relocal_config["bnb3d"]["debug_mode"].IsDefined() ? relocal_config["bnb3d"]["debug_mode"].as<bool>() : false;
 
-    slam.relocalization->need_wait_prior_pose_inited = relocal_config["bnb3d"]["need_wait_prior_pose_inited"].IsDefined() ? relocal_config["bnb3d"]["need_wait_prior_pose_inited"].as<bool>() : true;
-    init_pose.x = relocal_config["bnb3d"]["init_pose"]["x"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["x"].as<double>() : 0.;
-    init_pose.y = relocal_config["bnb3d"]["init_pose"]["y"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["y"].as<double>() : 0.;
-    init_pose.z = relocal_config["bnb3d"]["init_pose"]["z"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["z"].as<double>() : 0.;
-    init_pose.roll = relocal_config["bnb3d"]["init_pose"]["roll"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["roll"].as<double>() : 0.;
-    init_pose.pitch = relocal_config["bnb3d"]["init_pose"]["pitch"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["pitch"].as<double>() : 0.;
-    init_pose.yaw = relocal_config["bnb3d"]["init_pose"]["yaw"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["yaw"].as<double>() : 0.;
+        slam.relocalization->need_wait_prior_pose_inited = relocal_config["bnb3d"]["need_wait_prior_pose_inited"].IsDefined() ? relocal_config["bnb3d"]["need_wait_prior_pose_inited"].as<bool>() : true;
+        init_pose.x = relocal_config["bnb3d"]["init_pose"]["x"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["x"].as<double>() : 0.;
+        init_pose.y = relocal_config["bnb3d"]["init_pose"]["y"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["y"].as<double>() : 0.;
+        init_pose.z = relocal_config["bnb3d"]["init_pose"]["z"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["z"].as<double>() : 0.;
+        init_pose.roll = relocal_config["bnb3d"]["init_pose"]["roll"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["roll"].as<double>() : 0.;
+        init_pose.pitch = relocal_config["bnb3d"]["init_pose"]["pitch"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["pitch"].as<double>() : 0.;
+        init_pose.yaw = relocal_config["bnb3d"]["init_pose"]["yaw"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["yaw"].as<double>() : 0.;
 
-    lidar_pose.x = relocal_config["bnb3d"]["lidar_ext"]["x"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["x"].as<double>() : 0.;
-    lidar_pose.y = relocal_config["bnb3d"]["lidar_ext"]["y"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["y"].as<double>() : 0.;
-    lidar_pose.z = relocal_config["bnb3d"]["lidar_ext"]["z"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["z"].as<double>() : 0.;
-    lidar_pose.roll = relocal_config["bnb3d"]["lidar_ext"]["roll"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["roll"].as<double>() : 0.;
-    lidar_pose.pitch = relocal_config["bnb3d"]["lidar_ext"]["pitch"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["pitch"].as<double>() : 0.;
-    lidar_pose.yaw = relocal_config["bnb3d"]["lidar_ext"]["yaw"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["yaw"].as<double>() : 0.;
-    slam.relocalization->set_bnb3d_param(match_option, init_pose, lidar_pose);
+        lidar_pose.x = relocal_config["bnb3d"]["lidar_ext"]["x"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["x"].as<double>() : 0.;
+        lidar_pose.y = relocal_config["bnb3d"]["lidar_ext"]["y"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["y"].as<double>() : 0.;
+        lidar_pose.z = relocal_config["bnb3d"]["lidar_ext"]["z"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["z"].as<double>() : 0.;
+        lidar_pose.roll = relocal_config["bnb3d"]["lidar_ext"]["roll"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["roll"].as<double>() : 0.;
+        lidar_pose.pitch = relocal_config["bnb3d"]["lidar_ext"]["pitch"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["pitch"].as<double>() : 0.;
+        lidar_pose.yaw = relocal_config["bnb3d"]["lidar_ext"]["yaw"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["yaw"].as<double>() : 0.;
+        slam.relocalization->set_bnb3d_param(match_option, init_pose, lidar_pose);
 
-    int min_plane_point;
-    double filter_radius, cluster_dis, plane_dis, plane_point_percent;
-    filter_radius = relocal_config["gicp"]["filter_radius"].IsDefined() ? relocal_config["gicp"]["filter_radius"].as<double>() : 1;
-    min_plane_point = relocal_config["gicp"]["min_plane_point"].IsDefined() ? relocal_config["gicp"]["min_plane_point"].as<int>() : 20;
-    cluster_dis = relocal_config["gicp"]["cluster_dis"].IsDefined() ? relocal_config["gicp"]["cluster_dis"].as<double>() : 0.1;
-    plane_dis = relocal_config["gicp"]["plane_dis"].IsDefined() ? relocal_config["gicp"]["plane_dis"].as<double>() : 0.1;
-    plane_point_percent = relocal_config["gicp"]["plane_point_percent"].IsDefined() ? relocal_config["gicp"]["plane_point_percent"].as<double>() : 0.1;
-    slam.relocalization->set_plane_extract_param(filter_radius, min_plane_point, cluster_dis, plane_dis, plane_point_percent);
+        int min_plane_point;
+        double filter_radius, cluster_dis, plane_dis, plane_point_percent;
+        filter_radius = relocal_config["gicp"]["filter_radius"].IsDefined() ? relocal_config["gicp"]["filter_radius"].as<double>() : 1;
+        min_plane_point = relocal_config["gicp"]["min_plane_point"].IsDefined() ? relocal_config["gicp"]["min_plane_point"].as<int>() : 20;
+        cluster_dis = relocal_config["gicp"]["cluster_dis"].IsDefined() ? relocal_config["gicp"]["cluster_dis"].as<double>() : 0.1;
+        plane_dis = relocal_config["gicp"]["plane_dis"].IsDefined() ? relocal_config["gicp"]["plane_dis"].as<double>() : 0.1;
+        plane_point_percent = relocal_config["gicp"]["plane_point_percent"].IsDefined() ? relocal_config["gicp"]["plane_point_percent"].as<double>() : 0.1;
+        slam.relocalization->set_plane_extract_param(filter_radius, min_plane_point, cluster_dis, plane_dis, plane_point_percent);
 
-    double gicp_downsample, search_radius, teps, feps, fitness_score;
-    gicp_downsample = relocal_config["gicp"]["gicp_downsample"].IsDefined() ? relocal_config["gicp"]["gicp_downsample"].as<double>() : 0.2;
-    search_radius = relocal_config["gicp"]["search_radius"].IsDefined() ? relocal_config["gicp"]["search_radius"].as<double>() : 0.5;
-    teps = relocal_config["gicp"]["teps"].IsDefined() ? relocal_config["gicp"]["teps"].as<double>() : 1e-3;
-    feps = relocal_config["gicp"]["feps"].IsDefined() ? relocal_config["gicp"]["feps"].as<double>() : 1e-3;
-    fitness_score = relocal_config["gicp"]["fitness_score"].IsDefined() ? relocal_config["gicp"]["fitness_score"].as<double>() : 0.3;
-    slam.relocalization->set_gicp_param(gicp_downsample, search_radius, teps, feps, fitness_score);
+        double gicp_downsample, search_radius, teps, feps, fitness_score;
+        gicp_downsample = relocal_config["gicp"]["gicp_downsample"].IsDefined() ? relocal_config["gicp"]["gicp_downsample"].as<double>() : 0.2;
+        search_radius = relocal_config["gicp"]["search_radius"].IsDefined() ? relocal_config["gicp"]["search_radius"].as<double>() : 0.5;
+        teps = relocal_config["gicp"]["teps"].IsDefined() ? relocal_config["gicp"]["teps"].as<double>() : 1e-3;
+        feps = relocal_config["gicp"]["feps"].IsDefined() ? relocal_config["gicp"]["feps"].as<double>() : 1e-3;
+        fitness_score = relocal_config["gicp"]["fitness_score"].IsDefined() ? relocal_config["gicp"]["fitness_score"].as<double>() : 0.3;
+        slam.relocalization->set_gicp_param(gicp_downsample, search_radius, teps, feps, fitness_score);
+    }
 
     vector<double> gravity;
     gravity = config["localization"]["gravity"].IsDefined() ? config["localization"]["gravity"].as<vector<double>>() : vector<double>();

@@ -209,7 +209,7 @@ private:
     {
         if (recontruct_kdtree)
         {
-            loger.timer.record();
+            // loger.timer.record();
             PointCloudType::Ptr submap_keyframes(new PointCloudType());
             PointCloudType::Ptr submap_keyframesDS(new PointCloudType());
             pcl::VoxelGrid<PointType> downsize_filter_submap;
@@ -226,8 +226,7 @@ private:
             ikdtree.reconstruct(submap_keyframesDS->points);
 
             loger.kdtree_size = ikdtree.size();
-            LOG_INFO("Reconstructed ikdtree, points size = %lu, reconstruct cost time = %f ms",
-                     submap_keyframesDS->points.size(), loger.timer.elapsedLast());
+            // LOG_INFO("Reconstructed ikdtree, points size = %lu, reconstruct cost time = %f ms", submap_keyframesDS->points.size(), loger.timer.elapsedLast());
         }
     }
 

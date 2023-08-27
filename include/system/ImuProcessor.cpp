@@ -100,7 +100,11 @@ void ImuProcessor::IMU_init(const MeasureCollection &meas, esekfom::esekf<state_
   }
   state_ikfom init_state = kf_state.get_x();
   if (!pure_localization)
+  {
     init_state.grav = S2(-mean_acc / mean_acc.norm() * G_m_s2);
+    LOG_WARN_COND(std::abs(mean_acc.x()) > 0.1 || std::abs(mean_acc.y()) > 0.1,
+                  "The direction of gravity is not vertical (%f, %f, %f), and the map coordinate system is tilted.", -mean_acc.x(), -mean_acc.y(), -mean_acc.z());
+  }
 
   // state_inout.rot = EYE3D; // Exp(mean_acc.cross(V3D(0, 0, -1 / scale_gravity)));
   init_state.bg = mean_gyr;                  // 静止初始化, 使用角速度测量作为陀螺仪偏差

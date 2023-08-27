@@ -247,54 +247,57 @@ int main(int argc, char **argv)
     node->get_parameter_or("mapping/extrinsic_R", extrinR, vector<double>());
     cout << "current lidar_type: " << lidar_type << endl;
 
-    BnbOptions match_option;
-    Pose init_pose, lidar_pose;
-    node->get_parameter_or("bnb3d/algorithm_type", match_option.algorithm_type, std::string("UNKONW"));
-    node->get_parameter_or("bnb3d/linear_xy_window_size", match_option.linear_xy_window_size, 10.);
-    node->get_parameter_or("bnb3d/linear_z_window_size", match_option.linear_z_window_size, 1.);
-    node->get_parameter_or("bnb3d/angular_search_window", match_option.angular_search_window, 30.);
-    node->get_parameter_or("bnb3d/pc_resolutions", match_option.pc_resolutions, std::vector<double>());
-    node->get_parameter_or("bnb3d/bnb_depth", match_option.bnb_depth, 5);
-    node->get_parameter_or("bnb3d/bnb_min_score", match_option.min_score, 0.1);
-    node->get_parameter_or("bnb3d/min_xy_resolution", match_option.min_xy_resolution, 0.2);
-    node->get_parameter_or("bnb3d/min_z_resolution", match_option.min_z_resolution, 0.1);
-    node->get_parameter_or("bnb3d/min_angular_resolution", match_option.min_angular_resolution, 0.1);
-    node->get_parameter_or("bnb3d/thread_num", match_option.thread_num, 4);
-    node->get_parameter_or("bnb3d/filter_size_scan", match_option.filter_size_scan, 0.1);
-    node->get_parameter_or("bnb3d/debug_mode", match_option.debug_mode, false);
+    if (slam.localization_mode)
+    {
+        BnbOptions match_option;
+        Pose init_pose, lidar_pose;
+        node->get_parameter_or("bnb3d/algorithm_type", match_option.algorithm_type, std::string("UNKONW"));
+        node->get_parameter_or("bnb3d/linear_xy_window_size", match_option.linear_xy_window_size, 10.);
+        node->get_parameter_or("bnb3d/linear_z_window_size", match_option.linear_z_window_size, 1.);
+        node->get_parameter_or("bnb3d/angular_search_window", match_option.angular_search_window, 30.);
+        node->get_parameter_or("bnb3d/pc_resolutions", match_option.pc_resolutions, std::vector<double>());
+        node->get_parameter_or("bnb3d/bnb_depth", match_option.bnb_depth, 5);
+        node->get_parameter_or("bnb3d/bnb_min_score", match_option.min_score, 0.1);
+        node->get_parameter_or("bnb3d/min_xy_resolution", match_option.min_xy_resolution, 0.2);
+        node->get_parameter_or("bnb3d/min_z_resolution", match_option.min_z_resolution, 0.1);
+        node->get_parameter_or("bnb3d/min_angular_resolution", match_option.min_angular_resolution, 0.1);
+        node->get_parameter_or("bnb3d/thread_num", match_option.thread_num, 4);
+        node->get_parameter_or("bnb3d/filter_size_scan", match_option.filter_size_scan, 0.1);
+        node->get_parameter_or("bnb3d/debug_mode", match_option.debug_mode, false);
 
-    node->get_parameter_or("bnb3d/need_wait_prior_pose_inited", slam.relocalization->need_wait_prior_pose_inited, true);
-    node->get_parameter_or("bnb3d/init_pose/x", init_pose.x, 0.);
-    node->get_parameter_or("bnb3d/init_pose/y", init_pose.y, 0.);
-    node->get_parameter_or("bnb3d/init_pose/z", init_pose.z, 0.);
-    node->get_parameter_or("bnb3d/init_pose/roll", init_pose.roll, 0.);
-    node->get_parameter_or("bnb3d/init_pose/pitch", init_pose.pitch, 0.);
-    node->get_parameter_or("bnb3d/init_pose/yaw", init_pose.yaw, 0.);
+        node->get_parameter_or("bnb3d/need_wait_prior_pose_inited", slam.relocalization->need_wait_prior_pose_inited, true);
+        node->get_parameter_or("bnb3d/init_pose/x", init_pose.x, 0.);
+        node->get_parameter_or("bnb3d/init_pose/y", init_pose.y, 0.);
+        node->get_parameter_or("bnb3d/init_pose/z", init_pose.z, 0.);
+        node->get_parameter_or("bnb3d/init_pose/roll", init_pose.roll, 0.);
+        node->get_parameter_or("bnb3d/init_pose/pitch", init_pose.pitch, 0.);
+        node->get_parameter_or("bnb3d/init_pose/yaw", init_pose.yaw, 0.);
 
-    node->get_parameter_or("bnb3d/lidar_ext/x", lidar_pose.x, 0.);
-    node->get_parameter_or("bnb3d/lidar_ext/y", lidar_pose.y, 0.);
-    node->get_parameter_or("bnb3d/lidar_ext/z", lidar_pose.z, 0.);
-    node->get_parameter_or("bnb3d/lidar_ext/roll", lidar_pose.roll, 0.);
-    node->get_parameter_or("bnb3d/lidar_ext/pitch", lidar_pose.pitch, 0.);
-    node->get_parameter_or("bnb3d/lidar_ext/yaw", lidar_pose.yaw, 0.);
-    slam.relocalization->set_bnb3d_param(match_option, init_pose, lidar_pose);
+        node->get_parameter_or("bnb3d/lidar_ext/x", lidar_pose.x, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/y", lidar_pose.y, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/z", lidar_pose.z, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/roll", lidar_pose.roll, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/pitch", lidar_pose.pitch, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/yaw", lidar_pose.yaw, 0.);
+        slam.relocalization->set_bnb3d_param(match_option, init_pose, lidar_pose);
 
-    int min_plane_point;
-    double filter_radius, cluster_dis, plane_dis, plane_point_percent;
-    node->get_parameter_or("gicp/filter_radius", filter_radius, 1.);
-    node->get_parameter_or("gicp/min_plane_point", min_plane_point, 20);
-    node->get_parameter_or("gicp/cluster_dis", cluster_dis, 0.1);
-    node->get_parameter_or("gicp/plane_dis", plane_dis, 0.1);
-    node->get_parameter_or("gicp/plane_point_percent", plane_point_percent, 0.1);
-    slam.relocalization->set_plane_extract_param(filter_radius, min_plane_point, cluster_dis, plane_dis, plane_point_percent);
+        int min_plane_point;
+        double filter_radius, cluster_dis, plane_dis, plane_point_percent;
+        node->get_parameter_or("gicp/filter_radius", filter_radius, 1.);
+        node->get_parameter_or("gicp/min_plane_point", min_plane_point, 20);
+        node->get_parameter_or("gicp/cluster_dis", cluster_dis, 0.1);
+        node->get_parameter_or("gicp/plane_dis", plane_dis, 0.1);
+        node->get_parameter_or("gicp/plane_point_percent", plane_point_percent, 0.1);
+        slam.relocalization->set_plane_extract_param(filter_radius, min_plane_point, cluster_dis, plane_dis, plane_point_percent);
 
-    double gicp_downsample, search_radius, teps, feps, fitness_score;
-    node->get_parameter_or("gicp/gicp_downsample", gicp_downsample, 0.2);
-    node->get_parameter_or("gicp/search_radius", search_radius, 0.5);
-    node->get_parameter_or("gicp/teps", teps, 1e-3);
-    node->get_parameter_or("gicp/feps", feps, 1e-3);
-    node->get_parameter_or("gicp/fitness_score", fitness_score, 0.3);
-    slam.relocalization->set_gicp_param(gicp_downsample, search_radius, teps, feps, fitness_score);
+        double gicp_downsample, search_radius, teps, feps, fitness_score;
+        node->get_parameter_or("gicp/gicp_downsample", gicp_downsample, 0.2);
+        node->get_parameter_or("gicp/search_radius", search_radius, 0.5);
+        node->get_parameter_or("gicp/teps", teps, 1e-3);
+        node->get_parameter_or("gicp/feps", feps, 1e-3);
+        node->get_parameter_or("gicp/fitness_score", fitness_score, 0.3);
+        slam.relocalization->set_gicp_param(gicp_downsample, search_radius, teps, feps, fitness_score);
+    }
 
     vector<double> gravity;
     node->get_parameter_or("localization/gravity", gravity, vector<double>());
