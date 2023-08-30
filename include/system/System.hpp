@@ -282,16 +282,7 @@ public:
         filter.setLeafSize(save_resolution, save_resolution, save_resolution);
         filter.setInputCloud(pcl_map_full);
         filter.filter(*pcl_map_full);
-#if 0
-        PointXYZIRPYT pose;
-        pose.x = 0;
-        pose.y = 0;
-        pose.z = 0;
-        pose.roll = DEG2RAD(180);
-        pose.pitch = 0;
-        pose.yaw = 0;
-        *pcl_map_full = *pointcloudLidarToWorld(pcl_map_full, pose);
-#endif
+
         pcl::PCDWriter pcd_writer;
         pcd_writer.writeBinary(globalmap_path, *pcl_map_full);
         LOG_WARN("Success save global map poses to %s.", globalmap_path.c_str());
