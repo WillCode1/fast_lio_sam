@@ -247,7 +247,6 @@ public:
                     {
                         auto state_copy = frontend->state;
                         loopClosure->run(lidar_end_time, state_copy, *keyframe_scan);
-                        // visualizeLoopClosure(); // rviz展示闭环边
                     }
                 }
             }

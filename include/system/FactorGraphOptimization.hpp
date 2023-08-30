@@ -46,6 +46,7 @@ public:
 
     void set_current_pose(const double &lidar_end_time, const state_ikfom &cur_state, uint32_t keyframe_index)
     {
+        // imu pose -> lidar pose
         M3D lidar_rot = cur_state.rot.toRotationMatrix() * cur_state.offset_R_L_I;
         V3D lidar_pos = cur_state.rot * cur_state.offset_T_L_I + cur_state.pos;
 
@@ -201,8 +202,6 @@ private:
             frontend.state.pos = lidar_pos - frontend.state.rot * frontend.state.offset_T_L_I;
             frontend.kf.change_x(frontend.state);
         }
-
-        // updatePath(this_pose6d); //  TODO: 可视化update后的path
     }
 
     void reset_ikdtree(KD_TREE<PointType> &ikdtree, const state_ikfom &state, LogAnalysis &loger)
@@ -248,8 +247,6 @@ private:
                 keyframe_pose6d_optimized->points[i].roll = optimized_estimate.at<gtsam::Pose3>(i).rotation().roll();
                 keyframe_pose6d_optimized->points[i].pitch = optimized_estimate.at<gtsam::Pose3>(i).rotation().pitch();
                 keyframe_pose6d_optimized->points[i].yaw = optimized_estimate.at<gtsam::Pose3>(i).rotation().yaw();
-
-                // updatePath(keyframe_pose6d_optimized->points[i]);
             }
             pose_mtx.unlock();
             reset_ikdtree(ikdtree, state, loger);

@@ -158,7 +158,7 @@ void publish_odometry(rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr &pub
 }
 
 // 每隔10个发布一下轨迹
-void publish_path(rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr &pubPath, const state_ikfom &state, const double& lidar_end_time)
+void publish_imu_path(rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr &pubPath, const state_ikfom &state, const double& lidar_end_time)
 {
     static geometry_msgs::msg::PoseStamped msg_body_pose;
     set_posestamp(msg_body_pose, state);
@@ -267,12 +267,12 @@ int main(int argc, char **argv)
         node->get_parameter_or("bnb3d/debug_mode", match_option.debug_mode, false);
 
         Pose lidar_extrinsic;
-        node->get_parameter_or("bnb3d/lidar_ext/x", lidar_extrinsic.x, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/y", lidar_extrinsic.y, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/z", lidar_extrinsic.z, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/roll", lidar_extrinsic.roll, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/pitch", lidar_extrinsic.pitch, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
+        node->get_parameter_or("relocalization_cfg/lidar_ext/x", lidar_extrinsic.x, 0.);
+        node->get_parameter_or("relocalization_cfg/lidar_ext/y", lidar_extrinsic.y, 0.);
+        node->get_parameter_or("relocalization_cfg/lidar_ext/z", lidar_extrinsic.z, 0.);
+        node->get_parameter_or("relocalization_cfg/lidar_ext/roll", lidar_extrinsic.roll, 0.);
+        node->get_parameter_or("relocalization_cfg/lidar_ext/pitch", lidar_extrinsic.pitch, 0.);
+        node->get_parameter_or("relocalization_cfg/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
         slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
         int min_plane_point;
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
     // not used
     auto pubLaserCloudMap = node->create_publisher<sensor_msgs::msg::PointCloud2>("/Laser_map", 100000);
     auto pubOdomAftMapped = node->create_publisher<nav_msgs::msg::Odometry>("/Odometry", 100000);
-    auto pubPath = node->create_publisher<nav_msgs::msg::Path>("/path", 100000);
+    auto pubImuPath = node->create_publisher<nav_msgs::msg::Path>("/imu_path", 100000);
     tf2_ros::TransformBroadcaster broadcaster(node);
     //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
@@ -348,7 +348,7 @@ int main(int argc, char **argv)
 
             /******* Publish points *******/
             if (path_en)
-                publish_path(pubPath, state, slam.lidar_end_time);
+                publish_imu_path(pubImuPath, state, slam.lidar_end_time);
             if (scan_pub_en)
                 if (dense_pub_en)
                     publish_cloud_world(pubLaserCloudFull, slam.feats_undistort, state, slam.lidar_end_time);

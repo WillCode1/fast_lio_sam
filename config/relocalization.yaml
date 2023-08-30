@@ -3,6 +3,14 @@ relocalization_cfg:
     # algorithm_type: "manually_set"
     lidar_height: 2.2
 
+    # lidar extrinsic to imu
+    lidar_ext/x: -0.00665
+    lidar_ext/y: 0
+    lidar_ext/z: -1.51277
+    lidar_ext/roll: 180
+    lidar_ext/pitch: 0
+    lidar_ext/yaw: 0
+
 bnb3d:
     linear_xy_window_size: 5   # meter
     # linear_xy_window_size: 10   # meter
@@ -19,14 +27,6 @@ bnb3d:
     thread_num: 6
     filter_size_scan: 0.2
     debug_mode: false
-
-    # lidar extrinsic to imu
-    lidar_ext/x: -0.00665
-    lidar_ext/y: 0
-    lidar_ext/z: -1.51277
-    lidar_ext/roll: 180
-    lidar_ext/pitch: 0
-    lidar_ext/yaw: 0
 
 gicp:
     filter_radius: 1

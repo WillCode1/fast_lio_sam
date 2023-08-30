@@ -12,13 +12,32 @@
 class LoopClosure
 {
 public:
-    LoopClosure()
+    LoopClosure(const std::shared_ptr<ScanContext::SCManager> scManager)
     {
         copy_keyframe_pose6d.reset(new pcl::PointCloud<PointXYZIRPYT>());
         kdtree_history_keyframe_pose.reset(new pcl::KdTreeFLANN<PointXYZIRPYT>());
+
+        curKeyframeCloud.reset(new PointCloudType());
+        prevKeyframeCloud.reset(new PointCloudType());
+
+        sc_manager = scManager;
     }
 
-    bool detect_loop_closure_by_distance(int &latest_id, int &closest_id, const double &lidar_end_time)
+    bool detect_loop_by_scancontext(int &latest_id, int &closest_id, float &sc_yaw_rad)
+    {
+        auto detectResult = sc_manager->detectLoopClosureID(50); // first: nn index, second: yaw diff
+        closest_id = detectResult.first;
+        sc_yaw_rad = detectResult.second;
+
+        if (closest_id == -1)
+          return false;
+
+        latest_id = copy_keyframe_pose6d->size() - 1;
+        LOG_WARN("detect_loop_by_scancontext, id is %d.", closest_id);
+        return true;
+    }
+
+    bool detect_loop_by_distance(int &latest_id, int &closest_id, const double &lidar_end_time)
     {
         latest_id = copy_keyframe_pose6d->size() - 1; // 当前关键帧索引
         closest_id = -1;
@@ -27,12 +46,12 @@ public:
         auto it = loop_constraint_records.find(latest_id);
         if (it != loop_constraint_records.end())
             return false;
-        // 在历史关键帧中查找与当前关键帧距离最近的关键帧集合
+
+        // 在历史关键帧中查找与当前关键帧距离最近的关键帧
         std::vector<int> indices;
         std::vector<float> distances;
         kdtree_history_keyframe_pose->setInputCloud(copy_keyframe_pose6d);
         kdtree_history_keyframe_pose->radiusSearch(copy_keyframe_pose6d->back(), loop_closure_search_radius, indices, distances, 0);
-        // 在候选关键帧集合中，找到与当前帧时间相隔较远的帧，设为候选匹配帧
         for (int i = 0; i < (int)indices.size(); ++i)
         {
             int id = indices[i];
@@ -83,29 +102,39 @@ public:
         // 当前关键帧索引，候选闭环匹配帧索引
         int loop_key_cur;
         int loop_key_ref;
-        // 在历史关键帧中查找与当前关键帧距离最近的关键帧集合，选择时间相隔较远的一帧作为候选闭环帧
-        if (detect_loop_closure_by_distance(loop_key_cur, loop_key_ref, lidar_end_time) == false)
+        float sc_yaw_rad = -1; // sc2右移 <=> lidar左转 <=> 左+sc_yaw_rad
+
+        // 1.scan context
+        // if (detect_loop_by_scancontext(loop_key_cur, loop_key_ref, sc_yaw_rad) == false)
         {
-            return;
+            int sc_index, cc_index;
+            // 2.在历史关键帧中查找与当前关键帧距离最近的关键帧
+            if (detect_loop_by_distance(loop_key_cur, loop_key_ref, lidar_end_time) == false)
+            {
+                return;
+            }
+            if (detect_loop_by_scancontext(loop_key_cur, loop_key_ref, sc_yaw_rad) == false)
+            {
+                return;
+            }
         }
 
+        // extract cloud
         PointCloudType::Ptr cur_keyframe_cloud(new PointCloudType());
         PointCloudType::Ptr ref_near_keyframe_cloud(new PointCloudType());
         {
-            // 提取当前关键帧特征点集合，降采样
             loop_find_near_keyframes(cur_keyframe_cloud, loop_key_cur, 0, state, keyframe_scan);
-            // 提取闭环匹配关键帧前后相邻若干帧的关键帧特征点集合，降采样
             loop_find_near_keyframes(ref_near_keyframe_cloud, loop_key_ref, keyframe_search_num, state, keyframe_scan);
-            // 如果特征点较少，返回
             if (cur_keyframe_cloud->size() < 300 || ref_near_keyframe_cloud->size() < 1000)
             {
                 return;
             }
-            // 发布闭环匹配关键帧局部map
-            // if (pubHistoryKeyFrames.getNumSubscribers() != 0)
-            //     publishCloud(&pubHistoryKeyFrames, ref_near_keyframe_cloud, timeLaserInfoStamp, odometryFrame);
+
+            // publish loop submap
+            *prevKeyframeCloud = *ref_near_keyframe_cloud;
         }
 
+        // GICP match
         pcl::GeneralizedIterativeClosestPoint<PointType, PointType> gicp;
         gicp.setMaxCorrespondenceDistance(loop_closure_search_radius * 2);
         gicp.setMaximumIterations(100);
@@ -116,7 +145,17 @@ public:
         gicp.setInputSource(cur_keyframe_cloud);
         gicp.setInputTarget(ref_near_keyframe_cloud);
         PointCloudType::Ptr unused_result(new PointCloudType());
-        gicp.align(*unused_result);
+        if (sc_yaw_rad >= 0)
+        {
+            const auto &pose_ref = copy_keyframe_pose6d->points[loop_key_ref];
+            Eigen::Matrix4f pose_ref_mat = EigenMath::CreateAffineMatrix(V3D(pose_ref.x, pose_ref.y, pose_ref.z), V3D(pose_ref.roll, pose_ref.pitch, pose_ref.yaw + sc_yaw_rad)).cast<float>();
+
+            const auto &pose_cur = copy_keyframe_pose6d->back();
+            Eigen::Matrix4f pose_cur_mat = EigenMath::CreateAffineMatrix(V3D(pose_cur.x, pose_cur.y, pose_cur.z), V3D(pose_cur.roll, pose_cur.pitch, pose_cur.yaw)).cast<float>();
+            gicp.align(*unused_result, pose_cur_mat.inverse() * pose_ref_mat);
+        }
+        else
+            gicp.align(*unused_result);
 
         if (gicp.hasConverged() == false || gicp.getFitnessScore() > loop_closure_fitness_score_thld)
         {
@@ -124,13 +163,12 @@ public:
             return;
         }
 
-        // 发布当前关键帧经过闭环优化后的位姿变换之后的特征点云
-        // if (pubIcpKeyFrames.getNumSubscribers() != 0)
-        // {
-        //     PointCloudType::Ptr closed_cloud(new PointCloudType());
-        //     pcl::pointcloudLidarToWorld(*cur_keyframe_cloud, *closed_cloud, gicp.getFinalTransformation());
-        //     publishCloud(&pubIcpKeyFrames, closed_cloud, timeLaserInfoStamp, odometryFrame);
-        // }
+        // publish corrected cloud
+        {
+            PointCloudType::Ptr corrected_cloud(new PointCloudType());
+            pcl::transformPointCloud(*cur_keyframe_cloud, *corrected_cloud, gicp.getFinalTransformation());
+            *curKeyframeCloud = *corrected_cloud;
+        }
 
         float x, y, z, roll, pitch, yaw;
         Eigen::Affine3f correctionLidarFrame;
@@ -161,7 +199,7 @@ public:
         loop_constraint.loop_noise.push_back(constraintNoise);
         loop_mtx.unlock();
 
-        LOG_WARN("Loop Factor Added, noise = %f.", noiseScore);
+        LOG_WARN("Loop Factor Added by keyframe id = %d, noise = %f.", loop_key_ref, noiseScore);
         loop_constraint_records[loop_key_cur] = loop_key_ref;
     }
 
@@ -214,4 +252,9 @@ public:
 
     unordered_map<int, int> loop_constraint_records; // <new, old>, keyframe index that has added loop constraint
     LoopConstraint loop_constraint;
+    std::shared_ptr<ScanContext::SCManager> sc_manager; // scan context
+
+    // for visualize
+    PointCloudType::Ptr curKeyframeCloud;
+    PointCloudType::Ptr prevKeyframeCloud;
 };

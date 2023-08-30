@@ -12,6 +12,8 @@
 #include <tf/transform_broadcaster.h>
 #include <livox_ros_driver/CustomMsg.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include "utility/Header.h"
 #include "system/System.hpp"
 
@@ -163,8 +165,7 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped, const state_ikfom 
     publish_tf(odomAftMapped.pose.pose, lidar_end_time);
 }
 
-// 每隔10个发布一下轨迹
-void publish_path(const ros::Publisher &pubPath, const state_ikfom &state, const double& lidar_end_time)
+void publish_imu_path(const ros::Publisher &pubPath, const state_ikfom &state, const double& lidar_end_time)
 {
     static geometry_msgs::PoseStamped msg_body_pose;
     set_posestamp(msg_body_pose, state);
@@ -184,9 +185,98 @@ void publish_path(const ros::Publisher &pubPath, const state_ikfom &state, const
     }
 }
 
+void publish_lidar_keyframe_trajectory(const ros::Publisher &pubPath, const pcl::PointCloud<PointXYZIRPYT> &trajectory, const double &lidar_end_time)
+{
+    nav_msgs::Path path;
+    path.header.stamp = ros::Time().fromSec(lidar_end_time);
+    path.header.frame_id = map_frame;
+
+    geometry_msgs::PoseStamped msg_lidar_pose;
+    for (const auto &point : trajectory)
+    {
+        msg_lidar_pose.pose.position.x = point.x;
+        msg_lidar_pose.pose.position.y = point.y;
+        msg_lidar_pose.pose.position.z = point.z;
+        auto quat = EigenMath::RPY2Quaternion(V3D(point.roll, point.pitch, point.yaw));
+        msg_lidar_pose.pose.orientation.x = quat.x();
+        msg_lidar_pose.pose.orientation.y = quat.y();
+        msg_lidar_pose.pose.orientation.z = quat.z();
+        msg_lidar_pose.pose.orientation.w = quat.w();
+
+        msg_lidar_pose.header.stamp = ros::Time().fromSec(lidar_end_time);
+        msg_lidar_pose.header.frame_id = map_frame;
+
+        path.poses.push_back(msg_lidar_pose);
+    }
+
+    pubPath.publish(path);
+}
+
+void visualize_loop_closure_constraints(const ros::Publisher &pubLoopConstraintEdge, const double &timestamp,
+                                        const unordered_map<int, int> &loop_constraint_records,
+                                        const pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d,
+                                        const state_ikfom &state)
+{
+    if (loop_constraint_records.empty())
+        return;
+
+    visualization_msgs::MarkerArray markerArray;
+    // loop nodes
+    visualization_msgs::Marker markerNode;
+    markerNode.header.frame_id = map_frame;
+    markerNode.header.stamp = ros::Time().fromSec(timestamp);
+    markerNode.action = visualization_msgs::Marker::ADD;
+    markerNode.type = visualization_msgs::Marker::SPHERE_LIST;
+    markerNode.ns = "loop_nodes";
+    markerNode.id = 0;
+    markerNode.pose.orientation.w = 1;
+    markerNode.scale.x = 0.3;
+    markerNode.scale.y = 0.3;
+    markerNode.scale.z = 0.3;
+    markerNode.color.r = 0;
+    markerNode.color.g = 0.8;
+    markerNode.color.b = 1;
+    markerNode.color.a = 1;
+    // loop edges
+    visualization_msgs::Marker markerEdge;
+    markerEdge.header.frame_id = map_frame;
+    markerEdge.header.stamp = ros::Time().fromSec(timestamp);
+    markerEdge.action = visualization_msgs::Marker::ADD;
+    markerEdge.type = visualization_msgs::Marker::LINE_LIST;
+    markerEdge.ns = "loop_edges";
+    markerEdge.id = 1;
+    markerEdge.pose.orientation.w = 1;
+    markerEdge.scale.x = 0.1;
+    markerEdge.color.r = 0.9;
+    markerEdge.color.g = 0.9;
+    markerEdge.color.b = 0;
+    markerEdge.color.a = 1;
+
+    for (auto it = loop_constraint_records.begin(); it != loop_constraint_records.end(); ++it)
+    {
+        int key_cur = it->first;
+        int key_pre = it->second;
+        geometry_msgs::Point p;
+        p.x = keyframe_pose6d->points[key_cur].x;
+        p.y = keyframe_pose6d->points[key_cur].y;
+        p.z = keyframe_pose6d->points[key_cur].z;
+        markerNode.points.push_back(p);
+        markerEdge.points.push_back(p);
+        p.x = keyframe_pose6d->points[key_pre].x;
+        p.y = keyframe_pose6d->points[key_pre].y;
+        p.z = keyframe_pose6d->points[key_pre].z;
+        markerNode.points.push_back(p);
+        markerEdge.points.push_back(p);
+    }
+
+    markerArray.markers.push_back(markerNode);
+    markerArray.markers.push_back(markerEdge);
+    pubLoopConstraintEdge.publish(markerArray);
+}
+
 void visualize_globalmap_thread(const ros::Publisher &pubGlobalmap)
 {
-    while (!flg_exit && !slam.localization_mode)
+    while (!flg_exit)
     {
         this_thread::sleep_for(std::chrono::seconds(1));
         auto submap_visual = slam.get_submap_visual(1000, 3, 0.2);
@@ -300,12 +390,12 @@ int main(int argc, char **argv)
         ros::param::param("bnb3d/debug_mode", match_option.debug_mode, false);
 
         Pose lidar_extrinsic;
-        ros::param::param("bnb3d/lidar_ext/x", lidar_extrinsic.x, 0.);
-        ros::param::param("bnb3d/lidar_ext/y", lidar_extrinsic.y, 0.);
-        ros::param::param("bnb3d/lidar_ext/z", lidar_extrinsic.z, 0.);
-        ros::param::param("bnb3d/lidar_ext/roll", lidar_extrinsic.roll, 0.);
-        ros::param::param("bnb3d/lidar_ext/pitch", lidar_extrinsic.pitch, 0.);
-        ros::param::param("bnb3d/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
+        ros::param::param("relocalization_cfg/lidar_ext/x", lidar_extrinsic.x, 0.);
+        ros::param::param("relocalization_cfg/lidar_ext/y", lidar_extrinsic.y, 0.);
+        ros::param::param("relocalization_cfg/lidar_ext/z", lidar_extrinsic.z, 0.);
+        ros::param::param("relocalization_cfg/lidar_ext/roll", lidar_extrinsic.roll, 0.);
+        ros::param::param("relocalization_cfg/lidar_ext/pitch", lidar_extrinsic.pitch, 0.);
+        ros::param::param("relocalization_cfg/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
         slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
         int min_plane_point;
@@ -356,10 +446,18 @@ int main(int argc, char **argv)
     // not used
     ros::Publisher pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/Laser_map", 100000);
     ros::Publisher pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/Odometry", 100000);
-    ros::Publisher pubPath = nh.advertise<nav_msgs::Path>("/path", 100000);
+    ros::Publisher pubImuPath = nh.advertise<nav_msgs::Path>("/imu_path", 100000);
+    ros::Publisher pubLidarPath = nh.advertise<nav_msgs::Path>("/lidar_keyframe_trajectory", 100000);
 
-    ros::Publisher pubGlobalmap = nh.advertise<sensor_msgs::PointCloud2>("/map_global", 1);
-    std::thread visualizeMapThread(&visualize_globalmap_thread, pubGlobalmap);
+    ros::Publisher pubGlobalmap;
+    ros::Publisher pubLoopConstraintEdge;
+    std::thread visualizeMapThread;
+    if (!slam.localization_mode)
+    {
+        pubGlobalmap = nh.advertise<sensor_msgs::PointCloud2>("/map_global", 1);
+        visualizeMapThread = std::thread(&visualize_globalmap_thread, pubGlobalmap);
+        pubLoopConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>("/loop_closure_constraints", 1);
+    }
     ros::Publisher pubrelocalizationDebug = nh.advertise<sensor_msgs::PointCloud2>("/relocalization_debug", 1);
 
     //------------------------------------------------------------------------------------------------------
@@ -380,13 +478,18 @@ int main(int argc, char **argv)
 
             /******* Publish points *******/
             if (path_en)
-                publish_path(pubPath, state, slam.lidar_end_time);
+            {
+                publish_imu_path(pubImuPath, state, slam.lidar_end_time);
+                if (!slam.localization_mode)
+                    publish_lidar_keyframe_trajectory(pubLidarPath, *slam.keyframe_pose6d_optimized, slam.lidar_end_time);
+            }
             if (scan_pub_en)
                 if (dense_pub_en)
                     publish_cloud_world(pubLaserCloudFull, slam.feats_undistort, state, slam.lidar_end_time);
                 else
                     publish_cloud_world(pubLaserCloudFull, slam.frontend->feats_down_lidar, state, slam.lidar_end_time);
 
+            visualize_loop_closure_constraints(pubLoopConstraintEdge, slam.lidar_end_time, slam.loopClosure->loop_constraint_records, slam.loopClosure->copy_keyframe_pose6d, slam.frontend->state);
             // publish_cloud_world(pubLaserCloudEffect, laserCloudOri, state, slam.lidar_end_time);
             if (0)
             {

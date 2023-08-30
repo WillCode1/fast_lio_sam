@@ -25,7 +25,7 @@ class GnssProcessor
 public:
   GnssProcessor()
   {
-    extrinsic_Imu2Gnss.setIdentity();
+    extrinsic_Lidar2Gnss.setIdentity();
   }
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -39,12 +39,12 @@ public:
   deque<GnssPose> gnss_buffer;
 
 private:
-  Eigen::Matrix4d extrinsic_Imu2Gnss;
+  Eigen::Matrix4d extrinsic_Lidar2Gnss;
 };
 
 void GnssProcessor::set_extrinsic(const Eigen::Matrix4d &extrinsic)
 {
-  extrinsic_Imu2Gnss = extrinsic;
+  extrinsic_Lidar2Gnss = extrinsic;
 }
 
 void GnssProcessor::gnss_handler(const GnssPose &gnss_raw)
@@ -134,7 +134,7 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
         lastGPSPoint = curGPSPoint;
 
       Eigen::Matrix4d gnss_pose = EigenMath::CreateAffineMatrix(thisGPS.gnss_position, thisGPS.rpy);
-      gnss_pose *= extrinsic_Imu2Gnss;
+      gnss_pose *= extrinsic_Lidar2Gnss;
       thisGPS.gnss_position_trans2imu = gnss_pose.topRightCorner(3, 1);
       return true;
     }
