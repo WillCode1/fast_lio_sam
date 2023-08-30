@@ -93,7 +93,7 @@ public:
         }
 
         pcl::io::loadPCDFile(trajectory_path, *relocalization->trajectory_poses);
-        if (relocalization->trajectory_poses->points.size() < 100)
+        if (relocalization->trajectory_poses->points.size() < 10)
         {
             LOG_ERROR("Too few point clouds! Please check the trajectory file.");
         }

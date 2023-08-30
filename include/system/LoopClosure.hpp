@@ -199,7 +199,7 @@ public:
         loop_constraint.loop_noise.push_back(constraintNoise);
         loop_mtx.unlock();
 
-        LOG_WARN("Loop Factor Added by keyframe id = %d, noise = %f.", loop_key_ref, noiseScore);
+        LOG_WARN("Loop Factor Added by keyframe id = %d, noise = %.3f.", loop_key_ref, noiseScore);
         loop_constraint_records[loop_key_cur] = loop_key_ref;
     }
 

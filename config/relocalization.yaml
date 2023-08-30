@@ -21,8 +21,8 @@ bnb3d:
     bnb_min_score: 0.3
 
     min_xy_resolution: 0.2
-    min_z_resolution: 0.125
-    min_angular_resolution: 0.1
+    min_z_resolution: 0.1
+    min_angular_resolution: 5   # degree
 
     thread_num: 6
     filter_size_scan: 0.2

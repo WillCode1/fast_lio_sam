@@ -92,17 +92,11 @@ bool Relocalization::run_scan_context(PointCloudType::Ptr scan, Eigen::Matrix4d 
     if (sc_res.first != -1 && sc_res.first < trajectory_poses->size())
     {
         const auto &pose_ref = trajectory_poses->points[sc_res.first];
-        rough_pose.x = pose_ref.x;
-        rough_pose.y = pose_ref.y;
-        rough_pose.z = pose_ref.z;
-        rough_pose.roll = pose_ref.roll;
-        rough_pose.pitch = pose_ref.pitch;
-        rough_pose.yaw = pose_ref.yaw + sc_res.second;
         // lidar pose -> imu pose
-        rough_mat = EigenMath::CreateAffineMatrix(V3D(rough_pose.x, rough_pose.y, rough_pose.z), V3D(rough_pose.roll, rough_pose.pitch, rough_pose.yaw));
+        rough_mat = EigenMath::CreateAffineMatrix(V3D(pose_ref.x, pose_ref.y, pose_ref.z), V3D(pose_ref.roll, pose_ref.pitch, pose_ref.yaw + sc_res.second));
         rough_mat *= lidar_ext.inverse();
         EigenMath::DecomposeAffineMatrix(rough_mat, rough_pose.x, rough_pose.y, rough_pose.z, rough_pose.roll, rough_pose.pitch, rough_pose.yaw);
-        LOG_WARN("scan context success! res index = %d, pose = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)!", sc_res.first,
+        LOG_WARN("scan context success! res index = %d, pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf)!", sc_res.first,
                  rough_pose.x, rough_pose.y, rough_pose.z, RAD2DEG(rough_pose.roll), RAD2DEG(rough_pose.pitch), RAD2DEG(rough_pose.yaw));
 
         bool bnb_success = true;
@@ -112,7 +106,8 @@ bool Relocalization::run_scan_context(PointCloudType::Ptr scan, Eigen::Matrix4d 
         bnb_opt_tmp.linear_z_window_size = 0.5;
         bnb_opt_tmp.min_xy_resolution = 0.2;
         bnb_opt_tmp.min_z_resolution = 0.1;
-        bnb_opt_tmp.angular_search_window = DEG2RAD(5);
+        bnb_opt_tmp.angular_search_window = DEG2RAD(6);
+        bnb_opt_tmp.min_angular_resolution = DEG2RAD(1);
         if (!bnb3d->MatchWithMatchOptions(rough_pose, rough_pose, scan, bnb_opt_tmp, lidar_ext))
         {
             bnb_success = false;
@@ -121,7 +116,7 @@ bool Relocalization::run_scan_context(PointCloudType::Ptr scan, Eigen::Matrix4d 
         if (bnb_success)
         {
             LOG_INFO("bnb_success!");
-            LOG_WARN("bnb_pose = (%.2lf,%.2lf,%.4lf,%.2lf,%.2lf,%.2lf), score_cnt = %d, time = %.0lf ms",
+            LOG_WARN("bnb_pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), score_cnt = %d, time = %.2lf ms",
                      rough_pose.x, rough_pose.y, rough_pose.z, RAD2DEG(rough_pose.roll), RAD2DEG(rough_pose.pitch), RAD2DEG(rough_pose.yaw),
                      bnb3d->sort_cnt, timer.elapsedLast());
         }
@@ -159,7 +154,7 @@ bool Relocalization::run_manually_set(PointCloudType::Ptr scan, Eigen::Matrix4d 
     if (bnb_success)
     {
         LOG_INFO("bnb_success!");
-        LOG_WARN("bnb_pose = (%.2lf,%.2lf,%.4lf,%.2lf,%.2lf,%.2lf), score_cnt = %d, time = %.0lf ms",
+        LOG_WARN("bnb_pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), score_cnt = %d, time = %.2lf ms",
                  rough_pose.x, rough_pose.y, rough_pose.z, RAD2DEG(rough_pose.roll), RAD2DEG(rough_pose.pitch), RAD2DEG(rough_pose.yaw),
                  bnb3d->sort_cnt, timer.elapsedLast());
     }
@@ -329,23 +324,6 @@ PointCloudType::Ptr Relocalization::plane_seg(PointCloudType::Ptr src)
 
     std::cout << "Plane extraction completed. Extracted " << planeCount << " planes. point num = " << plane->points.size() << std::endl;
 
-    // if (pub_plane_point)
-    // {
-    //     int size = plane->points.size();
-    //     PointCloudType::Ptr laserCloudWorld(new PointCloudType(size, 1));
-
-    //     for (int i = 0; i < size; i++)
-    //     {
-    //         RGBpointBodyToWorld(&plane->points[i], &laserCloudWorld->points[i]);
-    //     }
-
-    //     sensor_msgs::PointCloud2 map_msg;
-    //     pcl::toROSMsg(*laserCloudWorld, map_msg);
-    //     map_msg.header.stamp = ros::Time::now();
-    //     map_msg.header.frame_id = "camera_init";
-    //     pubPlaneSeg.publish(map_msg);
-    // }
-
     return plane;
 }
 
@@ -393,7 +371,7 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &r
 
     Eigen::Vector3d pos, euler;
     EigenMath::DecomposeAffineMatrix(result, pos, euler);
-    LOG_WARN("gicp pose = (%f, %f, %f, %f, %f, %f), gicp_time = %.2lf ms",
+    LOG_WARN("gicp pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), gicp_time = %.2lf ms",
              pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
     return true;
 }
@@ -402,7 +380,7 @@ void Relocalization::set_init_pose(const Pose& _manual_pose)
 {
     manual_pose = _manual_pose;
     LOG_WARN("*******************************************");
-    LOG_WARN("set_init_pose = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)", manual_pose.x, manual_pose.y, manual_pose.z,
+    LOG_WARN("set_init_pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf)", manual_pose.x, manual_pose.y, manual_pose.z,
              RAD2DEG(manual_pose.roll), RAD2DEG(manual_pose.pitch), RAD2DEG(manual_pose.yaw));
     LOG_WARN("*******************************************");
     prior_pose_inited = true;
@@ -432,10 +410,11 @@ void Relocalization::set_bnb3d_param(const BnbOptions& match_option, const Pose&
     LOG_WARN("*******************************************");
 
     bnb_option.angular_search_window = DEG2RAD(bnb_option.angular_search_window);
+    bnb_option.min_angular_resolution = DEG2RAD(bnb_option.min_angular_resolution);
 
     lidar_extrinsic = lidar_pose;
     LOG_WARN("*******************************************");
-    LOG_WARN("lidar_ext = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)", lidar_extrinsic.x, lidar_extrinsic.y, lidar_extrinsic.z,
+    LOG_WARN("lidar_ext = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf)", lidar_extrinsic.x, lidar_extrinsic.y, lidar_extrinsic.z,
              lidar_extrinsic.roll, lidar_extrinsic.pitch, lidar_extrinsic.yaw);
     LOG_WARN("*******************************************");
     lidar_extrinsic.roll = DEG2RAD(lidar_extrinsic.roll);
