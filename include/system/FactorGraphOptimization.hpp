@@ -49,7 +49,7 @@ public:
         M3D lidar_rot = cur_state.rot.toRotationMatrix() * cur_state.offset_R_L_I;
         V3D lidar_pos = cur_state.rot * cur_state.offset_T_L_I + cur_state.pos;
 
-        Eigen::Vector3d eulerAngle = EigenRotation::RotationMatrix2RPY2(lidar_rot.matrix());
+        Eigen::Vector3d eulerAngle = EigenMath::RotationMatrix2RPY2(lidar_rot.matrix());
         this_pose6d.x = lidar_pos(0); // x
         this_pose6d.y = lidar_pos(1); // y
         this_pose6d.z = lidar_pos(2); // z
@@ -197,7 +197,7 @@ private:
             frontend.state = frontend.kf.get_x();
             Eigen::Vector3d lidar_pos(cur_estimate.translation().x(), cur_estimate.translation().y(), cur_estimate.translation().z());
             Eigen::Vector3d lidar_rot(cur_estimate.rotation().roll(), cur_estimate.rotation().pitch(), cur_estimate.rotation().yaw());
-            frontend.state.rot = EigenRotation::RPY2Quaternion(lidar_rot) * frontend.state.offset_R_L_I.toRotationMatrix().transpose();
+            frontend.state.rot = EigenMath::RPY2Quaternion(lidar_rot) * frontend.state.offset_R_L_I.toRotationMatrix().transpose();
             frontend.state.pos = lidar_pos - frontend.state.rot * frontend.state.offset_T_L_I;
             frontend.kf.change_x(frontend.state);
         }

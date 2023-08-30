@@ -321,17 +321,9 @@ namespace ScanContext
 
     } // SCManager::makeAndSaveScancontextAndKeys
 
-    /**
-     * @brief 检测闭环对，就是检测数据库中最新的那个点云帧和历史上所有帧之间的回环关系
-     *
-     * @return std::pair<int, float>
-     */
-    std::pair<int, float> SCManager::detectLoopClosureID(int num_exclude_recent)
+    std::pair<int, float> SCManager::detectClosestKeyframeID(int num_exclude_recent, const std::vector<float> &curr_key, Eigen::MatrixXd &curr_desc)
     {
         int loop_id{-1}; // init with -1, -1 means no loop (== LeGO-LOAM's variable "closestHistoryFrameID")
-
-        auto curr_key = polarcontext_invkeys_mat_.back(); // current observation (query)
-        auto curr_desc = polarcontexts_.back();           // current observation (query)
 
         /*
          * step 1: candidates from ringkey tree_
@@ -427,12 +419,85 @@ namespace ScanContext
         std::pair<int, float> result{loop_id, yaw_diff_rad};
 
         return result;
+    }
 
+    /**
+     * @brief 检测闭环对，就是检测数据库中最新的那个点云帧和历史上所有帧之间的回环关系
+     *
+     * @return std::pair<int, float>
+     */
+    std::pair<int, float> SCManager::detectLoopClosureID(int num_exclude_recent)
+    {
+        auto curr_key = polarcontext_invkeys_mat_.back(); // current observation (query)
+        auto curr_desc = polarcontexts_.back();           // current observation (query)
+
+        return detectClosestKeyframeID(num_exclude_recent, curr_key, curr_desc);
     } // SCManager::detectLoopClosureID
 
-    const Eigen::MatrixXd &SCManager::getConstRefRecentSCD(void)
+    void SCManager::saveCurrentSCD(const std::string &save_path, int num_digits, const std::string &delimiter)
     {
-        return polarcontexts_.back();
+        const auto &curr_scd = polarcontexts_.back();
+        std::ostringstream out;
+        out << std::internal << std::setfill('0') << std::setw(num_digits) << polarcontexts_.size() - 1;
+        std::string curr_scd_node_idx = out.str();
+
+        // delimiter: ", " or " " etc.
+        int precision = 3; // or Eigen::FullPrecision, but SCD does not require such accruate precisions so 3 is enough.
+        const static Eigen::IOFormat the_format(precision, Eigen::DontAlignCols, delimiter, "\n");
+
+        std::ofstream file(save_path + "/" + curr_scd_node_idx + ".scd");
+        if (file.is_open())
+        {
+            file << curr_scd.format(the_format);
+            file.close();
+        }
+    }
+
+    void SCManager::loadPriorSCD(const std::string &path, int num_digits, int num_keyframe)
+    {
+        for (auto i = 0; i < num_keyframe; ++i)
+        {
+            std::ostringstream out;
+            out << std::internal << std::setfill('0') << std::setw(num_digits) << i;
+            std::string curr_scd_node_idx = out.str();
+            std::ifstream file(path + "/" + curr_scd_node_idx + ".scd");
+            Eigen::MatrixXd curr_scd;
+            curr_scd.resize(PC_NUM_RING, PC_NUM_SECTOR);
+
+            if (file.is_open())
+            {
+                for (int i = 0; i < PC_NUM_RING; ++i)
+                    for (int j = 0; j < PC_NUM_SECTOR; ++j)
+                        file >> curr_scd(i, j);
+
+                file.close();
+            }
+
+            Eigen::MatrixXd ringkey = makeRingkeyFromScancontext(curr_scd);
+            Eigen::MatrixXd sectorkey = makeSectorkeyFromScancontext(curr_scd);
+            std::vector<float> polarcontext_invkey_vec = eig2stdvec(ringkey);
+
+            polarcontexts_.push_back(curr_scd);
+            polarcontext_invkeys_.push_back(ringkey);
+            polarcontext_vkeys_.push_back(sectorkey);
+            polarcontext_invkeys_mat_.push_back(polarcontext_invkey_vec);
+        }
+    }
+
+    std::pair<int, float> SCManager::relocalize(pcl::PointCloud<SCPointType> &scan_down)
+    {
+        if (polarcontexts_.empty())
+        {
+            std::pair<int, float> result{-1, 0.0};
+            return result;
+        }
+
+        Eigen::MatrixXd sc = makeScancontext(scan_down);
+        Eigen::MatrixXd ringkey = makeRingkeyFromScancontext(sc);
+        // Eigen::MatrixXd sectorkey = makeSectorkeyFromScancontext(sc);
+        std::vector<float> polarcontext_invkey_vec = eig2stdvec(ringkey);
+
+        return detectClosestKeyframeID(0, polarcontext_invkey_vec, sc);
     }
 
 } // namespace SC2

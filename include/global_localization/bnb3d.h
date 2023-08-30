@@ -12,8 +12,6 @@
 
 struct BnbOptions
 {
-    std::string algorithm_type = "UNKNOW";
-
     // common
     double linear_xy_window_size = 2;                     // meter
     double linear_z_window_size = 0.5;                    // meter
@@ -73,19 +71,11 @@ struct Pose
     Pose(double x = 0, double y = 0, double z = 0, double roll = 0, double pitch = 0, double yaw = 0)
         : x(x), y(y), z(z), roll(roll), pitch(pitch), yaw(yaw) {}
 
-    Eigen::Matrix4d BuildAffineMatrix(const Eigen::Vector3d &translation, const Eigen::Vector3d &eulerAngles) const
-    {
-        Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
-        transform.topLeftCorner(3, 3) = EigenRotation::RPY2RotationMatrix(eulerAngles);
-        transform.topRightCorner(3, 1) = translation;
-        return transform;
-    }
-
     Eigen::Matrix4d toMatrix4d() const
     {
         Eigen::Vector3d translation(x, y, z);
         Eigen::Vector3d eulerAngles(roll, pitch, yaw);
-        return BuildAffineMatrix(translation, eulerAngles);
+        return EigenMath::CreateAffineMatrix(translation, eulerAngles);
     }
 
     Pose &operator+=(const Eigen::Vector4d &offset)

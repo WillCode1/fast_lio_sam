@@ -186,11 +186,9 @@ void publish_path(const ros::Publisher &pubPath, const state_ikfom &state, const
 
 void visualize_globalmap_thread(const ros::Publisher &pubGlobalmap)
 {
-    while (!flg_exit)
+    while (!flg_exit && !slam.localization_mode)
     {
         this_thread::sleep_for(std::chrono::seconds(1));
-        // if (pubGlobalmap.getNumSubscribers() == 0)
-            // continue;
         auto submap_visual = slam.get_submap_visual(1000, 3, 0.2);
         if (submap_visual == nullptr)
             continue;
@@ -203,7 +201,8 @@ void initialPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
     const geometry_msgs::Pose &pose = msg->pose.pose;
     const auto &ori = msg->pose.pose.orientation;
     Eigen::Quaterniond quat(ori.w, ori.x, ori.y, ori.z);
-    auto rpy = EigenRotation::Quaternion2RPY(quat);
+    auto rpy = EigenMath::Quaternion2RPY(quat);
+    // prior pose in map(imu pose)
     Pose init_pose;
     init_pose.x = pose.position.x;
     init_pose.y = pose.position.y;
@@ -281,11 +280,12 @@ int main(int argc, char **argv)
     nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
     cout << "current lidar_type: " << lidar_type << endl;
 
-    if (slam.localization_mode)
+    ros::param::param("relocalization_cfg/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
+    if (pure_localization)
     {
         BnbOptions match_option;
-        Pose init_pose, lidar_pose;
-        ros::param::param("bnb3d/algorithm_type", match_option.algorithm_type, std::string("UNKONW"));
+        ros::param::param("relocalization_cfg/algorithm_type", slam.relocalization->algorithm_type, std::string("UNKONW"));
+
         ros::param::param("bnb3d/linear_xy_window_size", match_option.linear_xy_window_size, 10.);
         ros::param::param("bnb3d/linear_z_window_size", match_option.linear_z_window_size, 1.);
         ros::param::param("bnb3d/angular_search_window", match_option.angular_search_window, 30.);
@@ -299,21 +299,14 @@ int main(int argc, char **argv)
         ros::param::param("bnb3d/filter_size_scan", match_option.filter_size_scan, 0.1);
         ros::param::param("bnb3d/debug_mode", match_option.debug_mode, false);
 
-        ros::param::param("bnb3d/need_wait_prior_pose_inited", slam.relocalization->need_wait_prior_pose_inited, true);
-        ros::param::param("bnb3d/init_pose/x", init_pose.x, 0.);
-        ros::param::param("bnb3d/init_pose/y", init_pose.y, 0.);
-        ros::param::param("bnb3d/init_pose/z", init_pose.z, 0.);
-        ros::param::param("bnb3d/init_pose/roll", init_pose.roll, 0.);
-        ros::param::param("bnb3d/init_pose/pitch", init_pose.pitch, 0.);
-        ros::param::param("bnb3d/init_pose/yaw", init_pose.yaw, 0.);
-
-        ros::param::param("bnb3d/lidar_ext/x", lidar_pose.x, 0.);
-        ros::param::param("bnb3d/lidar_ext/y", lidar_pose.y, 0.);
-        ros::param::param("bnb3d/lidar_ext/z", lidar_pose.z, 0.);
-        ros::param::param("bnb3d/lidar_ext/roll", lidar_pose.roll, 0.);
-        ros::param::param("bnb3d/lidar_ext/pitch", lidar_pose.pitch, 0.);
-        ros::param::param("bnb3d/lidar_ext/yaw", lidar_pose.yaw, 0.);
-        slam.relocalization->set_bnb3d_param(match_option, init_pose, lidar_pose);
+        Pose lidar_extrinsic;
+        ros::param::param("bnb3d/lidar_ext/x", lidar_extrinsic.x, 0.);
+        ros::param::param("bnb3d/lidar_ext/y", lidar_extrinsic.y, 0.);
+        ros::param::param("bnb3d/lidar_ext/z", lidar_extrinsic.z, 0.);
+        ros::param::param("bnb3d/lidar_ext/roll", lidar_extrinsic.roll, 0.);
+        ros::param::param("bnb3d/lidar_ext/pitch", lidar_extrinsic.pitch, 0.);
+        ros::param::param("bnb3d/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
+        slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
         int min_plane_point;
         double filter_radius, cluster_dis, plane_dis, plane_point_percent;

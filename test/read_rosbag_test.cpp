@@ -1,6 +1,5 @@
 #include <iostream>
 #include <memory>
-#include <experimental/filesystem>
 #include <csignal>
 #include <unistd.h>
 #include <yaml-cpp/yaml.h>
@@ -13,7 +12,6 @@
 #include "system/System.hpp"
 #include "utility/ProgressBar.h"
 using namespace std;
-namespace fs = std::experimental::filesystem;
 
 bool save_globalmap_en, pure_localization;
 const std::string root_path = std::string(ROOT_DIR);
@@ -156,11 +154,12 @@ void load_config(System& slam, const std::string &config_path)
     extrinT = config["mapping"]["extrinsic_T"].IsDefined() ? config["mapping"]["extrinsic_T"].as<vector<double>>() : vector<double>();
     extrinR = config["mapping"]["extrinsic_R"].IsDefined() ? config["mapping"]["extrinsic_R"].as<vector<double>>() : vector<double>();
 
+    slam.relocalization->sc_manager->LIDAR_HEIGHT = relocal_config["relocalization_cfg"]["lidar_height"].IsDefined() ? relocal_config["relocalization_cfg"]["lidar_height"].as<double>() : 2.0;
     if (pure_localization)
     {
         BnbOptions match_option;
-        Pose init_pose, lidar_pose;
-        match_option.algorithm_type = relocal_config["bnb3d"]["algorithm_type"].IsDefined() ? relocal_config["bnb3d"]["algorithm_type"].as<string>() : std::string("UNKONW");
+        slam.relocalization->algorithm_type = relocal_config["relocalization_cfg"]["algorithm_type"].IsDefined() ? relocal_config["relocalization_cfg"]["algorithm_type"].as<string>() : std::string("UNKONW");
+
         match_option.linear_xy_window_size = relocal_config["bnb3d"]["linear_xy_window_size"].IsDefined() ? relocal_config["bnb3d"]["linear_xy_window_size"].as<double>() : 10;
         match_option.linear_z_window_size = relocal_config["bnb3d"]["linear_z_window_size"].IsDefined() ? relocal_config["bnb3d"]["linear_z_window_size"].as<double>() : 1.;
         match_option.angular_search_window = relocal_config["bnb3d"]["angular_search_window"].IsDefined() ? relocal_config["bnb3d"]["angular_search_window"].as<double>() : 30;
@@ -174,21 +173,14 @@ void load_config(System& slam, const std::string &config_path)
         match_option.filter_size_scan = relocal_config["bnb3d"]["filter_size_scan"].IsDefined() ? relocal_config["bnb3d"]["filter_size_scan"].as<double>() : 0.1;
         match_option.debug_mode = relocal_config["bnb3d"]["debug_mode"].IsDefined() ? relocal_config["bnb3d"]["debug_mode"].as<bool>() : false;
 
-        slam.relocalization->need_wait_prior_pose_inited = relocal_config["bnb3d"]["need_wait_prior_pose_inited"].IsDefined() ? relocal_config["bnb3d"]["need_wait_prior_pose_inited"].as<bool>() : true;
-        init_pose.x = relocal_config["bnb3d"]["init_pose"]["x"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["x"].as<double>() : 0.;
-        init_pose.y = relocal_config["bnb3d"]["init_pose"]["y"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["y"].as<double>() : 0.;
-        init_pose.z = relocal_config["bnb3d"]["init_pose"]["z"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["z"].as<double>() : 0.;
-        init_pose.roll = relocal_config["bnb3d"]["init_pose"]["roll"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["roll"].as<double>() : 0.;
-        init_pose.pitch = relocal_config["bnb3d"]["init_pose"]["pitch"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["pitch"].as<double>() : 0.;
-        init_pose.yaw = relocal_config["bnb3d"]["init_pose"]["yaw"].IsDefined() ? relocal_config["bnb3d"]["init_pose"]["yaw"].as<double>() : 0.;
-
-        lidar_pose.x = relocal_config["bnb3d"]["lidar_ext"]["x"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["x"].as<double>() : 0.;
-        lidar_pose.y = relocal_config["bnb3d"]["lidar_ext"]["y"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["y"].as<double>() : 0.;
-        lidar_pose.z = relocal_config["bnb3d"]["lidar_ext"]["z"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["z"].as<double>() : 0.;
-        lidar_pose.roll = relocal_config["bnb3d"]["lidar_ext"]["roll"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["roll"].as<double>() : 0.;
-        lidar_pose.pitch = relocal_config["bnb3d"]["lidar_ext"]["pitch"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["pitch"].as<double>() : 0.;
-        lidar_pose.yaw = relocal_config["bnb3d"]["lidar_ext"]["yaw"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["yaw"].as<double>() : 0.;
-        slam.relocalization->set_bnb3d_param(match_option, init_pose, lidar_pose);
+        Pose lidar_extrinsic;
+        lidar_extrinsic.x = relocal_config["bnb3d"]["lidar_ext"]["x"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["x"].as<double>() : 0.;
+        lidar_extrinsic.y = relocal_config["bnb3d"]["lidar_ext"]["y"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["y"].as<double>() : 0.;
+        lidar_extrinsic.z = relocal_config["bnb3d"]["lidar_ext"]["z"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["z"].as<double>() : 0.;
+        lidar_extrinsic.roll = relocal_config["bnb3d"]["lidar_ext"]["roll"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["roll"].as<double>() : 0.;
+        lidar_extrinsic.pitch = relocal_config["bnb3d"]["lidar_ext"]["pitch"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["pitch"].as<double>() : 0.;
+        lidar_extrinsic.yaw = relocal_config["bnb3d"]["lidar_ext"]["yaw"].IsDefined() ? relocal_config["bnb3d"]["lidar_ext"]["yaw"].as<double>() : 0.;
+        slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
         int min_plane_point;
         double filter_radius, cluster_dis, plane_dis, plane_point_percent;

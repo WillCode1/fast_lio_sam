@@ -121,7 +121,7 @@ public:
             if (extrinsic_est_en)
             {
                 const auto& offset_xyz = state.offset_T_L_I;
-                const auto& offset_rpy = EigenRotation::Quaternion2RPY(state.offset_R_L_I);
+                const auto& offset_rpy = EigenMath::Quaternion2RPY(state.offset_R_L_I);
                 LOG_INFO_COND(false, "extrinsic_est: (%.5f, %.5f, %.5f, %.5f, %.5f, %.5f)", offset_xyz(0), offset_xyz(1), offset_xyz(2), RAD2DEG(offset_rpy(0)), RAD2DEG(offset_rpy(1)), RAD2DEG(offset_rpy(2)));
             }
             /*** map update ***/

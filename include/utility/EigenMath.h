@@ -9,7 +9,7 @@
 #include "Eigen/Dense"
 using namespace Eigen;
 
-class EigenRotation
+class EigenMath
 {
 public:
     // 一、旋转向量
@@ -142,5 +142,38 @@ public:
     static Eigen::Vector3d Quaternion2RPY(const Eigen::Quaterniond &quaternion)
     {
         return RotationMatrix2RPY2(quaternion.matrix());
+    }
+
+    // 5.1 pose -> matrix
+    static Eigen::Matrix4d CreateAffineMatrix(const Eigen::Vector3d &translation, const Eigen::Vector3d &eulerAngles)
+    {
+        Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
+        transform.topLeftCorner(3, 3) = EigenMath::RPY2RotationMatrix(eulerAngles);
+        transform.topRightCorner(3, 1) = translation;
+        return transform;
+    }
+
+    static Eigen::Matrix4d CreateAffineMatrix(const double &x, const double &y, const double &z, const double &roll, const double &pitch, const double &yaw)
+    {
+        return CreateAffineMatrix(Eigen::Vector3d(x, y, z), Eigen::Vector3d(roll, pitch, yaw));
+    }
+
+    // 5.2 matrix -> pose
+    static void DecomposeAffineMatrix(const Eigen::Matrix4d &affine_mat, Eigen::Vector3d &translation, Eigen::Vector3d &eulerAngles)
+    {
+        translation = affine_mat.topRightCorner(3, 1);
+        eulerAngles = EigenMath::RotationMatrix2RPY2(Eigen::Matrix3d(affine_mat.topLeftCorner(3, 3)));
+    }
+
+    static void DecomposeAffineMatrix(const Eigen::Matrix4d &affine_mat, double &x, double &y, double &z, double &roll, double &pitch, double &yaw)
+    {
+        Eigen::Vector3d eulerAngles, translation;
+        DecomposeAffineMatrix(affine_mat, translation, eulerAngles);
+        x = translation.x();
+        y = translation.y();
+        z = translation.z();
+        roll = eulerAngles.x();
+        pitch = eulerAngles.y();
+        yaw = eulerAngles.z();
     }
 };

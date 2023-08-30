@@ -13,7 +13,8 @@
 
 #include "LogTool.h"
 #include "Timer.h"
-#include "EigenRotation.h"
+#include "FileOperation.h"
+#include "EigenMath.h"
 #include "SO3_Math.h"
 
 using namespace std;
@@ -27,6 +28,7 @@ using namespace Eigen;
 #define ARRAY_FROM_EIGEN(mat) mat.data(), mat.data() + mat.rows() * mat.cols()
 #define STD_VEC_FROM_EIGEN(mat) vector<decltype(mat)::Scalar>(mat.data(), mat.data() + mat.rows() * mat.cols())
 #define DEBUG_FILE_DIR(name) (string(string(ROOT_DIR) + "Log/" + name))
+#define PCD_FILE_DIR(name) (string(string(ROOT_DIR) + "PCD/" + name))
 
 /**
  * 6D位姿点云结构定义

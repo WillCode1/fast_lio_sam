@@ -133,9 +133,7 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
       else
         lastGPSPoint = curGPSPoint;
 
-      Eigen::Matrix4d gnss_pose = Eigen::Matrix4d::Identity();
-      gnss_pose.topLeftCorner(3, 3) = EigenRotation::RPY2RotationMatrix(thisGPS.rpy);
-      gnss_pose.topRightCorner(3, 1) = thisGPS.gnss_position;
+      Eigen::Matrix4d gnss_pose = EigenMath::CreateAffineMatrix(thisGPS.gnss_position, thisGPS.rpy);
       gnss_pose *= extrinsic_Imu2Gnss;
       thisGPS.gnss_position_trans2imu = gnss_pose.topRightCorner(3, 1);
       return true;

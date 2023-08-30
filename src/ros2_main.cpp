@@ -247,11 +247,12 @@ int main(int argc, char **argv)
     node->get_parameter_or("mapping/extrinsic_R", extrinR, vector<double>());
     cout << "current lidar_type: " << lidar_type << endl;
 
-    if (slam.localization_mode)
+    node->get_parameter_or("relocalization_cfg/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
+    if (pure_localization)
     {
         BnbOptions match_option;
-        Pose init_pose, lidar_pose;
-        node->get_parameter_or("bnb3d/algorithm_type", match_option.algorithm_type, std::string("UNKONW"));
+        node->get_parameter_or("relocalization_cfg/algorithm_type", slam.relocalization->algorithm_type, std::string("UNKONW"));
+
         node->get_parameter_or("bnb3d/linear_xy_window_size", match_option.linear_xy_window_size, 10.);
         node->get_parameter_or("bnb3d/linear_z_window_size", match_option.linear_z_window_size, 1.);
         node->get_parameter_or("bnb3d/angular_search_window", match_option.angular_search_window, 30.);
@@ -265,21 +266,14 @@ int main(int argc, char **argv)
         node->get_parameter_or("bnb3d/filter_size_scan", match_option.filter_size_scan, 0.1);
         node->get_parameter_or("bnb3d/debug_mode", match_option.debug_mode, false);
 
-        node->get_parameter_or("bnb3d/need_wait_prior_pose_inited", slam.relocalization->need_wait_prior_pose_inited, true);
-        node->get_parameter_or("bnb3d/init_pose/x", init_pose.x, 0.);
-        node->get_parameter_or("bnb3d/init_pose/y", init_pose.y, 0.);
-        node->get_parameter_or("bnb3d/init_pose/z", init_pose.z, 0.);
-        node->get_parameter_or("bnb3d/init_pose/roll", init_pose.roll, 0.);
-        node->get_parameter_or("bnb3d/init_pose/pitch", init_pose.pitch, 0.);
-        node->get_parameter_or("bnb3d/init_pose/yaw", init_pose.yaw, 0.);
-
-        node->get_parameter_or("bnb3d/lidar_ext/x", lidar_pose.x, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/y", lidar_pose.y, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/z", lidar_pose.z, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/roll", lidar_pose.roll, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/pitch", lidar_pose.pitch, 0.);
-        node->get_parameter_or("bnb3d/lidar_ext/yaw", lidar_pose.yaw, 0.);
-        slam.relocalization->set_bnb3d_param(match_option, init_pose, lidar_pose);
+        Pose lidar_extrinsic;
+        node->get_parameter_or("bnb3d/lidar_ext/x", lidar_extrinsic.x, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/y", lidar_extrinsic.y, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/z", lidar_extrinsic.z, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/roll", lidar_extrinsic.roll, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/pitch", lidar_extrinsic.pitch, 0.);
+        node->get_parameter_or("bnb3d/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
+        slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
         int min_plane_point;
         double filter_radius, cluster_dis, plane_dis, plane_point_percent;

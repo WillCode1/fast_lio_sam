@@ -6,7 +6,9 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include "utility/Header.h"
 #include "global_localization/bnb3d.h"
+#include "global_localization/scancontext/Scancontext.h"
 
 
 class Relocalization
@@ -15,22 +17,29 @@ public:
     Relocalization();
     ~Relocalization();
     bool load_prior_map(const PointCloudType::Ptr &global_map);
-    bool run(const PointCloudType::Ptr &scan, Eigen::Matrix4f &result);
+    bool load_keyframe_descriptor(const std::string &path);
+    bool run(const PointCloudType::Ptr &scan, Eigen::Matrix4d &result);
 
-    void set_init_pose(const Pose &_init_pose);
-    void set_bnb3d_param(const BnbOptions &match_option, const Pose &init_pose, const Pose &lidar_pose);
+    void set_init_pose(const Pose &_manual_pose);
+    void set_bnb3d_param(const BnbOptions &match_option, const Pose &lidar_pose);
     void set_plane_extract_param(const double &fr, const int &min_point, const double &clust_dis, const double &pl_dis, const double &point_percent);
     void set_gicp_param(const double &gicp_ds, const double &search_radi, const double &tep, const double &fep, const double &fit_score);
+    void add_scancontext_descriptor(const PointCloudType::Ptr thiskeyframe, const std::string &path);
 
-    bool need_wait_prior_pose_inited = true;
+    std::string algorithm_type = "UNKNOW";
     BnbOptions bnb_option;
-    Pose init_pose, lidar_pose, bnb_pose;
+    Pose manual_pose, lidar_extrinsic, rough_pose;
     std::shared_ptr<BranchAndBoundMatcher3D> bnb3d;
+
+    pcl::PointCloud<PointXYZIRPYT>::Ptr trajectory_poses;
+    std::shared_ptr<ScanContext::SCManager> sc_manager; // scan context
 
 private:
     PointCloudType::Ptr plane_seg(PointCloudType::Ptr src);
     bool plane_estimate(const pcl::PointCloud<PointType>::Ptr cluster, const float &threshold);
-    bool fine_tune_pose(PointCloudType::Ptr src, Eigen::Matrix4f &result);
+    bool fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &result, const Eigen::Matrix4d &lidar_ext);
+    bool run_scan_context(PointCloudType::Ptr scan, Eigen::Matrix4d &rough_mat, const Eigen::Matrix4d &lidar_ext);
+    bool run_manually_set(PointCloudType::Ptr scan, Eigen::Matrix4d &rough_mat, const Eigen::Matrix4d &lidar_ext);
 
     bool prior_pose_inited = false;
 
@@ -48,81 +57,165 @@ private:
     double feps = 0.001;
     double fitness_score = 0.3;
 
+    pcl::VoxelGrid<PointType> voxel_filter;
     pcl::GeneralizedIterativeClosestPoint<PointType, PointType> gicp;
 };
 
 Relocalization::Relocalization()
 {
+    sc_manager = std::make_shared<ScanContext::SCManager>();
+    trajectory_poses.reset(new pcl::PointCloud<PointXYZIRPYT>());
 }
 
 Relocalization::~Relocalization()
 {
 }
 
-bool Relocalization::run(const PointCloudType::Ptr &scan, Eigen::Matrix4f& result)
+bool Relocalization::run_scan_context(PointCloudType::Ptr scan, Eigen::Matrix4d &rough_mat, const Eigen::Matrix4d &lidar_ext)
 {
-    if (need_wait_prior_pose_inited && !prior_pose_inited)
-        return false;
-
-    // bnb3d
     Timer timer;
-    Eigen::Matrix4d lidar_ext = lidar_pose.toMatrix4d();
-    if (bnb_option.algorithm_type.compare("BNB_3D") == 0)
+    PointCloudType::Ptr scanDS(new PointCloudType());
+    pcl::PointCloud<SCPointType>::Ptr sc_input(new pcl::PointCloud<SCPointType>());
+    voxel_filter.setLeafSize(0.5, 0.5, 0.5);
+    voxel_filter.setInputCloud(scan);
+    voxel_filter.filter(*scanDS);
+
+    pcl::PointXYZI tmp;
+    for (auto &point : scanDS->points)
     {
+        tmp.x = point.x;
+        tmp.y = point.y;
+        tmp.z = point.z;
+        sc_input->push_back(tmp);
+    }
+    auto sc_res = sc_manager->relocalize(*sc_input);
+    if (sc_res.first != -1 && sc_res.first < trajectory_poses->size())
+    {
+        const auto &pose_ref = trajectory_poses->points[sc_res.first];
+        rough_pose.x = pose_ref.x;
+        rough_pose.y = pose_ref.y;
+        rough_pose.z = pose_ref.z;
+        rough_pose.roll = pose_ref.roll;
+        rough_pose.pitch = pose_ref.pitch;
+        rough_pose.yaw = pose_ref.yaw + sc_res.second;
+        // lidar pose -> imu pose
+        rough_mat = EigenMath::CreateAffineMatrix(V3D(rough_pose.x, rough_pose.y, rough_pose.z), V3D(rough_pose.roll, rough_pose.pitch, rough_pose.yaw));
+        rough_mat *= lidar_ext.inverse();
+        EigenMath::DecomposeAffineMatrix(rough_mat, rough_pose.x, rough_pose.y, rough_pose.z, rough_pose.roll, rough_pose.pitch, rough_pose.yaw);
+        LOG_WARN("scan context success! res index = %d, pose = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)!", sc_res.first,
+                 rough_pose.x, rough_pose.y, rough_pose.z, RAD2DEG(rough_pose.roll), RAD2DEG(rough_pose.pitch), RAD2DEG(rough_pose.yaw));
+
         bool bnb_success = true;
-        if (!bnb3d->MatchWithMatchOptions(init_pose, bnb_pose, scan, bnb_option, lidar_ext))
+        auto bnb_opt_tmp = bnb_option;
+        bnb_opt_tmp.min_score = 0.1;
+        bnb_opt_tmp.linear_xy_window_size = 2;
+        bnb_opt_tmp.linear_z_window_size = 0.5;
+        bnb_opt_tmp.min_xy_resolution = 0.2;
+        bnb_opt_tmp.min_z_resolution = 0.1;
+        bnb_opt_tmp.angular_search_window = DEG2RAD(5);
+        if (!bnb3d->MatchWithMatchOptions(rough_pose, rough_pose, scan, bnb_opt_tmp, lidar_ext))
         {
-            auto bnb_opt_tmp = bnb_option;
-            bnb_opt_tmp.min_score = 0.1;
-            LOG_ERROR("bnb_failed, when bnb min_score = %.2f! min_score set to %.2f and try again.", bnb_option.min_score, bnb_opt_tmp.min_score);
-            if (!bnb3d->MatchWithMatchOptions(init_pose, bnb_pose, scan, bnb_opt_tmp, lidar_ext))
-            {
-                bnb_success = false;
-                bnb_pose = init_pose;
-                LOG_ERROR("bnb_failed, when bnb min_score = %.2f!", bnb_opt_tmp.min_score);
-            }
+            bnb_success = false;
+            LOG_ERROR("bnb_failed, when bnb min_score = %.2f!", bnb_opt_tmp.min_score);
         }
         if (bnb_success)
         {
             LOG_INFO("bnb_success!");
-            LOG_WARN("bnb_pose = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf), score_cnt = %d, time = %.0lf ms",
-                     bnb_pose.x, bnb_pose.y, bnb_pose.z, RAD2DEG(bnb_pose.roll), RAD2DEG(bnb_pose.pitch), RAD2DEG(bnb_pose.yaw),
+            LOG_WARN("bnb_pose = (%.2lf,%.2lf,%.4lf,%.2lf,%.2lf,%.2lf), score_cnt = %d, time = %.0lf ms",
+                     rough_pose.x, rough_pose.y, rough_pose.z, RAD2DEG(rough_pose.roll), RAD2DEG(rough_pose.pitch), RAD2DEG(rough_pose.yaw),
                      bnb3d->sort_cnt, timer.elapsedLast());
         }
     }
     else
     {
-        bnb_pose = init_pose;
-    }
-
-    // gicp match
-    Eigen::Quaterniond bnb_quat = EigenRotation::RPY2Quaternion(V3D(bnb_pose.roll, bnb_pose.pitch, bnb_pose.yaw));
-    result.setIdentity();
-    result.topLeftCorner(3, 3) = bnb_quat.toRotationMatrix().cast<float>();
-    result.topRightCorner(3, 1) = V3F(bnb_pose.x, bnb_pose.y, bnb_pose.z);
-    timer.record();
-#if 1
-    result *= lidar_ext.cast<float>(); // add lidar extrinsic
-    // auto plane_points = plane_seg(scan);
-    if (!fine_tune_pose(scan, result))
-    {
-#ifdef DEDUB_MODE
-        // for relocalization_debug
-        Eigen::Quaterniond res_quat = EigenRotation::RPY2Quaternion(V3D(init_pose.roll, init_pose.pitch, init_pose.yaw));
-        result.setIdentity();
-        result.topLeftCorner(3, 3) = res_quat.toRotationMatrix().cast<float>();
-        result.topRightCorner(3, 1) = V3F(init_pose.x, init_pose.y, init_pose.z);
-#endif
+        LOG_ERROR("scan context failed, res index = %d, total descriptors = %lu! Please move the vehicle to another position and try again.", sc_res.first, trajectory_poses->size());
         return false;
     }
-    result *= lidar_ext.inverse().cast<float>();
+    return true;
+}
+
+bool Relocalization::run_manually_set(PointCloudType::Ptr scan, Eigen::Matrix4d &rough_mat, const Eigen::Matrix4d &lidar_ext)
+{
+    if (!prior_pose_inited)
+    {
+        LOG_WARN("wait for the boot position to be manually set!");
+        return false;
+    }
+
+    Timer timer;
+    bool bnb_success = true;
+    if (!bnb3d->MatchWithMatchOptions(manual_pose, rough_pose, scan, bnb_option, lidar_ext))
+    {
+        auto bnb_opt_tmp = bnb_option;
+        bnb_opt_tmp.min_score = 0.1;
+        LOG_ERROR("bnb_failed, when bnb min_score = %.2f! min_score set to %.2f and try again.", bnb_option.min_score, bnb_opt_tmp.min_score);
+        if (!bnb3d->MatchWithMatchOptions(manual_pose, rough_pose, scan, bnb_opt_tmp, lidar_ext))
+        {
+            bnb_success = false;
+            rough_pose = manual_pose;
+            LOG_ERROR("bnb_failed, when bnb min_score = %.2f!", bnb_opt_tmp.min_score);
+        }
+    }
+    if (bnb_success)
+    {
+        LOG_INFO("bnb_success!");
+        LOG_WARN("bnb_pose = (%.2lf,%.2lf,%.4lf,%.2lf,%.2lf,%.2lf), score_cnt = %d, time = %.0lf ms",
+                 rough_pose.x, rough_pose.y, rough_pose.z, RAD2DEG(rough_pose.roll), RAD2DEG(rough_pose.pitch), RAD2DEG(rough_pose.yaw),
+                 bnb3d->sort_cnt, timer.elapsedLast());
+    }
+    return true;
+}
+
+bool Relocalization::run(const PointCloudType::Ptr &scan, Eigen::Matrix4d& result)
+{
+    Eigen::Matrix4d lidar_ext = lidar_extrinsic.toMatrix4d();
+    bool success_flag = true;
+    if (algorithm_type.compare("scan_context") == 0)
+    {
+        if (!run_scan_context(scan, result, lidar_ext) || !fine_tune_pose(scan, result, lidar_ext))
+        {
+#ifdef DEDUB_MODE
+            result = EigenMath::CreateAffineMatrix(V3D(rough_pose.x, rough_pose.y, rough_pose.z), V3D(rough_pose.roll, rough_pose.pitch, rough_pose.yaw));
 #endif
-    Eigen::Vector3f pos = result.topRightCorner(3, 1);
-    Eigen::Vector3f euler = EigenRotation::RotationMatrix2RPY2(M3D(result.topLeftCorner(3, 3).cast<double>())).cast<float>();
-    LOG_WARN("gicp pose = (%f, %f, %f, %f, %f, %f), gicp_time = %.2lf ms",
-             pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
+            success_flag = false;
+        }
+    }
+    if (algorithm_type.compare("manually_set") == 0 || !success_flag)
+    {
+        success_flag = true;
+        if (!run_manually_set(scan, result, lidar_ext) || !fine_tune_pose(scan, result, lidar_ext))
+        {
+#ifdef DEDUB_MODE
+            result = EigenMath::CreateAffineMatrix(V3D(manual_pose.x, manual_pose.y, manual_pose.z), V3D(manual_pose.roll, manual_pose.pitch, manual_pose.yaw));
+#endif
+            success_flag = false;
+        }
+    }
+
+    if (!success_flag)
+    {
+        LOG_ERROR("relocalization failed!");
+        return false;
+    }
 
     LOG_WARN("relocalization successfully!!!!!!");
+    return true;
+}
+
+bool Relocalization::load_keyframe_descriptor(const std::string &path)
+{
+    if (!fs::exists(path))
+        return false;
+
+    int scd_file_count = 0, num_digits = 0;
+    scd_file_count = FileOperation::getFilesNumByExtension(path, ".scd");
+
+    if (scd_file_count != trajectory_poses->size())
+        return false;
+
+    num_digits = FileOperation::getOneFilenameByExtension(path, ".scd").length() - std::string(".scd").length();
+
+    sc_manager->loadPriorSCD(path, num_digits, trajectory_poses->size());
     return true;
 }
 
@@ -130,7 +223,6 @@ bool Relocalization::load_prior_map(const PointCloudType::Ptr& global_map)
 {
     bnb3d = std::make_shared<BranchAndBoundMatcher3D>(global_map, bnb_option);
 
-    pcl::VoxelGrid<PointType> voxel_filter;
     voxel_filter.setLeafSize(gicp_downsample, gicp_downsample, gicp_downsample);
     voxel_filter.setInputCloud(global_map);
     voxel_filter.filter(*global_map);
@@ -257,16 +349,24 @@ PointCloudType::Ptr Relocalization::plane_seg(PointCloudType::Ptr src)
     return plane;
 }
 
-bool Relocalization::fine_tune_pose(PointCloudType::Ptr src, Eigen::Matrix4f& result)
+bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &result, const Eigen::Matrix4d &lidar_ext)
 {
+    Timer timer;
+    result = EigenMath::CreateAffineMatrix(V3D(rough_pose.x, rough_pose.y, rough_pose.z), V3D(rough_pose.roll, rough_pose.pitch, rough_pose.yaw));
+    result *= lidar_ext; // imu pose -> lidar pose
+
+#if 0
+    auto scan = plane_seg(scan);
+#endif
+
     PointCloudType::Ptr aligned(new PointCloudType());
     gicp.setMaxCorrespondenceDistance(search_radius);
     gicp.setMaximumIterations(150);
     gicp.setTransformationEpsilon(teps);
     gicp.setEuclideanFitnessEpsilon(feps);
 
-    gicp.setInputSource(src);
-    gicp.align(*aligned, result);
+    gicp.setInputSource(scan);
+    gicp.align(*aligned, result.cast<float>());
     bool icp_rst = gicp.hasConverged();
 
     if (!icp_rst)
@@ -288,28 +388,30 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr src, Eigen::Matrix4f& re
         LOG_ERROR("pointcloud registration fitness_score = %f.", gicp.getFitnessScore());
     }
 
-    result = gicp.getFinalTransformation();
+    result = gicp.getFinalTransformation().cast<double>();
+    result *= lidar_ext.inverse();
+
+    Eigen::Vector3d pos, euler;
+    EigenMath::DecomposeAffineMatrix(result, pos, euler);
+    LOG_WARN("gicp pose = (%f, %f, %f, %f, %f, %f), gicp_time = %.2lf ms",
+             pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
     return true;
 }
 
-void Relocalization::set_init_pose(const Pose& _init_pose)
+void Relocalization::set_init_pose(const Pose& _manual_pose)
 {
-    init_pose = _init_pose;
+    manual_pose = _manual_pose;
     LOG_WARN("*******************************************");
-    LOG_WARN("set_init_pose = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)", init_pose.x, init_pose.y, init_pose.z,
-             init_pose.roll, init_pose.pitch, init_pose.yaw);
+    LOG_WARN("set_init_pose = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)", manual_pose.x, manual_pose.y, manual_pose.z,
+             RAD2DEG(manual_pose.roll), RAD2DEG(manual_pose.pitch), RAD2DEG(manual_pose.yaw));
     LOG_WARN("*******************************************");
-    init_pose.roll = DEG2RAD(init_pose.roll);
-    init_pose.pitch = DEG2RAD(init_pose.pitch);
-    init_pose.yaw = DEG2RAD(init_pose.yaw);
     prior_pose_inited = true;
 }
 
-void Relocalization::set_bnb3d_param(const BnbOptions& match_option, const Pose& _init_pose, const Pose& _lidar_pose)
+void Relocalization::set_bnb3d_param(const BnbOptions& match_option, const Pose& lidar_pose)
 {
     bnb_option = match_option;
     LOG_WARN("*********** BnB Localizer Param ***********");
-    LOG_WARN("algorithm_type: %s", bnb_option.algorithm_type.c_str());
     LOG_WARN("linear_xy_window_size: %lf m", bnb_option.linear_xy_window_size);
     LOG_WARN("linear_z_window_size: %lf m", bnb_option.linear_z_window_size);
     LOG_WARN("angular_search_window: %lf degree", bnb_option.angular_search_window);
@@ -331,20 +433,14 @@ void Relocalization::set_bnb3d_param(const BnbOptions& match_option, const Pose&
 
     bnb_option.angular_search_window = DEG2RAD(bnb_option.angular_search_window);
 
-    init_pose = _init_pose;
-    lidar_pose = _lidar_pose;
+    lidar_extrinsic = lidar_pose;
     LOG_WARN("*******************************************");
-    LOG_WARN("init_pose = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)", init_pose.x, init_pose.y, init_pose.z,
-             init_pose.roll, init_pose.pitch, init_pose.yaw);
-    LOG_WARN("lidar_ext = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)", lidar_pose.x, lidar_pose.y, lidar_pose.z,
-             lidar_pose.roll, lidar_pose.pitch, lidar_pose.yaw);
+    LOG_WARN("lidar_ext = (%.2lf,%.2lf,%.4lf,%.0lf,%.0lf,%.2lf)", lidar_extrinsic.x, lidar_extrinsic.y, lidar_extrinsic.z,
+             lidar_extrinsic.roll, lidar_extrinsic.pitch, lidar_extrinsic.yaw);
     LOG_WARN("*******************************************");
-    init_pose.roll = DEG2RAD(init_pose.roll);
-    init_pose.pitch = DEG2RAD(init_pose.pitch);
-    init_pose.yaw = DEG2RAD(init_pose.yaw);
-    lidar_pose.roll = DEG2RAD(lidar_pose.roll);
-    lidar_pose.pitch = DEG2RAD(lidar_pose.pitch);
-    lidar_pose.yaw = DEG2RAD(lidar_pose.yaw);
+    lidar_extrinsic.roll = DEG2RAD(lidar_extrinsic.roll);
+    lidar_extrinsic.pitch = DEG2RAD(lidar_extrinsic.pitch);
+    lidar_extrinsic.yaw = DEG2RAD(lidar_extrinsic.yaw);
 }
 
 void Relocalization::set_plane_extract_param(const double &fr, const int &min_point, const double &clust_dis, const double &pl_dis, const double &point_percent)
@@ -363,4 +459,26 @@ void Relocalization::set_gicp_param(const double &gicp_ds, const double &search_
     teps = tep;
     feps = fep;
     fitness_score = fit_score;
+}
+
+void Relocalization::add_scancontext_descriptor(const PointCloudType::Ptr thiskeyframe, const std::string &path)
+{
+    PointCloudType::Ptr thiskeyframeDS(new PointCloudType());
+    pcl::PointCloud<SCPointType>::Ptr sc_input(new pcl::PointCloud<SCPointType>());
+    voxel_filter.setLeafSize(0.5, 0.5, 0.5);
+    voxel_filter.setInputCloud(thiskeyframe);
+    voxel_filter.filter(*thiskeyframeDS);
+
+    pcl::PointXYZI tmp;
+    for (auto &point : thiskeyframeDS->points)
+    {
+        tmp.x = point.x;
+        tmp.y = point.y;
+        tmp.z = point.z;
+        sc_input->push_back(tmp);
+    }
+    sc_manager->makeAndSaveScancontextAndKeys(*sc_input);
+
+    if (path.compare("") != 0)
+        sc_manager->saveCurrentSCD(path);
 }

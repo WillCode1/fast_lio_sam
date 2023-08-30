@@ -65,13 +65,16 @@ public:
 
     // User-side API
     void makeAndSaveScancontextAndKeys( pcl::PointCloud<SCPointType> & _scan_down );
+    std::pair<int, float> detectClosestKeyframeID(int num_exclude_recent, const std::vector<float> &curr_key, Eigen::MatrixXd &curr_desc);
     std::pair<int, float> detectLoopClosureID( int num_exclude_recent = 50 ); // int: nearest node index, float: relative yaw  
 
-    const Eigen::MatrixXd& getConstRefRecentSCD(void);
+    void saveCurrentSCD(const std::string &fileName, int num_digits = 6, const std::string &delimiter = " ");
+    void loadPriorSCD(const std::string &path, int num_digits, int num_keyframe);
+    std::pair<int, float> relocalize(pcl::PointCloud<SCPointType> &_scan_down);
 
 public:
     // hyper parameters ()
-    const double LIDAR_HEIGHT = 2.2; // lidar height : add this for simply directly using lidar scan in the lidar local coord (not robot base coord) / if you use robot-coord-transformed lidar scans, just set this as 0.
+    double LIDAR_HEIGHT = 2.2; // lidar height : add this for simply directly using lidar scan in the lidar local coord (not robot base coord) / if you use robot-coord-transformed lidar scans, just set this as 0.
 
     const int    PC_NUM_RING = 20; // 20 in the original paper (IROS 18)
     const int    PC_NUM_SECTOR = 60; // 60 in the original paper (IROS 18)
@@ -83,9 +86,9 @@ public:
     const int    NUM_CANDIDATES_FROM_TREE = 10; // 10 is enough. (refer the IROS 18 paper)
 
     // loop thres
-    const double SEARCH_RATIO = 0.1; // for fast comparison, no Brute-force, but search 10 % is okay. // not was in the original conf paper, but improved ver.
-    const double SC_DIST_THRES = 0.13; // empirically 0.1-0.2 is fine (rare false-alarms) for 20x60 polar context (but for 0.15 <, DCS or ICP fit score check (e.g., in LeGO-LOAM) should be required for robustness)
-    // const double SC_DIST_THRES = 0.5; // 0.4-0.6 is good choice for using with robust kernel (e.g., Cauchy, DCS) + icp fitness threshold / if not, recommend 0.1-0.15
+    const double SEARCH_RATIO = 0.2; // for fast comparison, no Brute-force, but search 10 % is okay. // not was in the original conf paper, but improved ver.
+    // const double SC_DIST_THRES = 0.13; // empirically 0.1-0.2 is fine (rare false-alarms) for 20x60 polar context (but for 0.15 <, DCS or ICP fit score check (e.g., in LeGO-LOAM) should be required for robustness)
+    const double SC_DIST_THRES = 0.7; // 0.4-0.6 is good choice for using with robust kernel (e.g., Cauchy, DCS) + icp fitness threshold / if not, recommend 0.1-0.15
 
     // config 
     const int    TREE_MAKING_PERIOD_ = 50; // i.e., remaking tree frequency, to avoid non-mandatory every remaking, to save time cost / if you want to find a very recent revisits use small value of it (it is enough fast ~ 5-50ms wrt N.).
@@ -102,27 +105,5 @@ public:
     std::unique_ptr<InvKeyTree> polarcontext_tree_;
 
 }; // SCManager
-
-inline void saveSCD(std::string fileName, Eigen::MatrixXd matrix, std::string delimiter = " ")
-{
-    // delimiter: ", " or " " etc.
-
-    int precision = 3; // or Eigen::FullPrecision, but SCD does not require such accruate precisions so 3 is enough.
-    const static Eigen::IOFormat the_format(precision, Eigen::DontAlignCols, delimiter, "\n");
-
-    std::ofstream file(fileName);
-    if (file.is_open())
-    {
-        file << matrix.format(the_format);
-        file.close();
-    }
-}
-
-inline std::string padZeros(int val, int num_digits = 6)
-{
-    std::ostringstream out;
-    out << std::internal << std::setfill('0') << std::setw(num_digits) << val;
-    return out.str();
-}
 
 } // namespace ScanContext

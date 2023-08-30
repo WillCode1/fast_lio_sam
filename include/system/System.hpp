@@ -32,8 +32,8 @@ public:
         measures = make_shared<MeasureCollection>();
         frontend = make_shared<FastlioOdometry>();
         backend = std::make_shared<FactorGraphOptimization>(keyframe_pose6d_optimized, keyframe_scan, gnss);
-        loopClosure = make_shared<LoopClosure>();
         relocalization = make_shared<Relocalization>();
+        loopClosure = make_shared<LoopClosure>(relocalization->sc_manager);
 
         feats_undistort.reset(new PointCloudType());
 
@@ -60,10 +60,14 @@ public:
         auto lidar_meas_model = [&](state_ikfom &a, esekfom::dyn_share_datastruct<double> &b) { frontend->lidar_meas_model(a, b, loger); };
         frontend->kf.init_dyn_share(get_f, df_dx, df_dw, lidar_meas_model, frontend->num_max_iterations, epsi);
 
-        /*** init localization mode ***/
         if (!localization_mode)
+        {
+            FileOperation::createDirectoryOrRecreate(keyframe_path);
+            FileOperation::createDirectoryOrRecreate(scd_path);
             return;
+        }
 
+        /*** init localization mode ***/
         save_keyframe_en = false;
         loop_closure_enable_flag = false;
 
@@ -87,6 +91,20 @@ public:
         {
             std::exit(100);
         }
+
+        pcl::io::loadPCDFile(trajectory_path, *relocalization->trajectory_poses);
+        if (relocalization->trajectory_poses->points.size() < 100)
+        {
+            LOG_ERROR("Too few point clouds! Please check the trajectory file.");
+        }
+        LOG_WARN("Load trajectory poses successfully! There are %lu poses.", relocalization->trajectory_poses->points.size());
+
+        if (!relocalization->load_keyframe_descriptor(scd_path))
+        {
+            LOG_ERROR("Load keyframe descriptor failed!");
+            std::exit(100);
+        }
+        LOG_WARN("Load keyframe descriptor successfully! There are %lu descriptors.", relocalization->sc_manager->polarcontexts_.size());
 
         /*** initialize the map kdtree ***/
         frontend->init_global_map(global_map);
@@ -143,10 +161,10 @@ public:
         /*** relocalization for localization mode ***/
         if (localization_mode && !system_state_vaild)
         {
-            Eigen::Matrix4f imu_pose;
+            Eigen::Matrix4d imu_pose;
             if (relocalization->run(measures->lidar, imu_pose))
             {
-                Eigen::Quaternionf fine_tune_quat(M3F(imu_pose.topLeftCorner(3, 3)));
+                Eigen::Quaterniond fine_tune_quat(M3D(imu_pose.topLeftCorner(3, 3)));
                 frontend->state = frontend->kf.get_x();
                 frontend->state.vel.setZero();
                 frontend->state.ba.setZero();
@@ -154,7 +172,7 @@ public:
                 frontend->state.offset_R_L_I = frontend->offset_Rli;
                 frontend->state.offset_T_L_I = frontend->offset_Tli;
                 frontend->state.grav.vec = frontend->gravity_vec;
-                frontend->state.pos = V3F(imu_pose.topRightCorner(3, 1)).cast<double>();
+                frontend->state.pos = V3D(imu_pose.topRightCorner(3, 1));
                 frontend->state.rot.coeffs() = Vector4d(fine_tune_quat.x(), fine_tune_quat.y(), fine_tune_quat.z(), fine_tune_quat.w());
                 frontend->kf.change_x(frontend->state);
                 system_state_vaild = true;
@@ -163,7 +181,7 @@ public:
             {
 #ifdef DEDUB_MODE
                 // for relocalization_debug
-                Eigen::Quaternionf fine_tune_quat(M3F(imu_pose.topLeftCorner(3, 3)));
+                Eigen::Quaterniond fine_tune_quat(M3D(imu_pose.topLeftCorner(3, 3)));
                 frontend->state = frontend->kf.get_x();
                 frontend->state.vel.setZero();
                 frontend->state.ba.setZero();
@@ -171,7 +189,7 @@ public:
                 frontend->state.offset_R_L_I = frontend->offset_Rli;
                 frontend->state.offset_T_L_I = frontend->offset_Tli;
                 frontend->state.grav.vec = frontend->gravity_vec;
-                frontend->state.pos = V3F(imu_pose.topRightCorner(3, 1)).cast<double>();
+                frontend->state.pos = V3D(imu_pose.topRightCorner(3, 1));
                 frontend->state.rot.coeffs() = Vector4d(fine_tune_quat.x(), fine_tune_quat.y(), fine_tune_quat.z(), fine_tune_quat.w());
                 frontend->kf.change_x(frontend->state);
 #endif
@@ -214,9 +232,10 @@ public:
             PointCloudType::Ptr this_keyframe(new PointCloudType());
             pcl::copyPointCloud(*feats_undistort, *this_keyframe);
             keyframe_scan->push_back(this_keyframe);
+            relocalization->add_scancontext_descriptor(this_keyframe, scd_path);
 
             if (save_keyframe_en)
-                save_keyframe();
+                save_keyframe(keyframe_scan->size());
 
             /*** loop closure ***/
             if (loop_closure_enable_flag)
@@ -285,7 +304,7 @@ public:
         for (auto i = 0; i < pose_num; ++i)
         {
             const auto &pose = keyframe_pose6d_unoptimized->points[i];
-            const auto &state_rot = EigenRotation::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
+            const auto &state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
             const auto &state_pos = V3D(pose.x, pose.y, pose.z);
             loger.save_trajectory(file_pose_unoptimized, state_pos, state_rot, pose.time);
         }
@@ -295,15 +314,25 @@ public:
         for (auto i = 0; i < pose_num; ++i)
         {
             const auto &pose = keyframe_pose6d_optimized->points[i];
-            const auto &state_rot = EigenRotation::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
+            const auto &state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
             const auto &state_pos = V3D(pose.x, pose.y, pose.z);
             loger.save_trajectory(file_pose_optimized, state_pos, state_rot, pose.time);
         }
         LOG_WARN("Success save global optimized poses to file ...");
+
+        if (!localization_mode)
+        {
+            pcl::PCDWriter pcd_writer;
+            pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
+            LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
+        }
     }
 
     PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize)
     {
+        if (localization_mode)
+            return PointCloudType::Ptr(nullptr);
+
         pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose(new pcl::PointCloud<PointXYZIRPYT>());
         backend->pose_mtx.lock();
         if (loop_closure_enable_flag)
@@ -421,19 +450,20 @@ private:
         return true;
     }
 
-    void save_keyframe()
+    void save_keyframe(int keyframe_cnt, int num_digits = 6)
     {
-        static uint64_t keyframe_cnt = 0;
-        keyframe_cnt++;
-        string all_points_dir(string(string(ROOT_DIR) + "PCD/keyframe/scans_") + to_string(keyframe_cnt) + string(".pcd"));
+        std::ostringstream out;
+        out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt - 1;
+        std::string keyframe_idx = out.str();
+        string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
         pcl::PCDWriter pcd_writer;
-        cout << "current scan saved to " << all_points_dir << endl;
-        pcd_writer.writeBinary(all_points_dir, *feats_undistort);
+        cout << "current scan saved to " << keyframe_file << endl;
+        pcd_writer.writeBinary(keyframe_file, *feats_undistort);
     }
 
 public:
-    bool system_state_vaild = false;    // true: system ok
-    bool localization_mode = false; // true: localization, false: slam
+    bool system_state_vaild = false; // true: system ok
+    bool localization_mode = false;  // true: localization, false: slam
     bool loop_closure_enable_flag = false;
     LogAnalysis loger;
 
@@ -477,5 +507,8 @@ public:
 
     /*** global map maintain ***/
     float save_resolution;
-    string globalmap_path = string(ROOT_DIR) + "PCD/globalmap.pcd";
+    string globalmap_path = PCD_FILE_DIR("globalmap.pcd");
+    string trajectory_path = PCD_FILE_DIR("trajectory.pcd");
+    string keyframe_path = PCD_FILE_DIR("keyframe/");
+    string scd_path = PCD_FILE_DIR("scancontext/");
 };

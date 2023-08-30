@@ -1,7 +1,9 @@
-bnb3d:
-    algorithm_type: "BNB_3D"
-    # algorithm_type: "GICP"
+relocalization_cfg:
+    algorithm_type: "scan_context"
+    # algorithm_type: "manually_set"
+    lidar_height: 2.2
 
+bnb3d:
     linear_xy_window_size: 5   # meter
     # linear_xy_window_size: 10   # meter
     linear_z_window_size: 6  # meter
@@ -17,15 +19,6 @@ bnb3d:
     thread_num: 6
     filter_size_scan: 0.2
     debug_mode: false
-
-    # prior pose in map(imu pose)
-    need_wait_prior_pose_inited: true
-    init_pose/x: 0
-    init_pose/y: 0
-    init_pose/z: 0
-    init_pose/roll: 0
-    init_pose/pitch: 0
-    init_pose/yaw: 0
 
     # lidar extrinsic to imu
     lidar_ext/x: -0.00665
