@@ -73,10 +73,10 @@ add_library(${PROJECT_NAME} SHARED
   include/global_localization/scancontext/Scancontext.cpp
   include/system/ImuProcessor.cpp
   include/system/System.hpp)
-target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
+target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
 
 add_executable(fastlio_ros1 src/ros1_main.cpp)
 target_link_libraries(fastlio_ros1 ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME})
 
 add_executable(fastlio_test_bag test/read_rosbag_test.cpp)
-target_link_libraries(fastlio_test_bag ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME} ${YAML_CPP_LIBRARIES} stdc++fs)
+target_link_libraries(fastlio_test_bag ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME} ${YAML_CPP_LIBRARIES})
