@@ -259,21 +259,24 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
         {
             sensor_msgs::PointCloud2::ConstPtr cloud = msg.instantiate<sensor_msgs::PointCloud2>();
             standard_pcl_cbk(slam, cloud);
-            slam.run();
+            if (slam.sync_sensor_data())
+                slam.run();
             printProgressBar(cost, bag_duration);
         }
         else if (msg.isType<livox_ros_driver::CustomMsg>())
         {
             livox_ros_driver::CustomMsg::ConstPtr cloud = msg.instantiate<livox_ros_driver::CustomMsg>();
             livox_pcl_cbk(slam, cloud);
-            slam.run();
+            if (slam.sync_sensor_data())
+                slam.run();
             printProgressBar(cost, bag_duration);
         }
         else if (msg.isType<sensor_msgs::Imu>())
         {
             sensor_msgs::Imu::ConstPtr imu = msg.instantiate<sensor_msgs::Imu>();
             imu_cbk(slam, imu);
-            slam.run();
+            if (slam.sync_sensor_data())
+                slam.run();
         }
     }
 

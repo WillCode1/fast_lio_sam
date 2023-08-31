@@ -469,6 +469,9 @@ int main(int argc, char **argv)
             break;
         ros::spinOnce();
 
+        if (!slam.sync_sensor_data())
+            continue;
+
         if (slam.run())
         {
             const auto &state = slam.frontend->state;

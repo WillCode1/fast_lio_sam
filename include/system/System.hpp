@@ -147,11 +147,73 @@ public:
         lidar->time_buffer.push_back(latest_lidar_beg_time);
     }
 
+    // 同步得到，当前帧激光点的开始和结束时间里的所有imu数据
+    bool sync_sensor_data()
+    {
+        static bool lidar_pushed = false;
+        static double lidar_mean_scantime = 0.0;
+        static int scan_num = 0;
+
+        std::lock_guard<std::mutex> lock(mtx_buffer);
+        if (lidar->lidar_buffer.empty() || imu->imu_buffer.empty())
+        {
+            return false;
+        }
+
+        /*** push a lidar scan ***/
+        if (!lidar_pushed)
+        {
+            measures->lidar = lidar->lidar_buffer.front();
+            measures->lidar_beg_time = lidar->time_buffer.front();
+            if (measures->lidar->points.size() <= 1) // time too little
+            {
+                lidar_end_time = measures->lidar_beg_time + lidar_mean_scantime;
+                LOG_WARN("Too few input point cloud!\n");
+            }
+            else if (measures->lidar->points.back().curvature / double(1000) < 0.5 * lidar_mean_scantime)
+            {
+                lidar_end_time = measures->lidar_beg_time + lidar_mean_scantime;
+            }
+            else
+            {
+                scan_num++;
+                lidar_end_time = measures->lidar_beg_time + measures->lidar->points.back().curvature / double(1000);
+                lidar_mean_scantime += (measures->lidar->points.back().curvature / double(1000) - lidar_mean_scantime) / scan_num;
+            }
+
+            measures->lidar_end_time = lidar_end_time;
+
+            lidar_pushed = true;
+        }
+
+        if (latest_timestamp_imu < lidar_end_time)
+        {
+            return false;
+        }
+
+        /*** push imu data, and pop from imu buffer ***/
+        double imu_time = imu->imu_buffer.front()->timestamp;
+        measures->imu.clear();
+        while ((!imu->imu_buffer.empty()) && (imu_time <= lidar_end_time))
+        {
+            measures->imu.push_back(imu->imu_buffer.front());
+#define RECORD_IMU_STATE
+#ifdef RECORD_IMU_STATE
+            angular_velocity = imu->imu_buffer.front()->angular_velocity;
+            linear_acceleration = imu->imu_buffer.front()->linear_acceleration;
+#endif
+            imu->imu_buffer.pop_front();
+            imu_time = imu->imu_buffer.front()->timestamp;
+        }
+
+        lidar->lidar_buffer.pop_front();
+        lidar->time_buffer.pop_front();
+        lidar_pushed = false;
+        return true;
+    }
+
     bool run()
     {
-        if (!sync_sensor_data())
-            return false;
-
         if (loger.runtime_log && !loger.inited_first_lidar_beg_time)
         {
             loger.first_lidar_beg_time = measures->lidar_beg_time;
@@ -354,71 +416,6 @@ public:
     }
 
 private:
-    // 同步得到，当前帧激光点的开始和结束时间里的所有imu数据
-    bool sync_sensor_data()
-    {
-        static bool lidar_pushed = false;
-        static double lidar_mean_scantime = 0.0;
-        static int scan_num = 0;
-
-        std::lock_guard<std::mutex> lock(mtx_buffer);
-        if (lidar->lidar_buffer.empty() || imu->imu_buffer.empty())
-        {
-            return false;
-        }
-
-        /*** push a lidar scan ***/
-        if (!lidar_pushed)
-        {
-            measures->lidar = lidar->lidar_buffer.front();
-            measures->lidar_beg_time = lidar->time_buffer.front();
-            if (measures->lidar->points.size() <= 1) // time too little
-            {
-                lidar_end_time = measures->lidar_beg_time + lidar_mean_scantime;
-                LOG_WARN("Too few input point cloud!\n");
-            }
-            else if (measures->lidar->points.back().curvature / double(1000) < 0.5 * lidar_mean_scantime)
-            {
-                lidar_end_time = measures->lidar_beg_time + lidar_mean_scantime;
-            }
-            else
-            {
-                scan_num++;
-                lidar_end_time = measures->lidar_beg_time + measures->lidar->points.back().curvature / double(1000);
-                lidar_mean_scantime += (measures->lidar->points.back().curvature / double(1000) - lidar_mean_scantime) / scan_num;
-            }
-
-            measures->lidar_end_time = lidar_end_time;
-
-            lidar_pushed = true;
-        }
-
-        if (latest_timestamp_imu < lidar_end_time)
-        {
-            return false;
-        }
-
-        /*** push imu data, and pop from imu buffer ***/
-        double imu_time = imu->imu_buffer.front()->timestamp;
-        measures->imu.clear();
-        while ((!imu->imu_buffer.empty()) && (imu_time <= lidar_end_time))
-        {
-            measures->imu.push_back(imu->imu_buffer.front());
-#define RECORD_IMU_STATE
-#ifdef RECORD_IMU_STATE
-            angular_velocity = imu->imu_buffer.front()->angular_velocity;
-            linear_acceleration = imu->imu_buffer.front()->linear_acceleration;
-#endif
-            imu->imu_buffer.pop_front();
-            imu_time = imu->imu_buffer.front()->timestamp;
-        }
-
-        lidar->lidar_buffer.pop_front();
-        lidar->time_buffer.pop_front();
-        lidar_pushed = false;
-        return true;
-    }
-
     void save_keyframe(int keyframe_cnt, int num_digits = 6)
     {
         std::ostringstream out;

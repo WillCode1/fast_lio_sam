@@ -338,8 +338,10 @@ int main(int argc, char **argv)
             break;
         rclcpp::spin_some(node);
 
-        auto slam_state = slam.run();
-        if (slam_state != 2)
+        if (!slam.sync_sensor_data())
+            continue;
+
+        if (slam.run())
         {
             const auto &state = slam.frontend->state;
 
