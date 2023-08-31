@@ -164,34 +164,13 @@ public:
             Eigen::Matrix4d imu_pose;
             if (relocalization->run(measures->lidar, imu_pose))
             {
-                Eigen::Quaterniond fine_tune_quat(M3D(imu_pose.topLeftCorner(3, 3)));
-                frontend->state = frontend->kf.get_x();
-                frontend->state.vel.setZero();
-                frontend->state.ba.setZero();
-                frontend->state.bg.setZero();
-                frontend->state.offset_R_L_I = frontend->offset_Rli;
-                frontend->state.offset_T_L_I = frontend->offset_Tli;
-                frontend->state.grav.vec = frontend->gravity_vec;
-                frontend->state.pos = V3D(imu_pose.topRightCorner(3, 1));
-                frontend->state.rot.coeffs() = Vector4d(fine_tune_quat.x(), fine_tune_quat.y(), fine_tune_quat.z(), fine_tune_quat.w());
-                frontend->kf.change_x(frontend->state);
+                frontend->reset_state(imu_pose);
                 system_state_vaild = true;
             }
             else
             {
 #ifdef DEDUB_MODE
-                // for relocalization_debug
-                Eigen::Quaterniond fine_tune_quat(M3D(imu_pose.topLeftCorner(3, 3)));
-                frontend->state = frontend->kf.get_x();
-                frontend->state.vel.setZero();
-                frontend->state.ba.setZero();
-                frontend->state.bg.setZero();
-                frontend->state.offset_R_L_I = frontend->offset_Rli;
-                frontend->state.offset_T_L_I = frontend->offset_Tli;
-                frontend->state.grav.vec = frontend->gravity_vec;
-                frontend->state.pos = V3D(imu_pose.topRightCorner(3, 1));
-                frontend->state.rot.coeffs() = Vector4d(fine_tune_quat.x(), fine_tune_quat.y(), fine_tune_quat.z(), fine_tune_quat.w());
-                frontend->kf.change_x(frontend->state);
+                frontend->reset_state(imu_pose);
 #endif
                 system_state_vaild = false;
                 return system_state_vaild;

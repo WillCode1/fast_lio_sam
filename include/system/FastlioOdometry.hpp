@@ -50,6 +50,21 @@ public:
         gravity_vec = gravity;
     }
 
+    void reset_state(const Eigen::Matrix4d &imu_pose)
+    {
+        Eigen::Quaterniond fine_tune_quat(M3D(imu_pose.topLeftCorner(3, 3)));
+        state = kf.get_x();
+        state.vel.setZero();
+        state.ba.setZero();
+        state.bg.setZero();
+        state.offset_R_L_I = offset_Rli;
+        state.offset_T_L_I = offset_Tli;
+        state.grav.vec = gravity_vec;
+        state.pos = V3D(imu_pose.topRightCorner(3, 1));
+        state.rot.coeffs() = Vector4d(fine_tune_quat.x(), fine_tune_quat.y(), fine_tune_quat.z(), fine_tune_quat.w());
+        kf.change_x(state);
+    }
+
     bool run(bool localization_mode, shared_ptr<ImuProcessor> &imu, MeasureCollection &measures,
              PointCloudType::Ptr &feats_undistort, LogAnalysis &loger)
     {
@@ -63,9 +78,6 @@ public:
             LOG_WARN("No point, skip this scan!");
             return true;
         }
-
-        // TODO: compare strategy
-        // lasermap_fov_segment(loger);
 
         /*** interval sample and downsample the feature points in a scan ***/
         feats_down_lidar->clear();
@@ -105,10 +117,16 @@ public:
         point_matched_surface.resize(feats_down_size);
         nearest_points.resize(feats_down_size);
         normvec->resize(feats_down_size);
-        if (!kf.update_iterated_dyn_share_modified(LASER_POINT_COV, loger.iterate_ekf_time))
+        bool measure_valid = true, iter_converge = false;
+        kf.update_iterated_dyn_share_modified(LASER_POINT_COV, loger.iterate_ekf_time, measure_valid, iter_converge);
+        if (!measure_valid)
         {
-            LOG_WARN("Lidar degradation!");
+            LOG_ERROR("Lidar degradation!");
             return false;
+        }
+        else if (!iter_converge)
+        {
+            LOG_WARN("The iterative process doesn't converge!");
         }
         state = kf.get_x();
         loger.meas_update_time = loger.timer.elapsedLast();
@@ -433,7 +451,7 @@ private:
 public:
     bool extrinsic_est_en = false;
 
-    /*** backup for relocalization ***/
+    /*** backup for relocalization reset ***/
     V3D offset_Tli;
     M3D offset_Rli;
     V3D gravity_vec;

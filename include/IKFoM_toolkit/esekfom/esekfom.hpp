@@ -1615,7 +1615,7 @@ public:
 	}
 	
 	//iterated error state EKF update modified for one specific system.
-	bool update_iterated_dyn_share_modified(double R, double &solve_time) {
+	void update_iterated_dyn_share_modified(double R, double &solve_time, bool &measure_valid, bool &iter_converge) {
 		
 		dyn_share_datastruct<scalar_type> dyn_share;
 		dyn_share.valid = true;
@@ -1628,7 +1628,6 @@ public:
 		Matrix<scalar_type, n, 1> K_h;
 		Matrix<scalar_type, n, n> K_x; 
 		
-		bool valid = true;
 		vectorized_state dx_new = vectorized_state::Zero();
 		for(int i=-1; i<maximum_iter; i++)
 		{
@@ -1637,8 +1636,8 @@ public:
 
 			if(! dyn_share.valid)
 			{
-				valid = false;
-				continue;
+				measure_valid = false;
+				continue; 
 			}
 
 			//Matrix<scalar_type, Eigen::Dynamic, 1> h = h_dyn_share(x_, dyn_share);
@@ -1825,6 +1824,12 @@ public:
 					break;
 				}
 			}
+			iter_converge = iter_converge || dyn_share.converge;
+#if 0
+			printf("error state = (%d | %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f)\n",
+				   dyn_share.converge, dx_[0], dx_[1], dx_[2], dx_[3], dx_[4], dx_[5], dx_[6], dx_[7], dx_[8], dx_[9], dx_[10],
+				   dx_[11], dx_[12], dx_[13], dx_[14], dx_[15], dx_[16], dx_[17], dx_[18], dx_[19], dx_[20], dx_[21], dx_[22]);
+#endif
 			if(dyn_share.converge) t++;
 			
 			if(!t && i == maximum_iter - 2)
@@ -1925,11 +1930,10 @@ public:
 					P_ = L_ - K_x.template block<n, 12>(0, 0) * P_.template block<12, n>(0, 0);
 				//}
 				solve_time += omp_get_wtime() - solve_start;
-				return valid;
+				return;
 			}
 			solve_time += omp_get_wtime() - solve_start;
 		}
-		return valid;
 	}
 
 	void change_x(state &input_state)
