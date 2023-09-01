@@ -507,6 +507,13 @@ int main(int argc, char **argv)
             publish_cloud_world(pubrelocalizationDebug, slam.measures->lidar, slam.frontend->state, slam.lidar_end_time);
 #endif
         }
+#ifdef DEDUB_MODE
+        if (slam.relocalization->plane_feature->size())
+        {
+            publish_cloud_world(pubrelocalizationDebug, slam.relocalization->plane_feature, slam.frontend->state, slam.lidar_end_time);
+            slam.relocalization->plane_feature->clear();
+        }
+#endif
 
         rate.sleep();
     }

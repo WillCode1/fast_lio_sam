@@ -36,9 +36,14 @@ public:
     pcl::PointCloud<PointXYZIRPYT>::Ptr trajectory_poses;
     std::shared_ptr<ScanContext::SCManager> sc_manager; // scan context
 
+#ifdef DEDUB_MODE
+    PointCloudType::Ptr plane_feature;  // for debug
+#endif
+
 private:
     PointCloudType::Ptr plane_seg1(PointCloudType::Ptr scan);
     PointCloudType::Ptr plane_seg2(PointCloudType::Ptr scan);
+    PointCloudType::Ptr plane_seg3(PointCloudType::Ptr scan);
     bool plane_estimate(const pcl::PointCloud<PointType>::Ptr cluster, const float &threshold);
     bool fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &result, const Eigen::Matrix4d &lidar_ext);
     bool run_scan_context(PointCloudType::Ptr scan, Eigen::Matrix4d &rough_mat, const Eigen::Matrix4d &lidar_ext);
@@ -68,6 +73,9 @@ Relocalization::Relocalization()
 {
     sc_manager = std::make_shared<ScanContext::SCManager>();
     trajectory_poses.reset(new pcl::PointCloud<PointXYZIRPYT>());
+#ifdef DEDUB_MODE
+    plane_feature.reset(new PointCloudType());
+#endif
 }
 
 Relocalization::~Relocalization()
@@ -279,7 +287,7 @@ PointCloudType::Ptr Relocalization::plane_seg1(PointCloudType::Ptr scan)
 
     PointCloudType::Ptr plane(new PointCloudType());
     PointCloudType::Ptr cloudPlane(new PointCloudType);
-    PointCloudType::Ptr cloud_tmp(new PointCloudType);
+    PointCloudType::Ptr cloud_other(new PointCloudType);
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliners(new pcl::PointIndices);
     pcl::ExtractIndices<PointType> extract;
@@ -288,10 +296,10 @@ PointCloudType::Ptr Relocalization::plane_seg1(PointCloudType::Ptr scan)
     sac.setOptimizeCoefficients(true);
     sac.setModelType(pcl::SACMODEL_PLANE);
     sac.setMethodType(pcl::SAC_RANSAC);
-    sac.setDistanceThreshold(0.1);
-    sac.setMaxIterations(500);
+    sac.setDistanceThreshold(0.01);
+    sac.setMaxIterations(200);
     int nr_points = (int)cloud->points.size();
-    while (cloud->points.size() > 0.3 * nr_points)
+    while (cloud->points.size() > 0.5 * nr_points)
     {
         sac.setInputCloud(cloud);
         sac.segment(*inliners, *coefficients);
@@ -303,12 +311,54 @@ PointCloudType::Ptr Relocalization::plane_seg1(PointCloudType::Ptr scan)
         extract.setNegative(false);
         extract.filter(*cloudPlane);
         extract.setNegative(true);
-        extract.filter(*cloud_tmp);
+        extract.filter(*cloud_other);
 
-        *cloud = *cloud_tmp;
+        *cloud = *cloud_other;
         *plane += *cloudPlane;
+        LOG_INFO("plane_seg1 point size = %lu!", cloudPlane->size());
+        std::cout << *coefficients << std::endl;
     }
-    LOG_INFO("6 = %lu!", plane->size());
+    LOG_INFO("plane_seg1 point size = %lu!", plane->size());
+    return plane;
+}
+
+PointCloudType::Ptr Relocalization::plane_seg3(PointCloudType::Ptr scan)
+{
+    PointCloudType::Ptr cloud(new PointCloudType());
+    for (auto &p : *scan)
+        if (pointDistanceSquare(p) > filter_radius * filter_radius)
+            cloud->push_back(p);
+
+    PointCloudType::Ptr plane(new PointCloudType());
+    PointCloudType::Ptr cloudPlane(new PointCloudType);
+    PointCloudType::Ptr cloud_other(new PointCloudType);
+
+    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+    pcl::ExtractIndices<PointType> extract;
+
+    pcl::SACSegmentation<PointType> seg;
+    seg.setOptimizeCoefficients(true);
+    seg.setModelType(pcl::SACMODEL_PERPENDICULAR_PLANE);
+    seg.setMethodType(pcl::SAC_RANSAC);
+    seg.setMaxIterations(200);
+    seg.setAxis(Eigen::Vector3f(0, 0, 1));
+    seg.setEpsAngle(0.1);
+    seg.setDistanceThreshold(0.05);
+
+    seg.setInputCloud(cloud);
+    seg.segment(*inliers, *coefficients);
+
+    extract.setInputCloud(cloud);
+    extract.setIndices(inliers);
+    extract.setNegative(false);
+    extract.filter(*cloudPlane);
+    extract.setNegative(true);
+    extract.filter(*cloud_other);
+    *cloud = *cloud_other;
+    *plane += *cloudPlane;
+
+    LOG_INFO("plane_seg3 point size = %lu!", plane->size());
     return plane;
 }
 
@@ -352,7 +402,7 @@ PointCloudType::Ptr Relocalization::plane_seg2(PointCloudType::Ptr scan)
         *plane += *cluster_cloud;
     }
 
-    std::cout << "Plane extraction completed. Extracted " << planeCount << " planes. point num = " << plane->points.size() << std::endl;
+    LOG_INFO("plane_seg2. Extracted %d planes. point num = %lu!", planeCount, plane->size());
 
     return plane;
 }
@@ -364,11 +414,18 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &r
     result *= lidar_ext; // imu pose -> lidar pose
 
 #if 1
-    auto plane_feature = plane_seg1(scan);
-    // auto plane_feature = plane_seg2(scan);
+    auto tmp = plane_seg1(scan);
+    // auto tmp = plane_seg2(scan);
+    // auto tmp = plane_seg3(scan);
 #else
-    auto plane_feature = scan;
+    auto tmp = scan;
 #endif
+
+#ifdef DEDUB_MODE
+    *plane_feature = *tmp;
+#endif
+
+    auto plane_seg_time = timer.elapsedLast();
 
     PointCloudType::Ptr aligned(new PointCloudType());
     gicp.setMaxCorrespondenceDistance(search_radius);
@@ -404,8 +461,8 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &r
 
     Eigen::Vector3d pos, euler;
     EigenMath::DecomposeAffineMatrix(result, pos, euler);
-    LOG_WARN("gicp pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), gicp_time = %.2lf ms",
-             pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
+    LOG_WARN("gicp pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), plane_seg_time = %.2lf ms, gicp_time = %.2lf ms",
+             pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), plane_seg_time, timer.elapsedLast());
     return true;
 }
 
