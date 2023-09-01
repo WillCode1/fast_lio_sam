@@ -398,14 +398,10 @@ int main(int argc, char **argv)
         ros::param::param("relocalization_cfg/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
         slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
-        int min_plane_point;
-        double filter_radius, cluster_dis, plane_dis, plane_point_percent;
-        nh.param<double>("gicp/filter_radius", filter_radius, 1);
-        nh.param<int>("gicp/min_plane_point", min_plane_point, 20);
-        nh.param<double>("gicp/cluster_dis", cluster_dis, 0.1);
-        nh.param<double>("gicp/plane_dis", plane_dis, 0.1);
-        nh.param<double>("gicp/plane_point_percent", plane_point_percent, 0.1);
-        slam.relocalization->set_plane_extract_param(filter_radius, min_plane_point, cluster_dis, plane_dis, plane_point_percent);
+        double step_size, resolution;
+        nh.param<double>("ndt/step_size", step_size, 0.1);
+        nh.param<double>("ndt/resolution", resolution, 1);
+        slam.relocalization->set_ndt_param(step_size, resolution);
 
         double gicp_downsample, search_radius, teps, feps, fitness_score;
         nh.param<double>("gicp/gicp_downsample", gicp_downsample, 0.2);

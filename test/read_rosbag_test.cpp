@@ -182,14 +182,10 @@ void load_config(System& slam, const std::string &config_path)
         lidar_extrinsic.yaw = relocal_config["relocalization_cfg"]["lidar_ext"]["yaw"].IsDefined() ? relocal_config["relocalization_cfg"]["lidar_ext"]["yaw"].as<double>() : 0.;
         slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
-        int min_plane_point;
-        double filter_radius, cluster_dis, plane_dis, plane_point_percent;
-        filter_radius = relocal_config["gicp"]["filter_radius"].IsDefined() ? relocal_config["gicp"]["filter_radius"].as<double>() : 1;
-        min_plane_point = relocal_config["gicp"]["min_plane_point"].IsDefined() ? relocal_config["gicp"]["min_plane_point"].as<int>() : 20;
-        cluster_dis = relocal_config["gicp"]["cluster_dis"].IsDefined() ? relocal_config["gicp"]["cluster_dis"].as<double>() : 0.1;
-        plane_dis = relocal_config["gicp"]["plane_dis"].IsDefined() ? relocal_config["gicp"]["plane_dis"].as<double>() : 0.1;
-        plane_point_percent = relocal_config["gicp"]["plane_point_percent"].IsDefined() ? relocal_config["gicp"]["plane_point_percent"].as<double>() : 0.1;
-        slam.relocalization->set_plane_extract_param(filter_radius, min_plane_point, cluster_dis, plane_dis, plane_point_percent);
+        double step_size, resolution;
+        step_size = relocal_config["ndt"]["step_size"].IsDefined() ? relocal_config["ndt"]["step_size"].as<double>() : 0.1;
+        resolution = relocal_config["ndt"]["resolution"].IsDefined() ? relocal_config["ndt"]["resolution"].as<double>() : 1;
+        slam.relocalization->set_ndt_param(step_size, resolution);
 
         double gicp_downsample, search_radius, teps, feps, fitness_score;
         gicp_downsample = relocal_config["gicp"]["gicp_downsample"].IsDefined() ? relocal_config["gicp"]["gicp_downsample"].as<double>() : 0.2;

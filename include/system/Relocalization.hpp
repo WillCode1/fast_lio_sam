@@ -3,6 +3,7 @@
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/registration/ndt.h>
 #include <pcl/registration/gicp.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/filters/extract_indices.h>
@@ -24,7 +25,7 @@ public:
 
     void set_init_pose(const Pose &_manual_pose);
     void set_bnb3d_param(const BnbOptions &match_option, const Pose &lidar_pose);
-    void set_plane_extract_param(const double &fr, const int &min_point, const double &clust_dis, const double &pl_dis, const double &point_percent);
+    void set_ndt_param(const double &_step_size, const double &_resolution);
     void set_gicp_param(const double &gicp_ds, const double &search_radi, const double &tep, const double &fep, const double &fit_score);
     void add_scancontext_descriptor(const PointCloudType::Ptr thiskeyframe, const std::string &path);
 
@@ -37,23 +38,17 @@ public:
     std::shared_ptr<ScanContext::SCManager> sc_manager; // scan context
 
 private:
-    PointCloudType::Ptr plane_seg1(PointCloudType::Ptr scan);
-    PointCloudType::Ptr plane_seg2(PointCloudType::Ptr scan);
-    bool plane_estimate(const pcl::PointCloud<PointType>::Ptr cluster, const float &threshold);
     bool fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &result, const Eigen::Matrix4d &lidar_ext);
     bool run_scan_context(PointCloudType::Ptr scan, Eigen::Matrix4d &rough_mat, const Eigen::Matrix4d &lidar_ext);
     bool run_manually_set(PointCloudType::Ptr scan, Eigen::Matrix4d &rough_mat, const Eigen::Matrix4d &lidar_ext);
 
     bool prior_pose_inited = false;
 
-	// plane_seg
-    double filter_radius = 1;
-    int min_plane_point = 10;
-    double cluster_dis = 0.1;
-    double plane_dis = 0.2;
-    double plane_point_percent = 0.1;
+    // ndt
+    double step_size = 0.1;
+    double resolution = 1;
 
-	// gicp
+    // gicp
     double gicp_downsample = 0.2;
     double search_radius = 0.2;
     double teps = 0.001;
@@ -61,6 +56,7 @@ private:
     double fitness_score = 0.3;
 
     pcl::VoxelGrid<PointType> voxel_filter;
+    pcl::NormalDistributionsTransform<PointType, PointType> ndt;
     pcl::GeneralizedIterativeClosestPoint<PointType, PointType> gicp;
 };
 
@@ -220,141 +216,18 @@ bool Relocalization::load_keyframe_descriptor(const std::string &path)
 bool Relocalization::load_prior_map(const PointCloudType::Ptr& global_map)
 {
     bnb3d = std::make_shared<BranchAndBoundMatcher3D>(global_map, bnb_option);
+    ndt.setInputTarget(global_map);
+    ndt.setMaximumIterations(150);
+    ndt.setTransformationEpsilon(teps);
+    ndt.setStepSize(step_size);
+    ndt.setResolution(resolution);
 
-    voxel_filter.setLeafSize(gicp_downsample, gicp_downsample, gicp_downsample);
-    voxel_filter.setInputCloud(global_map);
-    voxel_filter.filter(*global_map);
     gicp.setInputTarget(global_map);
+    gicp.setMaximumIterations(150);
+    gicp.setMaxCorrespondenceDistance(search_radius);
+    gicp.setTransformationEpsilon(teps);
+    gicp.setEuclideanFitnessEpsilon(feps);
     return true;
-}
-
-bool Relocalization::plane_estimate(const pcl::PointCloud<PointType>::Ptr cluster, const float &threshold)
-{
-    MatrixXf pca_result(4, 1);
-    MatrixXf A(cluster->points.size(), 3);
-    MatrixXf b(cluster->points.size(), 1);
-    A.setZero();
-    b.setOnes();
-    b *= -1.0f;
-
-    for (int j = 0; j < cluster->points.size(); j++)
-    {
-        A(j,0) = cluster->points[j].x;
-        A(j,1) = cluster->points[j].y;
-        A(j,2) = cluster->points[j].z;
-    }
-
-    V3F normvec = A.colPivHouseholderQr().solve(b);
-
-    auto n = normvec.norm();
-    pca_result(0) = normvec(0) / n;
-    pca_result(1) = normvec(1) / n;
-    pca_result(2) = normvec(2) / n;
-    pca_result(3) = 1.0 / n;
-
-    int cnt = 0;
-    for (int j = 0; j < cluster->points.size(); j++)
-    {
-        if (fabs(pca_result(0) * cluster->points[j].x + pca_result(1) * cluster->points[j].y + pca_result(2) * cluster->points[j].z + pca_result(3)) > threshold)
-        {
-            cnt++;
-        }
-    }
-    auto percent = cnt * 1.0 / cluster->points.size();
-
-    if (percent > plane_point_percent)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-PointCloudType::Ptr Relocalization::plane_seg1(PointCloudType::Ptr scan)
-{
-    PointCloudType::Ptr cloud(new PointCloudType());
-    for (auto &p : *scan)
-        if (pointDistanceSquare(p) > filter_radius * filter_radius)
-            cloud->push_back(p);
-
-    PointCloudType::Ptr plane(new PointCloudType());
-    PointCloudType::Ptr cloudPlane(new PointCloudType);
-    PointCloudType::Ptr cloud_tmp(new PointCloudType);
-    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliners(new pcl::PointIndices);
-    pcl::ExtractIndices<PointType> extract;
-
-    pcl::SACSegmentation<PointType> sac;
-    sac.setOptimizeCoefficients(true);
-    sac.setModelType(pcl::SACMODEL_PLANE);
-    sac.setMethodType(pcl::SAC_RANSAC);
-    sac.setDistanceThreshold(0.1);
-    sac.setMaxIterations(500);
-    int nr_points = (int)cloud->points.size();
-    while (cloud->points.size() > 0.3 * nr_points)
-    {
-        sac.setInputCloud(cloud);
-        sac.segment(*inliners, *coefficients);
-        if (inliners->indices.size() == 0)
-            break;
-
-        extract.setInputCloud(cloud);
-        extract.setIndices(inliners);
-        extract.setNegative(false);
-        extract.filter(*cloudPlane);
-        extract.setNegative(true);
-        extract.filter(*cloud_tmp);
-
-        *cloud = *cloud_tmp;
-        *plane += *cloudPlane;
-    }
-    LOG_INFO("6 = %lu!", plane->size());
-    return plane;
-}
-
-PointCloudType::Ptr Relocalization::plane_seg2(PointCloudType::Ptr scan)
-{
-    PointCloudType::Ptr cloud(new PointCloudType());
-    for (auto &p : *scan)
-        if (pointDistanceSquare(p) > filter_radius * filter_radius)
-            cloud->push_back(p);
-
-    PointCloudType::Ptr plane(new PointCloudType());
-    std::vector<pcl::PointIndices> cluster_indices;
-    pcl::ExtractIndices<PointType> extract;
-
-    pcl::search::KdTree<PointType>::Ptr tree(new pcl::search::KdTree<PointType>);
-    tree->setInputCloud(cloud);
-    pcl::EuclideanClusterExtraction<PointType> ec;
-    ec.setClusterTolerance(cluster_dis);
-    ec.setMinClusterSize(min_plane_point);
-    ec.setMaxClusterSize(10000);
-    ec.setSearchMethod(tree);
-    ec.setInputCloud(cloud);
-    ec.extract(cluster_indices);
-
-    int planeCount = 0;
-
-    pcl::PointCloud<PointType>::Ptr cluster_cloud(new pcl::PointCloud<PointType>);
-    for (const auto &cluster : cluster_indices)
-    {
-        extract.setInputCloud(cloud);
-        extract.setIndices(boost::make_shared<pcl::PointIndices>(cluster));
-        extract.setNegative(false);
-        extract.filter(*cluster_cloud);
-
-        if (!plane_estimate(cluster_cloud, plane_dis))
-        {
-            continue;
-        }
-
-        planeCount++;
-        *plane += *cluster_cloud;
-    }
-
-    std::cout << "Plane extraction completed. Extracted " << planeCount << " planes. point num = " << plane->points.size() << std::endl;
-
-    return plane;
 }
 
 bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &result, const Eigen::Matrix4d &lidar_ext)
@@ -363,46 +236,67 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &r
     result = EigenMath::CreateAffineMatrix(V3D(rough_pose.x, rough_pose.y, rough_pose.z), V3D(rough_pose.roll, rough_pose.pitch, rough_pose.yaw));
     result *= lidar_ext; // imu pose -> lidar pose
 
-#if 1
-    auto plane_feature = plane_seg1(scan);
-    // auto plane_feature = plane_seg2(scan);
-#else
-    auto plane_feature = scan;
-#endif
+    PointCloudType::Ptr filter(new PointCloudType());
+    voxel_filter.setLeafSize(gicp_downsample, gicp_downsample, gicp_downsample);
+    voxel_filter.setInputCloud(scan);
+    voxel_filter.filter(*filter);
 
     PointCloudType::Ptr aligned(new PointCloudType());
-    gicp.setMaxCorrespondenceDistance(search_radius);
-    gicp.setMaximumIterations(150);
-    gicp.setTransformationEpsilon(teps);
-    gicp.setEuclideanFitnessEpsilon(feps);
+    ndt.setInputCloud(filter);
+    ndt.align(*aligned, result.cast<float>());
 
-    gicp.setInputSource(plane_feature);
-    gicp.align(*aligned, result.cast<float>());
-    bool icp_rst = gicp.hasConverged();
+    if (!ndt.hasConverged())
+    {
+        LOG_ERROR("NDT not converge!");
+        return false;
+    }
+    else if (ndt.getFitnessScore() > fitness_score)
+    {
+        LOG_ERROR("failed! NDT fitness_score = %f.", ndt.getFitnessScore());
+        return false;
+    }
+    if (ndt.getFitnessScore() < 0.1)
+    {
+        LOG_WARN("NDT fitness_score = %f.", ndt.getFitnessScore());
+    }
+    else
+    {
+        LOG_ERROR("NDT fitness_score = %f.", ndt.getFitnessScore());
+    }
 
-    if (!icp_rst)
+    result = ndt.getFinalTransformation().cast<double>();
+    result *= lidar_ext.inverse();
+
+    Eigen::Vector3d pos, euler;
+    EigenMath::DecomposeAffineMatrix(result, pos, euler);
+    LOG_WARN("ndt pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), ndt_time = %.2lf ms",
+             pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
+
+    gicp.setInputSource(filter);
+    gicp.align(*aligned, ndt.getFinalTransformation());
+
+    if (!gicp.hasConverged())
     {
         LOG_ERROR("GICP not converge!");
         return false;
     }
     else if (gicp.getFitnessScore() > fitness_score)
     {
-        LOG_ERROR("failed! pointcloud registration fitness_score = %f.", gicp.getFitnessScore());
+        LOG_ERROR("failed! GICP fitness_score = %f.", gicp.getFitnessScore());
         return false;
     }
     if (gicp.getFitnessScore() < 0.1)
     {
-        LOG_WARN("pointcloud registration fitness_score = %f.", gicp.getFitnessScore());
+        LOG_WARN("GICP fitness_score = %f.", gicp.getFitnessScore());
     }
     else
     {
-        LOG_ERROR("pointcloud registration fitness_score = %f.", gicp.getFitnessScore());
+        LOG_ERROR("GICP fitness_score = %f.", gicp.getFitnessScore());
     }
 
     result = gicp.getFinalTransformation().cast<double>();
     result *= lidar_ext.inverse();
 
-    Eigen::Vector3d pos, euler;
     EigenMath::DecomposeAffineMatrix(result, pos, euler);
     LOG_WARN("gicp pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), gicp_time = %.2lf ms",
              pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
@@ -455,13 +349,10 @@ void Relocalization::set_bnb3d_param(const BnbOptions& match_option, const Pose&
     lidar_extrinsic.yaw = DEG2RAD(lidar_extrinsic.yaw);
 }
 
-void Relocalization::set_plane_extract_param(const double &fr, const int &min_point, const double &clust_dis, const double &pl_dis, const double &point_percent)
+void Relocalization::set_ndt_param(const double &_step_size, const double &_resolution)
 {
-    filter_radius = fr;
-    min_plane_point = min_point;
-    cluster_dis = clust_dis;
-    plane_dis = pl_dis;
-    plane_point_percent = point_percent;
+    step_size = _step_size;
+    resolution = _resolution;
 }
 
 void Relocalization::set_gicp_param(const double &gicp_ds, const double &search_radi, const double &tep, const double &fep, const double &fit_score)

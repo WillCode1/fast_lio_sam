@@ -28,15 +28,13 @@ bnb3d:
     filter_size_scan: 0.2
     debug_mode: false
 
-gicp:
-    filter_radius: 1
-    min_plane_point: 10
-    cluster_dis: 0.1
-    plane_dis: 0.2
-    plane_point_percent: 0.1
+ndt:
+    step_size: 0.1
+    resolution: 1
 
-    gicp_downsample: 0.2
-    search_radius: 50
-    teps: 0.001
+gicp:
+    gicp_downsample: 0.1
+    search_radius: 0.5  # 50
+    teps: 1.0e-4
     feps: 0.001
     fitness_score: 0.3
