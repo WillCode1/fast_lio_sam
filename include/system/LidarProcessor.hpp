@@ -42,7 +42,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(velodyne_ros::Point,
     (float, z, z)
     (float, intensity, intensity)
     (VEL_TIMESTAMP_TYPE, VEL_TIMESTAMP_FIELD, VEL_TIMESTAMP_FIELD)
-    (uint16_t, ring, ring)
+    (std::uint16_t, ring, ring)
 )
 
 namespace ouster_ros

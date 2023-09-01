@@ -170,7 +170,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 3
           Style: Points
-          Topic: /plane
+          Topic: /relocalization_debug
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -234,8 +234,8 @@ Visualization Manager:
         - Alpha: 0.6000000238418579
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 13.817325592041016
-            Min Value: -26.523244857788086
+            Max Value: 17.439720153808594
+            Min Value: -26.527847290039062
             Value: true
           Axis: Z
           Channel Name: intensity
