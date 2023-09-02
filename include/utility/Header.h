@@ -95,15 +95,38 @@ float pointDistance(const PointType& p1, const PointType& p2)
     return sqrt(pointDistanceSquare(p1, p2));
 }
 
-gtsam::Pose3 pclPointTogtsamPose3(const PointXYZIRPYT &thisPoint)
+inline gtsam::Pose3 pclPointTogtsamPose3(const PointXYZIRPYT &thisPoint)
 {
     return gtsam::Pose3(gtsam::Rot3::RzRyRx(thisPoint.roll, thisPoint.pitch, thisPoint.yaw),
                         gtsam::Point3(thisPoint.x, thisPoint.y, thisPoint.z));
 }
 
-Eigen::Affine3f pclPointToAffine3f(const PointXYZIRPYT &thisPoint)
+inline Eigen::Affine3f pclPointToAffine3f(const PointXYZIRPYT &thisPoint)
 {
     return pcl::getTransformation(thisPoint.x, thisPoint.y, thisPoint.z, thisPoint.roll, thisPoint.pitch, thisPoint.yaw);
+}
+
+inline bool check_for_not_converged(const double &timestamp, int step)
+{
+    static unsigned int cnt = 0;
+    static double last_timestamp = 0;
+
+    if (cnt == 0)
+    {
+        last_timestamp = timestamp;
+        ++cnt;
+        return false;
+    }
+
+    bool flag = false;
+    if (cnt % step == 0)
+    {
+        if ((timestamp - last_timestamp) <= 1)
+            flag = true;
+        last_timestamp = timestamp;
+    }
+    ++cnt;
+    return flag;
 }
 
 // #define DEDUB_MODE

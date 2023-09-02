@@ -34,7 +34,7 @@ ndt:
 
 gicp:
     gicp_downsample: 0.1
-    search_radius: 0.5  # 50
+    search_radius: 0.5
     teps: 1.0e-4
     feps: 0.001
     fitness_score: 0.3

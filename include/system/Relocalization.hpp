@@ -269,8 +269,8 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &r
 
     Eigen::Vector3d pos, euler;
     EigenMath::DecomposeAffineMatrix(result, pos, euler);
-    LOG_WARN("ndt pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), ndt_time = %.2lf ms",
-             pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
+    LOG_WARN("ndt pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), ndt_time = %.2lf ms, ndt_iters = %d",
+             pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast(), ndt.getFinalNumIteration());
 
     gicp.setInputSource(filter);
     gicp.align(*aligned, ndt.getFinalTransformation());

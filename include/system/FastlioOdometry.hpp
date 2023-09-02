@@ -124,9 +124,10 @@ public:
             LOG_ERROR("Lidar degradation!");
             return false;
         }
-        else if (!iter_converge)
+        else if (!iter_converge && check_for_not_converged(measures.lidar_beg_time, not_converged_times_thold))
         {
-            LOG_WARN("The iterative process doesn't converge!");
+            LOG_ERROR("Iteration doesn't converge beyond the limit, reset the system!");
+            return false;
         }
         state = kf.get_x();
         loger.meas_update_time = loger.timer.elapsedLast();
@@ -462,6 +463,7 @@ public:
     pcl::VoxelGrid<PointType> surf_frame_ds_filter;
     int feats_down_size = 0;
     PointCloudType::Ptr feats_down_lidar;
+    const int not_converged_times_thold = 5;
 
     /*** ESKF inputs and output ***/
     esekfom::esekf<state_ikfom, 12, input_ikfom> kf;
