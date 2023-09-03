@@ -109,19 +109,17 @@ inline Eigen::Affine3f pclPointToAffine3f(const PointXYZIRPYT &thisPoint)
 inline bool check_for_not_converged(const double &timestamp, int step)
 {
     static unsigned int cnt = 0;
-    static double start_timestamp = 0;
     static double last_timestamp = 0;
 
     if (cnt == 0)
     {
-        start_timestamp = timestamp;
         last_timestamp = timestamp;
         ++cnt;
         return false;
     }
 
     bool flag = false;
-    if (timestamp - start_timestamp > 10)
+    if (timestamp - last_timestamp > 60)    // check only 60s
         return flag;
 
     if (cnt % step == 0)

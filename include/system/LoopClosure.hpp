@@ -159,7 +159,7 @@ public:
 
         if (gicp.hasConverged() == false || gicp.getFitnessScore() > loop_closure_fitness_score_thld)
         {
-            LOG_ERROR("loop closure failed, %d, %f, %f", gicp.hasConverged(), gicp.getFitnessScore(), loop_closure_fitness_score_thld);
+            LOG_ERROR("loop closure failed, %d, %.3f, %.3f", gicp.hasConverged(), gicp.getFitnessScore(), loop_closure_fitness_score_thld);
             return;
         }
 
