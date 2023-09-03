@@ -9,6 +9,7 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <pcl/kdtree/kdtree_flann.h>
 #include "utility/Header.h"
 #include "global_localization/bnb3d.h"
 #include "global_localization/scancontext/Scancontext.h"
@@ -303,9 +304,37 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &r
     return true;
 }
 
-void Relocalization::set_init_pose(const Pose& _manual_pose)
+void Relocalization::set_init_pose(const Pose &_manual_pose)
 {
     manual_pose = _manual_pose;
+
+    {
+        std::vector<int> indices;
+        std::vector<float> distances;
+        pcl::KdTreeFLANN<PointXYZIRPYT> kdtree;
+        PointXYZIRPYT manual_pos;
+        manual_pos.x = manual_pose.x;
+        manual_pos.y = manual_pose.y;
+        kdtree.setInputCloud(trajectory_poses);
+        kdtree.radiusSearch(manual_pos, 10, indices, distances, 1);
+
+        if (indices.size() == 1)
+        {
+            auto pose_ref = trajectory_poses->points[indices.back()];
+            Eigen::Matrix4d rough_mat = EigenMath::CreateAffineMatrix(V3D(pose_ref.x, pose_ref.y, pose_ref.z), V3D(pose_ref.roll, pose_ref.pitch, pose_ref.yaw));
+            Eigen::Matrix4d lidar_ext = lidar_extrinsic.toMatrix4d();
+            rough_mat *= lidar_ext.inverse();
+            double tmp;
+            EigenMath::DecomposeAffineMatrix(rough_mat, tmp, tmp, manual_pose.z, tmp, tmp, tmp);
+            bnb_option.linear_z_window_size = 1;
+        }
+        else
+        {
+            bnb_option.linear_z_window_size = 6;
+            LOG_ERROR("manual position no elevation found!");
+        }
+    }
+
     LOG_WARN("*******************************************");
     LOG_WARN("set_init_pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf)", manual_pose.x, manual_pose.y, manual_pose.z,
              RAD2DEG(manual_pose.roll), RAD2DEG(manual_pose.pitch), RAD2DEG(manual_pose.yaw));

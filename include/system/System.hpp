@@ -96,6 +96,7 @@ public:
         if (relocalization->trajectory_poses->points.size() < 10)
         {
             LOG_ERROR("Too few point clouds! Please check the trajectory file.");
+            std::exit(100);
         }
         LOG_WARN("Load trajectory poses successfully! There are %lu poses.", relocalization->trajectory_poses->points.size());
 
