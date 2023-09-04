@@ -474,8 +474,8 @@ public:
 
     /*** global map maintain ***/
     float save_resolution;
-    const string globalmap_path = PCD_FILE_DIR("globalmap.pcd");
-    const string trajectory_path = PCD_FILE_DIR("trajectory.pcd");
-    const string keyframe_path = PCD_FILE_DIR("keyframe/");
-    const string scd_path = PCD_FILE_DIR("scancontext/");
+    string globalmap_path = PCD_FILE_DIR("globalmap.pcd");
+    string trajectory_path = PCD_FILE_DIR("trajectory.pcd");
+    string keyframe_path = PCD_FILE_DIR("keyframe/");
+    string scd_path = PCD_FILE_DIR("scancontext/");
 };

@@ -15,7 +15,7 @@ using namespace std;
 
 bool save_globalmap_en, pure_localization;
 const std::string root_path = std::string(ROOT_DIR);
-std::string relocal_config_path;
+std::string config_filename;
 std::string dataset_path;
 std::vector<std::string> topics;
 
@@ -175,12 +175,12 @@ void load_config(System& slam, const std::string &config_path)
         match_option.debug_mode = config["bnb3d"]["debug_mode"].IsDefined() ? config["bnb3d"]["debug_mode"].as<bool>() : false;
 
         Pose lidar_extrinsic;
-        lidar_extrinsic.x = config["relocalization_cfg"]["lidar_ext"]["x"].IsDefined() ? config["relocalization_cfg"]["lidar_ext"]["x"].as<double>() : 0.;
-        lidar_extrinsic.y = config["relocalization_cfg"]["lidar_ext"]["y"].IsDefined() ? config["relocalization_cfg"]["lidar_ext"]["y"].as<double>() : 0.;
-        lidar_extrinsic.z = config["relocalization_cfg"]["lidar_ext"]["z"].IsDefined() ? config["relocalization_cfg"]["lidar_ext"]["z"].as<double>() : 0.;
-        lidar_extrinsic.roll = config["relocalization_cfg"]["lidar_ext"]["roll"].IsDefined() ? config["relocalization_cfg"]["lidar_ext"]["roll"].as<double>() : 0.;
-        lidar_extrinsic.pitch = config["relocalization_cfg"]["lidar_ext"]["pitch"].IsDefined() ? config["relocalization_cfg"]["lidar_ext"]["pitch"].as<double>() : 0.;
-        lidar_extrinsic.yaw = config["relocalization_cfg"]["lidar_ext"]["yaw"].IsDefined() ? config["relocalization_cfg"]["lidar_ext"]["yaw"].as<double>() : 0.;
+        lidar_extrinsic.x = config["relocalization_cfg"]["lidar_ext/x"].IsDefined() ? config["relocalization_cfg"]["lidar_ext/x"].as<double>() : 0.;
+        lidar_extrinsic.y = config["relocalization_cfg"]["lidar_ext/y"].IsDefined() ? config["relocalization_cfg"]["lidar_ext/y"].as<double>() : 0.;
+        lidar_extrinsic.z = config["relocalization_cfg"]["lidar_ext/z"].IsDefined() ? config["relocalization_cfg"]["lidar_ext/z"].as<double>() : 0.;
+        lidar_extrinsic.roll = config["relocalization_cfg"]["lidar_ext/roll"].IsDefined() ? config["relocalization_cfg"]["lidar_ext/roll"].as<double>() : 0.;
+        lidar_extrinsic.pitch = config["relocalization_cfg"]["lidar_ext/pitch"].IsDefined() ? config["relocalization_cfg"]["lidar_ext/pitch"].as<double>() : 0.;
+        lidar_extrinsic.yaw = config["relocalization_cfg"]["lidar_ext/yaw"].IsDefined() ? config["relocalization_cfg"]["lidar_ext/yaw"].as<double>() : 0.;
         slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
         double step_size, resolution;
@@ -217,9 +217,14 @@ void load_config(System& slam, const std::string &config_path)
     slam.init_system_mode(pure_localization);
 }
 
-void test_rosbag(const std::string &bagfile, const std::string &config_path, const std::vector<std::string> &topics)
+void test_rosbag(const std::string &bagfile, const std::string &config_path, const std::vector<std::string> &topics, const std::string &bag_path)
 {
     System slam;
+    slam.globalmap_path = bag_path + "/globalmap.pcd";
+    slam.trajectory_path = bag_path + "/trajectory.pcd";
+    slam.keyframe_path = bag_path + "/keyframe/";
+    slam.scd_path = bag_path + "/scancontext/";
+
     rosbag::Bag bag;
 
     try
@@ -249,8 +254,6 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
             break;
 
         const auto &cost = (msg.getTime() - start_time).toSec();
-        // if (cost / bag_duration < 0.98)
-            // continue;
 
         if (msg.isType<sensor_msgs::PointCloud2>())
         {
@@ -316,7 +319,7 @@ void traverse_for_testbag(const std::string& config_path, const std::string &dir
         else if (fs::is_regular_file(entry) && entry.path().filename().extension() == ".bag")
         {
             // std::cout << entry.path().filename() << std::endl;
-            test_rosbag(entry.path(), config_path, topics);
+            test_rosbag(entry.path(), config_path, topics, directoryPath);
             execCommand("cp " + DEBUG_FILE_DIR("keyframe_pose.txt") + " " + directoryPath);
             execCommand("cp " + DEBUG_FILE_DIR("keyframe_pose_optimized.txt") + " " + directoryPath);
             test_bag_name.insert(entry.path().filename());
@@ -334,7 +337,7 @@ void traverse_for_config(const std::string &directoryPath)
     {
         if (flg_exit)
             break;
-        if (fs::is_regular_file(entry) && entry.path().filename().extension() == ".yaml")
+        if (fs::is_regular_file(entry) && entry.path().filename().string() == config_filename)
         {
             traverse_for_testbag(entry.path().string(), directoryPath);
         }
@@ -352,7 +355,7 @@ int main(int argc, char** argv)
     signal(SIGINT, SigHandle);
     pure_localization = true;
 
-    relocal_config_path = test_config["config"].IsDefined() ? test_config["config"].as<std::string>() : std::string("");
+    config_filename = "localization_dev.yaml";
 
     topics = test_config["read_topics"].IsDefined() ? test_config["read_topics"].as<vector<std::string>>() : vector<std::string>();
 
