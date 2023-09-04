@@ -1,7 +1,5 @@
 pure_localization: false
 
-relocal_config: "/config/relocalization.yaml"
-
 dataset_paths: [
                 "/home/will/data/testbag",
                 "/home/will/Downloads/UrbanLoco/HK",
