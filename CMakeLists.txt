@@ -80,3 +80,6 @@ target_link_libraries(fastlio_ros1 ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJEC
 
 add_executable(fastlio_test_bag test/read_rosbag_test.cpp)
 target_link_libraries(fastlio_test_bag ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME} ${YAML_CPP_LIBRARIES})
+
+add_executable(fastlio_test_bag_relcalization test/read_rosbag_test_relcalization.cpp)
+target_link_libraries(fastlio_test_bag_relcalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME} ${YAML_CPP_LIBRARIES})
