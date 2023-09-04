@@ -370,13 +370,13 @@ int main(int argc, char **argv)
     nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
     cout << "current lidar_type: " << lidar_type << endl;
 
-    ros::param::param("relocalization_cfg/algorithm_type", slam.relocalization->algorithm_type, std::string("UNKONW"));
-
     ros::param::param("scan_context/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
     ros::param::param("scan_context/sc_dist_thres", slam.relocalization->sc_manager->SC_DIST_THRES, 0.5);
 
     if (pure_localization)
     {
+        ros::param::param("relocalization_cfg/algorithm_type", slam.relocalization->algorithm_type, std::string("UNKONW"));
+
         BnbOptions match_option;
         ros::param::param("bnb3d/linear_xy_window_size", match_option.linear_xy_window_size, 10.);
         ros::param::param("bnb3d/linear_z_window_size", match_option.linear_z_window_size, 1.);

@@ -8,7 +8,6 @@
     <!-- <rosparam command="load" file="$(find fast_lio3)/config/velodyne.yaml" /> -->
     <!-- <rosparam command="load" file="$(find fast_lio3)/config/ouster64.yaml" /> -->
     <rosparam command="load" file="$(find fast_lio3)/config/localization_dev.yaml" />
-	<rosparam command="load" file="$(find fast_lio3)/config/relocalization.yaml" />
 
 	<param name="localization_mode" type="bool" value="true" />
     <node pkg="fast_lio3" type="fastlio_ros1" name="system" output="screen" /> 

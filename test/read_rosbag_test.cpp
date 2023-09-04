@@ -154,13 +154,13 @@ void load_config(System& slam, const std::string &config_path)
     extrinT = config["mapping"]["extrinsic_T"].IsDefined() ? config["mapping"]["extrinsic_T"].as<vector<double>>() : vector<double>();
     extrinR = config["mapping"]["extrinsic_R"].IsDefined() ? config["mapping"]["extrinsic_R"].as<vector<double>>() : vector<double>();
 
-    slam.relocalization->algorithm_type = relocal_config["relocalization_cfg"]["algorithm_type"].IsDefined() ? relocal_config["relocalization_cfg"]["algorithm_type"].as<string>() : std::string("UNKONW");
-
     slam.relocalization->sc_manager->LIDAR_HEIGHT = relocal_config["scan_context"]["lidar_height"].IsDefined() ? relocal_config["scan_context"]["lidar_height"].as<double>() : 2.0;
     slam.relocalization->sc_manager->SC_DIST_THRES = relocal_config["scan_context"]["sc_dist_thres"].IsDefined() ? relocal_config["scan_context"]["sc_dist_thres"].as<double>() : 0.5;
 
     if (pure_localization)
     {
+        slam.relocalization->algorithm_type = relocal_config["relocalization_cfg"]["algorithm_type"].IsDefined() ? relocal_config["relocalization_cfg"]["algorithm_type"].as<string>() : std::string("UNKONW");
+
         BnbOptions match_option;
         match_option.linear_xy_window_size = relocal_config["bnb3d"]["linear_xy_window_size"].IsDefined() ? relocal_config["bnb3d"]["linear_xy_window_size"].as<double>() : 10;
         match_option.linear_z_window_size = relocal_config["bnb3d"]["linear_z_window_size"].IsDefined() ? relocal_config["bnb3d"]["linear_z_window_size"].as<double>() : 1.;
