@@ -247,12 +247,14 @@ int main(int argc, char **argv)
     node->get_parameter_or("mapping/extrinsic_R", extrinR, vector<double>());
     cout << "current lidar_type: " << lidar_type << endl;
 
-    node->get_parameter_or("relocalization_cfg/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
+    node->get_parameter_or("relocalization_cfg/algorithm_type", slam.relocalization->algorithm_type, std::string("UNKONW"));
+
+    node->get_parameter_or("scan_context/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
+    node->get_parameter_or("scan_context/sc_dist_thres", slam.relocalization->sc_manager->SC_DIST_THRES, 0.5);
+
     if (pure_localization)
     {
         BnbOptions match_option;
-        node->get_parameter_or("relocalization_cfg/algorithm_type", slam.relocalization->algorithm_type, std::string("UNKONW"));
-
         node->get_parameter_or("bnb3d/linear_xy_window_size", match_option.linear_xy_window_size, 10.);
         node->get_parameter_or("bnb3d/linear_z_window_size", match_option.linear_z_window_size, 1.);
         node->get_parameter_or("bnb3d/angular_search_window", match_option.angular_search_window, 30.);

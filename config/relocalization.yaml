@@ -1,7 +1,6 @@
 relocalization_cfg:
     algorithm_type: "scan_context"
     # algorithm_type: "manually_set"
-    lidar_height: 2.2
 
     # lidar extrinsic to imu
     lidar_ext/x: -0.00665
@@ -10,6 +9,10 @@ relocalization_cfg:
     lidar_ext/roll: 180
     lidar_ext/pitch: 0
     lidar_ext/yaw: 0
+
+scan_context:
+    lidar_height: 2.2
+    sc_dist_thres: 0.7
 
 bnb3d:
     linear_xy_window_size: 5   # meter

@@ -104,15 +104,13 @@ public:
         int loop_key_ref;
         float sc_yaw_rad = -1; // sc2右移 <=> lidar左转 <=> 左+sc_yaw_rad
 
-        // 1.scan context
-        // if (detect_loop_by_scancontext(loop_key_cur, loop_key_ref, sc_yaw_rad) == false)
         {
-            int sc_index, cc_index;
-            // 2.在历史关键帧中查找与当前关键帧距离最近的关键帧
+            // 1.在历史关键帧中查找与当前关键帧距离最近的关键帧
             if (detect_loop_by_distance(loop_key_cur, loop_key_ref, lidar_end_time) == false)
             {
                 return;
             }
+            // 2.scan context
             if (detect_loop_by_scancontext(loop_key_cur, loop_key_ref, sc_yaw_rad) == false)
             {
                 return;
