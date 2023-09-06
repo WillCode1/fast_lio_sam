@@ -237,19 +237,23 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
     slam.scd_path = bag_path + "/scancontext/";
     FILE *fp = fopen(std::string(bag_path + "/frontend_state.txt").c_str(), "w");
     FILE *fp2 = fopen(std::string(bag_path + "/relocalization_pose.txt").c_str(), "w");
+    FILE *fp3 = fopen(std::string(bag_path + "/relocalization_pose_error.txt").c_str(), "w");
 
     rosbag::Bag bag;
 
-    auto record_trajectory = [&]()
+    auto record_trajectory = [&](const double &time_stamp)
     {
         if (slam.system_state_vaild)
         {
             Eigen::Matrix4d imu_pose;
             bool flag = slam.relocalization->run(slam.measures->lidar, imu_pose);
             auto &imu_state = slam.frontend->state;
-            save_trajectory(fp, imu_state.pos, imu_state.rot, slam.lidar_end_time);
-            save_trajectory(fp2, imu_pose.topRightCorner(3, 1), Eigen::Quaterniond(Eigen::Matrix3d(imu_pose.topLeftCorner(3, 3))), slam.lidar_end_time);
-            LOG_ERROR_COND(flag, "%f relocalization failed!", slam.lidar_end_time);
+            save_trajectory(fp, imu_state.pos, imu_state.rot, time_stamp);
+            if (flag)
+                save_trajectory(fp2, imu_pose.topRightCorner(3, 1), Eigen::Quaterniond(Eigen::Matrix3d(imu_pose.topLeftCorner(3, 3))), time_stamp);
+            else
+                save_trajectory(fp3, imu_pose.topRightCorner(3, 1), Eigen::Quaterniond(Eigen::Matrix3d(imu_pose.topLeftCorner(3, 3))), time_stamp);
+            LOG_ERROR_COND(!flag, "%f relocalization failed!", time_stamp);
         }
     };
 
@@ -288,7 +292,7 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
             if (slam.sync_sensor_data())
             {
                 slam.run();
-                record_trajectory();
+                record_trajectory(msg.getTime().toSec());
             }
             printProgressBar(cost, bag_duration);
         }
@@ -299,7 +303,7 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
             if (slam.sync_sensor_data())
             {
                 slam.run();
-                record_trajectory();
+                record_trajectory(msg.getTime().toSec());
             }
             printProgressBar(cost, bag_duration);
         }
@@ -310,7 +314,7 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
             if (slam.sync_sensor_data())
             {
                 slam.run();
-                record_trajectory();
+                record_trajectory(msg.getTime().toSec());
             }
         }
     }
@@ -319,6 +323,7 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
 
     fclose(fp);
     fclose(fp2);
+    fclose(fp3);
 
     if (!flg_exit && !slam.lidar->lidar_buffer.empty())
     {
@@ -387,7 +392,7 @@ void traverse_for_config(const std::string &directoryPath)
 }
 
 // test target:
-// 1.slam.relocalization->run 成功率和精度
+// 1.slam.relocalization.run 成功率和精度
 // 2.relocalization->frontend 成功率
 
 int main(int argc, char** argv)
