@@ -405,13 +405,15 @@ int main(int argc, char **argv)
         nh.param<double>("ndt/resolution", resolution, 1);
         slam.relocalization->set_ndt_param(step_size, resolution);
 
+        bool use_gicp;
         double gicp_downsample, search_radius, teps, feps, fitness_score;
+        nh.param<bool>("gicp/use_gicp", use_gicp, true);
         nh.param<double>("gicp/gicp_downsample", gicp_downsample, 0.2);
         nh.param<double>("gicp/search_radius", search_radius, 0.5);
         nh.param<double>("gicp/teps", teps, 1e-3);
         nh.param<double>("gicp/feps", feps, 1e-3);
         nh.param<double>("gicp/fitness_score", fitness_score, 0.3);
-        slam.relocalization->set_gicp_param(gicp_downsample, search_radius, teps, feps, fitness_score);
+        slam.relocalization->set_gicp_param(use_gicp, gicp_downsample, search_radius, teps, feps, fitness_score);
     }
 
     vector<double> gravity;

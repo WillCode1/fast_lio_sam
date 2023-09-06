@@ -311,6 +311,7 @@ public:
                                const BnbOptions &match_option,
                                const Eigen::Matrix4d &lidar_ext)
     {
+        sort_cnt = 0;
         init_lidar_orientation_ = lidar_ext;
         auto filter_scan = filterScan(scan, match_option);
         DiscretePose3D discrete_candidate_pose(init_pose, match_option);

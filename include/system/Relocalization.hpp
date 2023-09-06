@@ -27,7 +27,7 @@ public:
     void set_init_pose(const Pose &_manual_pose);
     void set_bnb3d_param(const BnbOptions &match_option, const Pose &lidar_pose);
     void set_ndt_param(const double &_step_size, const double &_resolution);
-    void set_gicp_param(const double &gicp_ds, const double &search_radi, const double &tep, const double &fep, const double &fit_score);
+    void set_gicp_param(bool _use_gicp, const double &gicp_ds, const double &search_radi, const double &tep, const double &fep, const double &fit_score);
     void add_scancontext_descriptor(const PointCloudType::Ptr thiskeyframe, const std::string &path);
 
     std::string algorithm_type = "UNKNOW";
@@ -50,6 +50,7 @@ private:
     double resolution = 1;
 
     // gicp
+    bool use_gicp = true;
     double gicp_downsample = 0.2;
     double search_radius = 0.2;
     double teps = 0.001;
@@ -223,11 +224,14 @@ bool Relocalization::load_prior_map(const PointCloudType::Ptr& global_map)
     ndt.setStepSize(step_size);
     ndt.setResolution(resolution);
 
-    gicp.setInputTarget(global_map);
-    gicp.setMaximumIterations(150);
-    gicp.setMaxCorrespondenceDistance(search_radius);
-    gicp.setTransformationEpsilon(teps);
-    gicp.setEuclideanFitnessEpsilon(feps);
+    if (use_gicp)
+    {
+        gicp.setInputTarget(global_map);
+        gicp.setMaximumIterations(150);
+        gicp.setMaxCorrespondenceDistance(search_radius);
+        gicp.setTransformationEpsilon(teps);
+        gicp.setEuclideanFitnessEpsilon(feps);
+    }
     return true;
 }
 
@@ -273,34 +277,37 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &r
     LOG_WARN("ndt pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), ndt_time = %.2lf ms, ndt_iters = %d",
              pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast(), ndt.getFinalNumIteration());
 
-    gicp.setInputSource(filter);
-    gicp.align(*aligned, ndt.getFinalTransformation());
+    if (use_gicp)
+    {
+        gicp.setInputSource(filter);
+        gicp.align(*aligned, ndt.getFinalTransformation());
 
-    if (!gicp.hasConverged())
-    {
-        LOG_ERROR("GICP not converge!");
-        return false;
-    }
-    else if (gicp.getFitnessScore() > fitness_score)
-    {
-        LOG_ERROR("failed! GICP fitness_score = %f.", gicp.getFitnessScore());
-        return false;
-    }
-    if (gicp.getFitnessScore() < 0.1)
-    {
-        LOG_WARN("GICP fitness_score = %f.", gicp.getFitnessScore());
-    }
-    else
-    {
-        LOG_ERROR("GICP fitness_score = %f.", gicp.getFitnessScore());
-    }
+        if (!gicp.hasConverged())
+        {
+            LOG_ERROR("GICP not converge!");
+            return false;
+        }
+        else if (gicp.getFitnessScore() > fitness_score)
+        {
+            LOG_ERROR("failed! GICP fitness_score = %f.", gicp.getFitnessScore());
+            return false;
+        }
+        if (gicp.getFitnessScore() < 0.1)
+        {
+            LOG_WARN("GICP fitness_score = %f.", gicp.getFitnessScore());
+        }
+        else
+        {
+            LOG_ERROR("GICP fitness_score = %f.", gicp.getFitnessScore());
+        }
 
-    result = gicp.getFinalTransformation().cast<double>();
-    result *= lidar_ext.inverse();
+        result = gicp.getFinalTransformation().cast<double>();
+        result *= lidar_ext.inverse();
 
-    EigenMath::DecomposeAffineMatrix(result, pos, euler);
-    LOG_WARN("gicp pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), gicp_time = %.2lf ms",
-             pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
+        EigenMath::DecomposeAffineMatrix(result, pos, euler);
+        LOG_WARN("gicp pose = (%.2lf,%.2lf,%.2lf,%.2lf,%.2lf,%.2lf), gicp_time = %.2lf ms",
+                pos(0), pos(1), pos(2), RAD2DEG(euler(0)), RAD2DEG(euler(1)), RAD2DEG(euler(2)), timer.elapsedLast());
+    }
     return true;
 }
 
@@ -384,8 +391,9 @@ void Relocalization::set_ndt_param(const double &_step_size, const double &_reso
     resolution = _resolution;
 }
 
-void Relocalization::set_gicp_param(const double &gicp_ds, const double &search_radi, const double &tep, const double &fep, const double &fit_score)
+void Relocalization::set_gicp_param(bool _use_gicp, const double &gicp_ds, const double &search_radi, const double &tep, const double &fep, const double &fit_score)
 {
+    use_gicp = _use_gicp;
     gicp_downsample = gicp_ds;
     search_radius = search_radi;
     teps = tep;

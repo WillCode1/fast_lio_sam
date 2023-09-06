@@ -188,13 +188,15 @@ void load_config(System& slam, const std::string &config_path)
         resolution = config["ndt"]["resolution"].IsDefined() ? config["ndt"]["resolution"].as<double>() : 1;
         slam.relocalization->set_ndt_param(step_size, resolution);
 
+        bool use_gicp;
         double gicp_downsample, search_radius, teps, feps, fitness_score;
+        use_gicp = config["gicp"]["use_gicp"].IsDefined() ? config["gicp"]["use_gicp"].as<bool>() : true;
         gicp_downsample = config["gicp"]["gicp_downsample"].IsDefined() ? config["gicp"]["gicp_downsample"].as<double>() : 0.2;
         search_radius = config["gicp"]["search_radius"].IsDefined() ? config["gicp"]["search_radius"].as<double>() : 0.5;
         teps = config["gicp"]["teps"].IsDefined() ? config["gicp"]["teps"].as<double>() : 1e-3;
         feps = config["gicp"]["feps"].IsDefined() ? config["gicp"]["feps"].as<double>() : 1e-3;
         fitness_score = config["gicp"]["fitness_score"].IsDefined() ? config["gicp"]["fitness_score"].as<double>() : 0.3;
-        slam.relocalization->set_gicp_param(gicp_downsample, search_radius, teps, feps, fitness_score);
+        slam.relocalization->set_gicp_param(use_gicp, gicp_downsample, search_radius, teps, feps, fitness_score);
     }
 
     vector<double> gravity;

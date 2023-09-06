@@ -282,13 +282,15 @@ int main(int argc, char **argv)
         node->get_parameter_or("ndt/resolution", resolution, 1);
         slam.relocalization->set_ndt_param(step_size, resolution);
 
+        bool use_gicp;
         double gicp_downsample, search_radius, teps, feps, fitness_score;
+        node->get_parameter_or("gicp/use_gicp", use_gicp, true);
         node->get_parameter_or("gicp/gicp_downsample", gicp_downsample, 0.2);
         node->get_parameter_or("gicp/search_radius", search_radius, 0.5);
         node->get_parameter_or("gicp/teps", teps, 1e-3);
         node->get_parameter_or("gicp/feps", feps, 1e-3);
         node->get_parameter_or("gicp/fitness_score", fitness_score, 0.3);
-        slam.relocalization->set_gicp_param(gicp_downsample, search_radius, teps, feps, fitness_score);
+        slam.relocalization->set_gicp_param(use_gicp, gicp_downsample, search_radius, teps, feps, fitness_score);
     }
 
     vector<double> gravity;
