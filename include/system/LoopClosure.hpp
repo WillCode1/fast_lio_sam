@@ -20,6 +20,8 @@ public:
         curKeyframeCloud.reset(new PointCloudType());
         prevKeyframeCloud.reset(new PointCloudType());
 
+        loop_vaild_period["odom"] = std::vector<double>();
+        loop_vaild_period["scancontext"] = std::vector<double>();
         sc_manager = scManager;
     }
 
@@ -70,7 +72,7 @@ public:
      * 提取key索引的关键帧前后相邻若干帧的关键帧特征点集合，降采样
      */
     void loop_find_near_keyframes(PointCloudType::Ptr &near_keyframes, const int &key, const int &search_num,
-                                  const state_ikfom &state, const deque<PointCloudType::Ptr> &keyframe_scan)
+                                  const deque<PointCloudType::Ptr> &keyframe_scan)
     {
         // 提取key索引的关键帧前后相邻若干帧的关键帧特征点集合
         near_keyframes->clear();
@@ -92,13 +94,14 @@ public:
         icp_downsamp_filter.filter(*near_keyframes);
     }
 
-    void run(const double lidar_end_time, const state_ikfom &state, const deque<PointCloudType::Ptr> &keyframe_scan)
+    void run(const double lidar_end_time, const deque<PointCloudType::Ptr> &keyframe_scan)
     {
         if (copy_keyframe_pose6d->points.size() < loop_keyframe_num_thld)
         {
             return;
         }
 
+        const double &dartion_time = copy_keyframe_pose6d->back().time - copy_keyframe_pose6d->front().time;
         // 当前关键帧索引，候选闭环匹配帧索引
         int loop_key_cur;
         int loop_key_ref;
@@ -106,23 +109,22 @@ public:
 
         {
             // 1.在历史关键帧中查找与当前关键帧距离最近的关键帧
-            if (detect_loop_by_distance(loop_key_cur, loop_key_ref, lidar_end_time) == false)
+            if (!is_vaild_loop_time_period(dartion_time, loop_vaild_period["odom"]) || !detect_loop_by_distance(loop_key_cur, loop_key_ref, lidar_end_time))
             {
                 return;
             }
             // 2.scan context
-            if (detect_loop_by_scancontext(loop_key_cur, loop_key_ref, sc_yaw_rad) == false)
-            {
-                return;
-            }
+            if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["scancontext"]))
+                if (!detect_loop_by_scancontext(loop_key_cur, loop_key_ref, sc_yaw_rad))
+                    return;
         }
 
         // extract cloud
         PointCloudType::Ptr cur_keyframe_cloud(new PointCloudType());
         PointCloudType::Ptr ref_near_keyframe_cloud(new PointCloudType());
         {
-            loop_find_near_keyframes(cur_keyframe_cloud, loop_key_cur, 0, state, keyframe_scan);
-            loop_find_near_keyframes(ref_near_keyframe_cloud, loop_key_ref, keyframe_search_num, state, keyframe_scan);
+            loop_find_near_keyframes(cur_keyframe_cloud, loop_key_cur, 0, keyframe_scan);
+            loop_find_near_keyframes(ref_near_keyframe_cloud, loop_key_ref, keyframe_search_num, keyframe_scan);
             if (cur_keyframe_cloud->size() < 300 || ref_near_keyframe_cloud->size() < 1000)
             {
                 return;
@@ -209,24 +211,24 @@ public:
         loop_mtx.unlock();
     }
 
-    bool is_vaild_loop_time_period(const double& time)
+    bool is_vaild_loop_time_period(const double &time, const std::vector<double> &vaild_period)
     {
-        if (loop_closure_vaild_time_period.empty())
+        if (vaild_period.empty())
             return true;
-        if (loop_closure_vaild_time_period.size() % 2 != 0)
+        if (vaild_period.size() % 2 != 0)
         {
             LOG_ERROR("time_period size must be double!");
             return true;
         }
 
-        for (auto i = 0; i < loop_closure_vaild_time_period.size(); i = i + 2)
+        for (auto i = 0; i < vaild_period.size(); i = i + 2)
         {
-            if (loop_closure_vaild_time_period[i] > loop_closure_vaild_time_period[i + 1])
+            if (vaild_period[i] > vaild_period[i + 1])
             {
                 LOG_ERROR("time_period must before early than after!");
                 continue;
             }
-            if (time >= loop_closure_vaild_time_period[i] && time <= loop_closure_vaild_time_period[i + 1])
+            if (time >= vaild_period[i] && time <= vaild_period[i + 1])
                 return true;
         }
 
@@ -235,7 +237,7 @@ public:
 
 public:
     bool manually_fine_tune_loop_closure = false;
-    std::vector<double> loop_closure_vaild_time_period;
+    std::unordered_map<std::string, std::vector<double>> loop_vaild_period;
     std::mutex loop_mtx;
     int loop_keyframe_num_thld = 50;
     float loop_closure_search_radius = 10;

@@ -227,7 +227,8 @@ int main(int argc, char **argv)
     node->get_parameter_or("mapping/keyframe_search_num", slam.loopClosure->keyframe_search_num, 20);
     node->get_parameter_or("mapping/loop_closure_fitness_score_thld", slam.loopClosure->loop_closure_fitness_score_thld, 0.05);
     node->get_parameter_or("mapping/icp_downsamp_size", slam.loopClosure->icp_downsamp_size, 0.1);
-    node->get_parameter_or("mapping/loop_closure_vaild_time_period", slam.loopClosure->loop_closure_vaild_time_period, vector<double>());
+    node->get_parameter_or("mapping/odom_loop_vaild_period", slam.loopClosure->loop_vaild_period["odom"], vector<double>());
+    node->get_parameter_or("mapping/scancontext_loop_vaild_period", slam.loopClosure->loop_vaild_period["scancontext"], vector<double>());
     node->get_parameter_or("mapping/gyr_cov", gyr_cov, 0.1);
     node->get_parameter_or("mapping/acc_cov", acc_cov, 0.1);
     node->get_parameter_or("mapping/b_gyr_cov", b_gyr_cov, 0.0001);

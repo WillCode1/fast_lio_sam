@@ -133,7 +133,8 @@ void load_config(System& slam, const std::string &config_path)
     slam.loopClosure->keyframe_search_num = config["mapping"]["keyframe_search_num"].IsDefined() ? config["mapping"]["keyframe_search_num"].as<int>() : 20;
     slam.loopClosure->loop_closure_fitness_score_thld = config["mapping"]["loop_closure_fitness_score_thld"].IsDefined() ? config["mapping"]["loop_closure_fitness_score_thld"].as<float>() : 0.05;
     slam.loopClosure->icp_downsamp_size = config["mapping"]["icp_downsamp_size"].IsDefined() ? config["mapping"]["icp_downsamp_size"].as<float>() : 0.1;
-    slam.loopClosure->loop_closure_vaild_time_period = config["mapping"]["loop_closure_vaild_time_period"].IsDefined() ? config["mapping"]["loop_closure_vaild_time_period"].as<vector<double>>() : vector<double>();
+    slam.loopClosure->loop_vaild_period["odom"] = config["mapping"]["odom_loop_vaild_period"].IsDefined() ? config["mapping"]["odom_loop_vaild_period"].as<vector<double>>() : vector<double>();
+    slam.loopClosure->loop_vaild_period["scancontext"] = config["mapping"]["scancontext_loop_vaild_period"].IsDefined() ? config["mapping"]["scancontext_loop_vaild_period"].as<vector<double>>() : vector<double>();
 
     gyr_cov = config["mapping"]["gyr_cov"].IsDefined() ? config["mapping"]["gyr_cov"].as<double>() : 0.1;
     acc_cov = config["mapping"]["acc_cov"].IsDefined() ? config["mapping"]["acc_cov"].as<double>() : 0.1;

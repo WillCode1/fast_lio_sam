@@ -350,7 +350,8 @@ int main(int argc, char **argv)
     nh.param<int>("mapping/keyframe_search_num", slam.loopClosure->keyframe_search_num, 20);
     nh.param<float>("mapping/loop_closure_fitness_score_thld", slam.loopClosure->loop_closure_fitness_score_thld, 0.05);
     nh.param<float>("mapping/icp_downsamp_size", slam.loopClosure->icp_downsamp_size, 0.1);
-    nh.param<vector<double>>("mapping/loop_closure_vaild_time_period", slam.loopClosure->loop_closure_vaild_time_period, vector<double>());
+    nh.param<vector<double>>("mapping/odom_loop_vaild_period", slam.loopClosure->loop_vaild_period["odom"], vector<double>());
+    nh.param<vector<double>>("mapping/scancontext_loop_vaild_period", slam.loopClosure->loop_vaild_period["scancontext"], vector<double>());
     nh.param<double>("mapping/gyr_cov", gyr_cov, 0.1);
     nh.param<double>("mapping/acc_cov", acc_cov, 0.1);
     nh.param<double>("mapping/b_gyr_cov", b_gyr_cov, 0.0001);

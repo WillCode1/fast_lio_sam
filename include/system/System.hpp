@@ -278,14 +278,7 @@ public:
             if (loop_closure_enable_flag)
             {
                 backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-                if (!loopClosure->copy_keyframe_pose6d->empty())
-                {
-                    if (loopClosure->is_vaild_loop_time_period(loopClosure->copy_keyframe_pose6d->back().time - loopClosure->copy_keyframe_pose6d->front().time))
-                    {
-                        auto state_copy = frontend->state;
-                        loopClosure->run(lidar_end_time, state_copy, *keyframe_scan);
-                    }
-                }
+                loopClosure->run(lidar_end_time, *keyframe_scan);
             }
 
             loopClosure->get_loop_constraint(loop_constraint);

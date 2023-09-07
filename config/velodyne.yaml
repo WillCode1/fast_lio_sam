@@ -40,7 +40,8 @@ mapping:
     keyframe_search_num: 20
     loop_closure_fitness_score_thld: 0.05
     icp_downsamp_size: 0.1
-    loop_closure_vaild_time_period: []
+    odom_loop_vaild_period: []
+    scancontext_loop_vaild_period: []
 
     acc_cov: 0.1
     gyr_cov: 0.1
