@@ -142,6 +142,13 @@ public:
         fclose(fp2);
     }
 
+    void print_extrinsic(const state_ikfom &state, bool need_print)
+    {
+        const auto &offset_xyz = state.offset_T_L_I;
+        const auto &offset_rpy = EigenMath::Quaternion2RPY(state.offset_R_L_I);
+        LOG_INFO_COND(need_print, "extrinsic_est: (%.5f, %.5f, %.5f, %.5f, %.5f, %.5f)", offset_xyz(0), offset_xyz(1), offset_xyz(2), RAD2DEG(offset_rpy(0)), RAD2DEG(offset_rpy(1)), RAD2DEG(offset_rpy(2)));
+    }
+
     void output2file(const state_ikfom &state, ofstream &fout_file, const double &delta_time)
     {
         if (!runtime_log)

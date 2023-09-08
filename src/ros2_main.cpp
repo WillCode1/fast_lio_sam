@@ -199,11 +199,12 @@ int main(int argc, char **argv)
     node->get_parameter_or("publish/path_en", path_en, true);
     node->get_parameter_or("publish/scan_publish_en", scan_pub_en, true);
     node->get_parameter_or("publish/dense_publish_en", dense_pub_en, true);
-    node->get_parameter_or("mapping/max_iteration", num_max_iterations, 4);
     node->get_parameter_or("common/lid_topic", lid_topic, std::string("/livox/lidar"));
     node->get_parameter_or("common/imu_topic", imu_topic, std::string("/livox/imu"));
     node->get_parameter_or("common/map", map_frame, std::string("camera_init"));
     node->get_parameter_or("common/body_frame", body_frame, std::string(""));
+
+    node->get_parameter_or("mapping/max_iteration", num_max_iterations, 4);
     node->get_parameter_or("common/timedelay_lidar2imu", slam.timedelay_lidar2imu, 0.0);
     node->get_parameter_or("mapping/surf_frame_ds_res", slam.frontend->surf_frame_ds_res, 0.5);
     node->get_parameter_or("mapping/lidar_model_search_range", slam.frontend->lidar_model_search_range, 5);
@@ -217,6 +218,7 @@ int main(int argc, char **argv)
     node->get_parameter_or("mapping/gpsCovThreshold", slam.gnss->gpsCovThreshold, 2);
     node->get_parameter_or("mapping/useGpsElevation", slam.gnss->useGpsElevation, false);
     node->get_parameter_or("mapping/recontruct_kdtree", slam.backend->recontruct_kdtree, true);
+    node->get_parameter_or("mapping/kdtree_recontruct_interval", slam.backend->kdtree_recontruct_interval, 10);
     node->get_parameter_or("mapping/ikdtree_reconstruct_keyframe_num", slam.backend->ikdtree_reconstruct_keyframe_num, 10);
     node->get_parameter_or("mapping/ikdtree_reconstruct_downsamp_size", slam.backend->ikdtree_reconstruct_downsamp_size, 0.1);
     node->get_parameter_or("mapping/loop_closure_enable_flag", slam.loop_closure_enable_flag, false);

@@ -76,10 +76,10 @@ add_library(${PROJECT_NAME} SHARED
 target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
 
 add_executable(fastlio_ros1 src/ros1_main.cpp)
-target_link_libraries(fastlio_ros1 ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(fastlio_ros1 ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(fastlio_test_bag test/read_rosbag_test.cpp)
-target_link_libraries(fastlio_test_bag ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME} ${YAML_CPP_LIBRARIES})
+target_link_libraries(fastlio_test_bag ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${YAML_CPP_LIBRARIES})
 
 add_executable(fastlio_test_bag_relcalization test/read_rosbag_test_relcalization.cpp)
-target_link_libraries(fastlio_test_bag_relcalization ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME} ${YAML_CPP_LIBRARIES})
+target_link_libraries(fastlio_test_bag_relcalization ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${YAML_CPP_LIBRARIES})

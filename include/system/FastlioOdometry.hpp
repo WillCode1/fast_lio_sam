@@ -26,7 +26,7 @@ public:
         normvec.reset(new PointCloudType());
     }
 
-    void init_global_map(PointCloudType::Ptr& global_map)
+    void init_global_map(PointCloudType::Ptr& submap)
     {
         if (ikdtree.Root_Node != nullptr)
         {
@@ -34,7 +34,7 @@ public:
             std::exit(100);
         }
         ikdtree.set_downsample_param(ikdtree_resolution);
-        ikdtree.Build(global_map->points);
+        ikdtree.Build(submap->points);
     }
 
     void set_extrinsic(const V3D &transl, const M3D &rot, const V3D &gravity = V3D(0, 0, -G_m_s2))
@@ -79,6 +79,19 @@ public:
             return true;
         }
 
+        /*** initialize the map kdtree ***/
+        if (!localization_mode && ikdtree.Root_Node == nullptr)
+        {
+            if (feats_undistort->size() > 5)
+            {
+                PointCloudType::Ptr feats_down_world(new PointCloudType);
+                pointcloudLidarToWorld(feats_undistort, feats_down_world, state);
+                init_global_map(feats_down_world);
+            }
+            return false;
+        }
+        loger.kdtree_size = ikdtree.size();
+
         /*** interval sample and downsample the feature points in a scan ***/
         feats_down_lidar->clear();
         for (int i = 0; i < feats_undistort->size(); i++)
@@ -92,25 +105,6 @@ public:
         feats_down_size = feats_down_lidar->points.size();
         loger.feats_down_size = feats_down_size;
         loger.downsample_time = loger.timer.elapsedLast();
-
-        /*** initialize the map kdtree ***/
-        if (ikdtree.Root_Node == nullptr)
-        {
-            if (localization_mode)
-            {
-                LOG_ERROR("localization mode, please load map before!");
-                std::exit(100);
-            }
-            else if (feats_down_size > 5)
-            {
-                ikdtree.set_downsample_param(ikdtree_resolution);
-                PointCloudType::Ptr feats_down_world(new PointCloudType);
-                pointcloudLidarToWorld(feats_down_lidar, feats_down_world, state);
-                ikdtree.Build(feats_down_world->points);
-            }
-            return false;
-        }
-        loger.kdtree_size = ikdtree.size();
         loger.output2file(state, loger.fout_predict, measures.lidar_beg_time - loger.first_lidar_beg_time);
 
         /*** iterated state estimation ***/
@@ -139,9 +133,7 @@ public:
         {
             if (extrinsic_est_en)
             {
-                const auto& offset_xyz = state.offset_T_L_I;
-                const auto& offset_rpy = EigenMath::Quaternion2RPY(state.offset_R_L_I);
-                LOG_INFO_COND(false, "extrinsic_est: (%.5f, %.5f, %.5f, %.5f, %.5f, %.5f)", offset_xyz(0), offset_xyz(1), offset_xyz(2), RAD2DEG(offset_rpy(0)), RAD2DEG(offset_rpy(1)), RAD2DEG(offset_rpy(2)));
+                loger.print_extrinsic(state, false);
             }
             /*** map update ***/
             lasermap_fov_segment(loger);
@@ -186,10 +178,8 @@ public:
             {
                 /** Find the closest surfaces in the map **/
                 vector<float> pointSearchSqDis(NUM_MATCH_POINTS);
-                ikdtree.Nearest_Search(point, NUM_MATCH_POINTS, points_near, pointSearchSqDis);
-                point_matched_surface[i] =
-                    points_near.size() < NUM_MATCH_POINTS ? false : pointSearchSqDis[NUM_MATCH_POINTS - 1] > lidar_model_search_range ? false
-                                                                                                                                      : true;
+                ikdtree.Nearest_Search(point, NUM_MATCH_POINTS, points_near, pointSearchSqDis, lidar_model_search_range);
+                point_matched_surface[i] = points_near.size() < NUM_MATCH_POINTS ? false : true;
             }
 
             if (!point_matched_surface[i])
@@ -359,6 +349,7 @@ private:
         PointToAdd.reserve(feats_down_size);
         PointNoNeedDownsample.reserve(feats_down_size);
         PointType feature_world;
+
         for (int i = 0; i < feats_down_size; i++)
         {
             /* transform to world frame */
@@ -367,18 +358,21 @@ private:
             if (!nearest_points[i].empty())
             {
                 const PointVector &points_near = nearest_points[i];
-                bool need_add = true;
-                BoxPointType Box_of_Point;
-                PointType downsample_result, mid_point;
-                mid_point.x = floor(feature_world.x / ikdtree_resolution) * ikdtree_resolution + 0.5 * ikdtree_resolution;
-                mid_point.y = floor(feature_world.y / ikdtree_resolution) * ikdtree_resolution + 0.5 * ikdtree_resolution;
-                mid_point.z = floor(feature_world.z / ikdtree_resolution) * ikdtree_resolution + 0.5 * ikdtree_resolution;
-                float dist = pointDistanceSquare(feature_world, mid_point);
-                if (fabs(points_near[0].x - mid_point.x) > 0.5 * ikdtree_resolution && fabs(points_near[0].y - mid_point.y) > 0.5 * ikdtree_resolution && fabs(points_near[0].z - mid_point.z) > 0.5 * ikdtree_resolution)
+                PointType mid_point;
+                mid_point.x = (floor(feature_world.x / ikdtree_resolution) + 0.5) * ikdtree_resolution;
+                mid_point.y = (floor(feature_world.y / ikdtree_resolution) + 0.5) * ikdtree_resolution;
+                mid_point.z = (floor(feature_world.z / ikdtree_resolution) + 0.5) * ikdtree_resolution;
+
+                if (fabs(points_near[0].x - mid_point.x) > 0.5 * ikdtree_resolution &&
+                    fabs(points_near[0].y - mid_point.y) > 0.5 * ikdtree_resolution && 
+                    fabs(points_near[0].z - mid_point.z) > 0.5 * ikdtree_resolution)
                 {
                     PointNoNeedDownsample.push_back(feature_world);
                     continue;
                 }
+
+                bool need_add = true;
+                float dist = pointDistanceSquare(feature_world, mid_point);
                 for (int readd_i = 0; readd_i < NUM_MATCH_POINTS; readd_i++)
                 {
                     if (points_near.size() < NUM_MATCH_POINTS)

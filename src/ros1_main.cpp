@@ -322,11 +322,12 @@ int main(int argc, char **argv)
     nh.param<bool>("publish/path_en", path_en, true);
     nh.param<bool>("publish/scan_publish_en", scan_pub_en, true);
     nh.param<bool>("publish/dense_publish_en", dense_pub_en, true);
-    nh.param<int>("mapping/max_iteration", slam.frontend->num_max_iterations, 4);
     nh.param<string>("common/lid_topic", lid_topic, "/livox/lidar");
     nh.param<string>("common/imu_topic", imu_topic, "/livox/imu");
     nh.param<string>("common/map_frame", map_frame, "camera_init");
     nh.param<string>("common/body_frame", body_frame, "");
+
+    nh.param<int>("mapping/max_iteration", slam.frontend->num_max_iterations, 4);
     nh.param<double>("common/timedelay_lidar2imu", slam.timedelay_lidar2imu, 0.0);
     nh.param<double>("mapping/surf_frame_ds_res", slam.frontend->surf_frame_ds_res, 0.5);
     nh.param<int>("mapping/point_skip_num", slam.frontend->point_skip_num, 2);
@@ -340,6 +341,7 @@ int main(int argc, char **argv)
     nh.param<float>("mapping/gpsCovThreshold", slam.gnss->gpsCovThreshold, 2);
     nh.param<bool>("mapping/useGpsElevation", slam.gnss->useGpsElevation, false);
     nh.param<bool>("mapping/recontruct_kdtree", slam.backend->recontruct_kdtree, true);
+    nh.param<int>("mapping/kdtree_recontruct_interval", slam.backend->kdtree_recontruct_interval, 10);
     nh.param<float>("mapping/ikdtree_reconstruct_keyframe_num", slam.backend->ikdtree_reconstruct_keyframe_num, 10);
     nh.param<float>("mapping/ikdtree_reconstruct_downsamp_size", slam.backend->ikdtree_reconstruct_downsamp_size, 0.1);
     nh.param<bool>("mapping/loop_closure_enable_flag", slam.loop_closure_enable_flag, false);
