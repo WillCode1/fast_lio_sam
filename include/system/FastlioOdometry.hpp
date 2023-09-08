@@ -353,7 +353,7 @@ private:
         for (int i = 0; i < feats_down_size; i++)
         {
             /* transform to world frame */
-            pointLidarToWorld(&(feats_down_lidar->points[i]), &feature_world, state);
+            pointLidarToWorld(feats_down_lidar->points[i], feature_world, state);
             /* decide if need add to map */
             if (!nearest_points[i].empty())
             {

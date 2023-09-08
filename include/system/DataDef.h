@@ -70,15 +70,15 @@ struct LoopConstraint
 };
 
 // lidar -> imu -> world
-inline void pointLidarToWorld(PointType const *const pi, PointType *const po, const state_ikfom &state)
+inline void pointLidarToWorld(PointType const &pi, PointType &po, const state_ikfom &state)
 {
-    V3D p_lidar(pi->x, pi->y, pi->z);
+    V3D p_lidar(pi.x, pi.y, pi.z);
     V3D p_global(state.rot * (state.offset_R_L_I * p_lidar + state.offset_T_L_I) + state.pos);
 
-    po->x = p_global(0);
-    po->y = p_global(1);
-    po->z = p_global(2);
-    po->intensity = pi->intensity;
+    po.x = p_global(0);
+    po.y = p_global(1);
+    po.z = p_global(2);
+    po.intensity = pi.intensity;
 }
 
 inline void pointcloudLidarToWorld(const PointCloudType::Ptr cloud_in, PointCloudType::Ptr cloud_out, const state_ikfom &state)
@@ -88,7 +88,7 @@ inline void pointcloudLidarToWorld(const PointCloudType::Ptr cloud_in, PointClou
 #pragma omp parallel for num_threads(MP_PROC_NUM)
     for (int i = 0; i < cloud_num; i++)
     {
-        pointLidarToWorld(&(cloud_in->points[i]), &(cloud_out->points[i]), state);
+        pointLidarToWorld(cloud_in->points[i], cloud_out->points[i], state);
     }
 }
 
