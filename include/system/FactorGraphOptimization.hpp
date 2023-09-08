@@ -206,8 +206,7 @@ private:
 
     void reset_ikdtree(KD_TREE<PointType> &ikdtree, const state_ikfom &state, LogAnalysis &loger)
     {
-        static int kdtree_update_count = 0;
-        if (recontruct_kdtree && kdtree_update_count % kdtree_recontruct_interval == 0)
+        if (recontruct_kdtree)
         {
             // loger.timer.record();
             PointCloudType::Ptr submap_keyframes(new PointCloudType());
@@ -228,7 +227,6 @@ private:
             loger.kdtree_size = ikdtree.size();
             // LOG_INFO("Reconstructed ikdtree, points size = %lu, reconstruct cost time = %f ms", submap_keyframesDS->points.size(), loger.timer.elapsedLast());
         }
-        ++kdtree_update_count;
     }
 
     void correct_poses(KD_TREE<PointType> &ikdtree, const state_ikfom &state, LogAnalysis &loger)
@@ -283,7 +281,6 @@ public:
 
     // ikdtree reconstruct
     bool recontruct_kdtree = true;
-    int kdtree_recontruct_interval = 10;
     float ikdtree_reconstruct_keyframe_num = 10;
     float ikdtree_reconstruct_downsamp_size = 0.1;
 };

@@ -28,7 +28,6 @@ mapping:
     gpsCovThreshold: 2
     useGpsElevation: false
     recontruct_kdtree: true
-    kdtree_recontruct_interval: 10
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1
 

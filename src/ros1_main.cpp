@@ -341,7 +341,6 @@ int main(int argc, char **argv)
     nh.param<float>("mapping/gpsCovThreshold", slam.gnss->gpsCovThreshold, 2);
     nh.param<bool>("mapping/useGpsElevation", slam.gnss->useGpsElevation, false);
     nh.param<bool>("mapping/recontruct_kdtree", slam.backend->recontruct_kdtree, true);
-    nh.param<int>("mapping/kdtree_recontruct_interval", slam.backend->kdtree_recontruct_interval, 10);
     nh.param<float>("mapping/ikdtree_reconstruct_keyframe_num", slam.backend->ikdtree_reconstruct_keyframe_num, 10);
     nh.param<float>("mapping/ikdtree_reconstruct_downsamp_size", slam.backend->ikdtree_reconstruct_downsamp_size, 0.1);
     nh.param<bool>("mapping/loop_closure_enable_flag", slam.loop_closure_enable_flag, false);
