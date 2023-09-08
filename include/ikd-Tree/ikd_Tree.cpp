@@ -239,7 +239,8 @@ void KD_TREE<PointType>::multi_thread_rebuild()
     {
         pthread_mutex_lock(&rebuild_ptr_mutex_lock);
         pthread_mutex_lock(&working_flag_mutex);
-        if (Rebuild_Ptr != nullptr)
+        // if (Rebuild_Ptr != nullptr)
+        if (Rebuild_Ptr != nullptr && (*Rebuild_Ptr)->father_ptr != nullptr)
         {
             /* Traverse and copy */
             if (!Rebuild_Logger.empty())
@@ -329,8 +330,6 @@ void KD_TREE<PointType>::multi_thread_rebuild()
             if (new_root_node != nullptr)
                 new_root_node->father_ptr = father_ptr;
             (*Rebuild_Ptr) = new_root_node;
-            int valid_old = old_root_node->TreeSize - old_root_node->invalid_point_num;
-            int valid_new = new_root_node->TreeSize - new_root_node->invalid_point_num;
             if (father_ptr == STATIC_ROOT_NODE)
                 Root_Node = STATIC_ROOT_NODE->left_son_ptr;
             KD_TREE_NODE *update_root = *Rebuild_Ptr;
@@ -338,6 +337,8 @@ void KD_TREE<PointType>::multi_thread_rebuild()
             {
                 update_root = update_root->father_ptr;
                 if (update_root->working_flag)
+                    break;
+                if (update_root->father_ptr == nullptr)
                     break;
                 if (update_root == update_root->father_ptr->left_son_ptr && update_root->father_ptr->need_push_down_to_left)
                     break;
@@ -533,7 +534,10 @@ int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
                 {
                     if (Downsample_Storage.size() > 0)
                         Delete_by_range(&Root_Node, Box_of_Point, true, true);
-                    Add_by_point(&Root_Node, downsample_result, true, Root_Node->division_axis);
+                    if (Root_Node != nullptr)
+                        Add_by_point(&Root_Node, downsample_result, true, Root_Node->division_axis);
+                    else
+                        Add_by_point(&Root_Node, downsample_result, true, 0);
                     tmp_counter++;
                 }
             }
@@ -549,7 +553,10 @@ int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
                     pthread_mutex_lock(&working_flag_mutex);
                     if (Downsample_Storage.size() > 0)
                         Delete_by_range(&Root_Node, Box_of_Point, false, true);
-                    Add_by_point(&Root_Node, downsample_result, false, Root_Node->division_axis);
+                    if (Root_Node != nullptr)
+                        Add_by_point(&Root_Node, downsample_result, false, Root_Node->division_axis);
+                    else
+                        Add_by_point(&Root_Node, downsample_result, false, 0);
                     tmp_counter++;
                     if (rebuild_flag)
                     {
@@ -567,7 +574,10 @@ int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
         {
             if (Rebuild_Ptr == nullptr || *Rebuild_Ptr != Root_Node)
             {
-                Add_by_point(&Root_Node, PointToAdd[i], true, Root_Node->division_axis);
+                if (Root_Node != nullptr)
+                    Add_by_point(&Root_Node, PointToAdd[i], true, Root_Node->division_axis);
+                else
+                    Add_by_point(&Root_Node, PointToAdd[i], true, 0);
             }
             else
             {
@@ -575,7 +585,10 @@ int KD_TREE<PointType>::Add_Points(PointVector &PointToAdd, bool downsample_on)
                 operation.point = PointToAdd[i];
                 operation.op = ADD_POINT;
                 pthread_mutex_lock(&working_flag_mutex);
-                Add_by_point(&Root_Node, PointToAdd[i], false, Root_Node->division_axis);
+                if (Root_Node != nullptr)
+                    Add_by_point(&Root_Node, PointToAdd[i], false, Root_Node->division_axis);
+                else
+                    Add_by_point(&Root_Node, PointToAdd[i], false, 0);
                 if (rebuild_flag)
                 {
                     pthread_mutex_lock(&rebuild_logger_mutex_lock);

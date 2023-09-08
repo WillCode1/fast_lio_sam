@@ -247,7 +247,7 @@ bool Relocalization::fine_tune_pose(PointCloudType::Ptr scan, Eigen::Matrix4d &r
     voxel_filter.filter(*filter);
 
     PointCloudType::Ptr aligned(new PointCloudType());
-    ndt.setInputCloud(filter);
+    ndt.setInputSource(filter);
     ndt.align(*aligned, result.cast<float>());
 
     if (!ndt.hasConverged())

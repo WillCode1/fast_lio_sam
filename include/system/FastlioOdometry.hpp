@@ -243,6 +243,9 @@ public:
         ekfom_data.h.resize(effct_feat_num);
 
         // 求观测值与误差的雅克比矩阵，如论文式14以及式12、13
+#ifdef MP_EN
+#pragma omp parallel for num_threads(MP_PROC_NUM)
+#endif
         for (int i = 0; i < effct_feat_num; i++)
         {
             const V3D& point_lidar = effect_features[i].point_lidar;
