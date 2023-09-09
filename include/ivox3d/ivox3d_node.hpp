@@ -95,7 +95,7 @@ class IVoxNodePhc {
 
     PointT center_;
     float side_length_ = 0;
-    int phc_order_ = 2;
+    int phc_order_ = 6;
     float phc_side_length_ = 0;
     float phc_side_length_inv_ = 0;
     Eigen::Matrix<float, dim, 1> min_cube_;
