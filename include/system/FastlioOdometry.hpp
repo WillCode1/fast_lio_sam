@@ -393,7 +393,7 @@ private:
         }
 
         double st_time = omp_get_wtime();
-        loger.add_point_size = ikdtree.Add_Points(PointToAdd, true);
+        ikdtree.Add_Points(PointToAdd, true);
         ikdtree.Add_Points(PointNoNeedDownsample, false);
         loger.add_point_size = PointToAdd.size() + PointNoNeedDownsample.size();
         loger.kdtree_incremental_time = (omp_get_wtime() - st_time) * 1000;
