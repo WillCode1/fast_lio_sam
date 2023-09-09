@@ -84,7 +84,7 @@ public:
     {
         add_factor_and_optimize(loop_constraint, frontend);
 
-        correct_poses(frontend.ikdtree, frontend.state, loger);
+        // correct_poses(frontend.ikdtree, frontend.state, loger);
     }
 
     void get_keyframe_pose6d(pcl::PointCloud<PointXYZIRPYT>::Ptr& copy_keyframe_pose6d)

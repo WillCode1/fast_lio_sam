@@ -10,6 +10,7 @@
 #include <pcl/common/eigen.h>
 #include <gtsam/geometry/Pose3.h>
 #include "ikd-Tree/ikd_Tree.h"
+#include "ivox3d/ivox3d.h"
 
 #include "LogTool.h"
 #include "Timer.h"
@@ -53,6 +54,14 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZIRPYT,
 using PointType = pcl::PointXYZINormal;
 using PointCloudType = pcl::PointCloud<PointType>;
 using PointVector = KD_TREE<PointType>::PointVector;
+
+#define USE_IVOX
+// #define IVOX_NODE_TYPE_PHC
+#ifdef IVOX_NODE_TYPE_PHC
+    using IVoxType = faster_lio::IVox<3, faster_lio::IVoxNodeType::PHC, PointType>;
+#else
+    using IVoxType = faster_lio::IVox<3, faster_lio::IVoxNodeType::DEFAULT, PointType>;
+#endif
 
 using V3D = Eigen::Vector3d;
 using M3D = Eigen::Matrix3d;

@@ -28,6 +28,15 @@ public:
 
     void init_global_map(PointCloudType::Ptr& submap)
     {
+#ifdef USE_IVOX
+        if (ivox_ != nullptr)
+        {
+            LOG_ERROR("Error, ivox not null when initializing the map!");
+            std::exit(100);
+        }
+        ivox_ = std::make_shared<IVoxType>(ivox_options_);
+        ivox_->AddPoints(submap->points);
+#else
         if (ikdtree.Root_Node != nullptr)
         {
             LOG_ERROR("Error, ikdtree not null when initializing the map!");
@@ -35,6 +44,7 @@ public:
         }
         ikdtree.set_downsample_param(ikdtree_resolution);
         ikdtree.Build(submap->points);
+#endif
     }
 
     void set_extrinsic(const V3D &transl, const M3D &rot, const V3D &gravity = V3D(0, 0, -G_m_s2))
@@ -80,7 +90,11 @@ public:
         }
 
         /*** initialize the map kdtree ***/
+#ifdef USE_IVOX
+        if (!localization_mode && ivox_ == nullptr)
+#else
         if (!localization_mode && ikdtree.Root_Node == nullptr)
+#endif
         {
             if (feats_undistort->size() > 5)
             {
@@ -90,7 +104,11 @@ public:
             }
             return false;
         }
+#ifdef USE_IVOX
+        loger.kdtree_size = ivox_->NumValidGrids();
+#else
         loger.kdtree_size = ikdtree.size();
+#endif
 
         /*** interval sample and downsample the feature points in a scan ***/
         feats_down_lidar->clear();
@@ -136,11 +154,17 @@ public:
                 loger.print_extrinsic(state, false);
             }
             /*** map update ***/
+#ifndef USE_IVOX
             lasermap_fov_segment(loger);
             loger.map_remove_time = loger.timer.elapsedLast();
+#endif
             map_incremental(loger);
             loger.map_incre_time = loger.timer.elapsedLast();
+#ifdef USE_IVOX
+            loger.kdtree_size_end = ivox_->NumValidGrids();
+#else
             loger.kdtree_size_end = ikdtree.size();
+#endif
         }
         else
         {
@@ -178,7 +202,11 @@ public:
             {
                 /** Find the closest surfaces in the map **/
                 vector<float> pointSearchSqDis(NUM_MATCH_POINTS);
+#ifdef USE_IVOX
+                ivox_->GetClosestPoint(point, points_near, NUM_MATCH_POINTS, lidar_model_search_range);
+#else
                 ikdtree.Nearest_Search(point, NUM_MATCH_POINTS, points_near, pointSearchSqDis, lidar_model_search_range);
+#endif
                 point_matched_surface[i] = points_near.size() < NUM_MATCH_POINTS ? false : true;
             }
 
@@ -268,9 +296,11 @@ public:
 
     void get_ikdtree_point(PointCloudType::Ptr& res)
     {
+#ifndef USE_IVOX
         PointVector().swap(ikdtree.PCL_Storage);
         ikdtree.flatten(ikdtree.Root_Node, ikdtree.PCL_Storage, NOT_RECORD);
         res->points = ikdtree.PCL_Storage;
+#endif
     }
 
 private:
@@ -337,8 +367,10 @@ private:
         local_map_bbox = New_LocalMap_Points;
 
         double delete_begin = omp_get_wtime();
+#ifndef USE_IVOX
         if (cub_needrm.size() > 0)
             loger.kdtree_delete_counter = ikdtree.Delete_Point_Boxes(cub_needrm);
+#endif
         loger.kdtree_delete_time = (omp_get_wtime() - delete_begin) * 1000;
     }
 
@@ -393,8 +425,13 @@ private:
         }
 
         double st_time = omp_get_wtime();
-        loger.add_point_size = ikdtree.Add_Points(PointToAdd, true);
+#ifdef USE_IVOX
+        ivox_->AddPoints(PointToAdd);
+        ivox_->AddPoints(PointNoNeedDownsample);
+#else
+        ikdtree.Add_Points(PointToAdd, true);
         ikdtree.Add_Points(PointNoNeedDownsample, false);
+#endif
         loger.add_point_size = PointToAdd.size() + PointNoNeedDownsample.size();
         loger.kdtree_incremental_time = (omp_get_wtime() - st_time) * 1000;
     }
@@ -477,5 +514,10 @@ public:
     double detect_range;
     BoxPointType local_map_bbox;
     double ikdtree_resolution;
+#ifndef USE_IVOX
     KD_TREE<PointType> ikdtree;
+#else
+    IVoxType::Options ivox_options_;
+    std::shared_ptr<IVoxType> ivox_ = nullptr;
+#endif
 };
