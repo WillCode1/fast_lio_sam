@@ -20,7 +20,7 @@ mapping:
     ikdtree_resolution: 0.5      # In unstructured scenarios, smaller is more likely to degenerate
     lidar_model_search_range: 5
     cube_side_length: 200
-    runtime_log_enable: 1
+    runtime_log_enable: 0
 
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2
