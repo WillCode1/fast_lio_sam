@@ -1,5 +1,5 @@
 common:
-    lid_topic:  "/points_raw"
+    lidar_topic:  "/points_raw"
     imu_topic:  "/imu_raw"
     map_frame:  "camera_init"
     body_frame:  "body"

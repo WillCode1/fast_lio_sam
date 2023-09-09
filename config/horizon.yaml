@@ -1,5 +1,5 @@
 common:
-    lid_topic:  "/livox/lidar"
+    lidar_topic:  "/livox/lidar"
     imu_topic:  "/livox/imu"
     map_frame:  "camera_init"
     body_frame:  "body"

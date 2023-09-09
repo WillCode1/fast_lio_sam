@@ -15,6 +15,7 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include "utility/Header.h"
+#include "utility/Parameters.h"
 #include "system/System.hpp"
 
 
@@ -308,138 +309,20 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "SLAM");
     ros::NodeHandle nh;
-    double blind, detect_range;
-    int n_scans, scan_rate, time_unit;
-    vector<double> extrinT;
-    vector<double> extrinR;
-    double gyr_cov, acc_cov, b_gyr_cov, b_acc_cov;
-    bool save_globalmap_en = false, path_en = true;
-    string lid_topic, imu_topic;
-    bool scan_pub_en = false, dense_pub_en = false;
     bool pure_localization = false;
+    bool save_globalmap_en = false, path_en = true;
+    bool scan_pub_en = false, dense_pub_en = false;
+    string lidar_topic, imu_topic, config_file;
 
-    nh.param<bool>("localization_mode", pure_localization, false);
-    nh.param<bool>("publish/path_en", path_en, true);
-    nh.param<bool>("publish/scan_publish_en", scan_pub_en, true);
-    nh.param<bool>("publish/dense_publish_en", dense_pub_en, true);
-    nh.param<string>("common/lid_topic", lid_topic, "/livox/lidar");
-    nh.param<string>("common/imu_topic", imu_topic, "/livox/imu");
-    nh.param<string>("common/map_frame", map_frame, "camera_init");
-    nh.param<string>("common/body_frame", body_frame, "");
+    ros::param::param("localization_mode", pure_localization, false);
+    ros::param::param("config_file", config_file, std::string(""));
 
-    nh.param<int>("mapping/max_iteration", slam.frontend->num_max_iterations, 4);
-    nh.param<double>("common/timedelay_lidar2imu", slam.timedelay_lidar2imu, 0.0);
-    nh.param<double>("mapping/surf_frame_ds_res", slam.frontend->surf_frame_ds_res, 0.5);
-    nh.param<int>("mapping/point_skip_num", slam.frontend->point_skip_num, 2);
-    nh.param<double>("mapping/ikdtree_resolution", slam.frontend->ikdtree_resolution, 0.5);
-    nh.param<double>("mapping/lidar_model_search_range", slam.frontend->lidar_model_search_range, 5);
-    nh.param<double>("mapping/cube_side_length", slam.frontend->cube_len, 200);
-    nh.param<float>("mapping/keyframe_add_dist_threshold", slam.backend->keyframe_add_dist_threshold, 1);
-    nh.param<float>("mapping/keyframe_add_angle_threshold", slam.backend->keyframe_add_angle_threshold, 0.2);
-    nh.param<float>("mapping/pose_cov_threshold", slam.backend->pose_cov_threshold, 25);
-    nh.param<float>("mapping/gnssValidInterval", slam.gnss->gnssValidInterval, 0.2);
-    nh.param<float>("mapping/gpsCovThreshold", slam.gnss->gpsCovThreshold, 2);
-    nh.param<bool>("mapping/useGpsElevation", slam.gnss->useGpsElevation, false);
-    nh.param<bool>("mapping/recontruct_kdtree", slam.backend->recontruct_kdtree, true);
-    nh.param<float>("mapping/ikdtree_reconstruct_keyframe_num", slam.backend->ikdtree_reconstruct_keyframe_num, 10);
-    nh.param<float>("mapping/ikdtree_reconstruct_downsamp_size", slam.backend->ikdtree_reconstruct_downsamp_size, 0.1);
-    nh.param<bool>("mapping/loop_closure_enable_flag", slam.loop_closure_enable_flag, false);
-    nh.param<bool>("mapping/manually_fine_tune_loop_closure", slam.loopClosure->manually_fine_tune_loop_closure, false);
-    nh.param<int>("mapping/loop_keyframe_num_thld", slam.loopClosure->loop_keyframe_num_thld, 50);
-    nh.param<float>("mapping/loop_closure_search_radius", slam.loopClosure->loop_closure_search_radius, 10);
-    nh.param<float>("mapping/loop_closure_search_time_interval", slam.loopClosure->loop_closure_search_time_interval, 30);
-    nh.param<int>("mapping/keyframe_search_num", slam.loopClosure->keyframe_search_num, 20);
-    nh.param<float>("mapping/loop_closure_fitness_score_thld", slam.loopClosure->loop_closure_fitness_score_thld, 0.05);
-    nh.param<float>("mapping/icp_downsamp_size", slam.loopClosure->icp_downsamp_size, 0.1);
-    nh.param<vector<double>>("mapping/odom_loop_vaild_period", slam.loopClosure->loop_vaild_period["odom"], vector<double>());
-    nh.param<vector<double>>("mapping/scancontext_loop_vaild_period", slam.loopClosure->loop_vaild_period["scancontext"], vector<double>());
-    nh.param<double>("mapping/gyr_cov", gyr_cov, 0.1);
-    nh.param<double>("mapping/acc_cov", acc_cov, 0.1);
-    nh.param<double>("mapping/b_gyr_cov", b_gyr_cov, 0.0001);
-    nh.param<double>("mapping/b_acc_cov", b_acc_cov, 0.0001);
-    nh.param<double>("preprocess/blind", blind, 0.01);
-    nh.param<double>("preprocess/det_range", detect_range, 300.f);
-    nh.param<int>("preprocess/lidar_type", lidar_type, AVIA);
-    nh.param<int>("preprocess/scan_line", n_scans, 16);
-    nh.param<int>("preprocess/timestamp_unit", time_unit, US);
-    nh.param<int>("preprocess/scan_rate", scan_rate, 10);
-    nh.param<int>("mapping/runtime_log_enable", slam.loger.runtime_log, 0);
-    nh.param<bool>("mapping/extrinsic_est_en", slam.frontend->extrinsic_est_en, true);
-    nh.param<bool>("official/save_globalmap_en", save_globalmap_en, false);
-    nh.param<bool>("official/save_keyframe_en", slam.save_keyframe_en, false);
-    nh.param<float>("official/save_resolution", slam.save_resolution, 0.1);
-    nh.param<vector<double>>("mapping/extrinsic_T", extrinT, vector<double>());
-    nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
-    cout << "current lidar_type: " << lidar_type << endl;
-
-    ros::param::param("scan_context/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
-    ros::param::param("scan_context/sc_dist_thres", slam.relocalization->sc_manager->SC_DIST_THRES, 0.5);
-
-    if (pure_localization)
-    {
-        ros::param::param("relocalization_cfg/algorithm_type", slam.relocalization->algorithm_type, std::string("UNKONW"));
-
-        BnbOptions match_option;
-        ros::param::param("bnb3d/linear_xy_window_size", match_option.linear_xy_window_size, 10.);
-        ros::param::param("bnb3d/linear_z_window_size", match_option.linear_z_window_size, 1.);
-        ros::param::param("bnb3d/angular_search_window", match_option.angular_search_window, 30.);
-        ros::param::param("bnb3d/pc_resolutions", match_option.pc_resolutions, std::vector<double>());
-        ros::param::param("bnb3d/bnb_depth", match_option.bnb_depth, 5);
-        ros::param::param("bnb3d/bnb_min_score", match_option.min_score, 0.1);
-        ros::param::param("bnb3d/min_xy_resolution", match_option.min_xy_resolution, 0.2);
-        ros::param::param("bnb3d/min_z_resolution", match_option.min_z_resolution, 0.1);
-        ros::param::param("bnb3d/min_angular_resolution", match_option.min_angular_resolution, 0.1);
-        ros::param::param("bnb3d/thread_num", match_option.thread_num, 4);
-        ros::param::param("bnb3d/filter_size_scan", match_option.filter_size_scan, 0.1);
-        ros::param::param("bnb3d/debug_mode", match_option.debug_mode, false);
-
-        Pose lidar_extrinsic;
-        ros::param::param("relocalization_cfg/lidar_ext/x", lidar_extrinsic.x, 0.);
-        ros::param::param("relocalization_cfg/lidar_ext/y", lidar_extrinsic.y, 0.);
-        ros::param::param("relocalization_cfg/lidar_ext/z", lidar_extrinsic.z, 0.);
-        ros::param::param("relocalization_cfg/lidar_ext/roll", lidar_extrinsic.roll, 0.);
-        ros::param::param("relocalization_cfg/lidar_ext/pitch", lidar_extrinsic.pitch, 0.);
-        ros::param::param("relocalization_cfg/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
-        slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
-
-        double step_size, resolution;
-        nh.param<double>("ndt/step_size", step_size, 0.1);
-        nh.param<double>("ndt/resolution", resolution, 1);
-        slam.relocalization->set_ndt_param(step_size, resolution);
-
-        bool use_gicp;
-        double gicp_downsample, search_radius, teps, feps, fitness_score;
-        nh.param<bool>("gicp/use_gicp", use_gicp, true);
-        nh.param<double>("gicp/gicp_downsample", gicp_downsample, 0.2);
-        nh.param<double>("gicp/search_radius", search_radius, 0.5);
-        nh.param<double>("gicp/teps", teps, 1e-3);
-        nh.param<double>("gicp/feps", feps, 1e-3);
-        nh.param<double>("gicp/fitness_score", fitness_score, 0.3);
-        slam.relocalization->set_gicp_param(use_gicp, gicp_downsample, search_radius, teps, feps, fitness_score);
-    }
-
-    vector<double> gravity;
-    nh.param<vector<double>>("localization/gravity", gravity, vector<double>());
-
-    slam.lidar->init(n_scans, scan_rate, time_unit, blind, detect_range);
-    slam.imu->set_gyr_cov(V3D(gyr_cov, gyr_cov, gyr_cov));
-    slam.imu->set_acc_cov(V3D(acc_cov, acc_cov, acc_cov));
-    slam.imu->set_gyr_bias_cov(V3D(b_gyr_cov, b_gyr_cov, b_gyr_cov));
-    slam.imu->set_acc_bias_cov(V3D(b_acc_cov, b_acc_cov, b_acc_cov));
-
-    // imu = R * lidar + t
-    V3D Lidar_T_wrt_IMU;
-    M3D Lidar_R_wrt_IMU;
-    V3D gravity_vec;
-    Lidar_T_wrt_IMU << VEC_FROM_ARRAY(extrinT);
-    Lidar_R_wrt_IMU << MAT_FROM_ARRAY(extrinR);
-    gravity_vec << VEC_FROM_ARRAY(gravity);
-    slam.frontend->set_extrinsic(Lidar_T_wrt_IMU, Lidar_R_wrt_IMU, gravity_vec);
-    slam.init_system_mode(pure_localization);
+    load_ros_parameters(string(ROOT_DIR) + config_file, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, map_frame, body_frame);
+    load_parameters(slam, string(ROOT_DIR) + config_file, pure_localization, save_globalmap_en, lidar_type);
 
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_initpose = nh.subscribe("/initialpose", 1, initialPoseCallback);
-    ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
+    ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lidar_topic, 200000, livox_pcl_cbk) : nh.subscribe(lidar_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
     // 发布当前正在扫描的点云，topic名字为/cloud_registered
     ros::Publisher pubLaserCloudFull = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered", 100000);

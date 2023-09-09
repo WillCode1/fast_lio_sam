@@ -1,5 +1,5 @@
 common:
-    lid_topic:  "/os_cloud_node/points"
+    lidar_topic:  "/os_cloud_node/points"
     imu_topic:  "/os_cloud_node/imu"
     map_frame:  "camera_init"
     body_frame:  "body"

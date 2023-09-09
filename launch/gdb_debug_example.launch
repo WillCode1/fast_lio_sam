@@ -2,7 +2,7 @@
 
   	<arg name="rviz" default="true" />
 
-    <rosparam command="load" file="$(find fast_lio3)/config/mapping_dev.yaml" />
+	<param name="config_file" type="string" value="/config/mapping_dev.yaml" />
 
 	<param name="localization_mode" type="bool" value="false" />
   	<node pkg="fast_lio3" type="fastlio_ros1" name="system" output="screen" required="true" launch-prefix="gdb -ex run --args" />

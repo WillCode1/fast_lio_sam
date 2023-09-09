@@ -11,6 +11,7 @@
 #include "livox_interfaces2/msg/custom_msg.hpp"
 // #include <livox_ros_driver/CustomMsg.h>
 #include "utility/Header.h"
+#include "utility/Parameters.h"
 #include "system/System.hpp"
 
 int lidar_type;
@@ -183,144 +184,24 @@ int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("SLAM");
-
-    double blind, detect_range;
-    int n_scans, scan_rate, time_unit;
-    vector<double> extrinT;
-    vector<double> extrinR;
-    double gyr_cov, acc_cov, b_gyr_cov, b_acc_cov;
-    bool save_globalmap_en = false, path_en = true;
-    string lid_topic, imu_topic;
-    int num_max_iterations = 0;
-    bool scan_pub_en = false, dense_pub_en = false;
     bool pure_localization = false;
+    bool save_globalmap_en = false, path_en = true;
+    bool scan_pub_en = false, dense_pub_en = false;
+    string lidar_topic, imu_topic, config_file;
 
-    node->get_parameter_or("localization_mode", pure_localization, false);
-    node->get_parameter_or("publish/path_en", path_en, true);
-    node->get_parameter_or("publish/scan_publish_en", scan_pub_en, true);
-    node->get_parameter_or("publish/dense_publish_en", dense_pub_en, true);
-    node->get_parameter_or("common/lid_topic", lid_topic, std::string("/livox/lidar"));
-    node->get_parameter_or("common/imu_topic", imu_topic, std::string("/livox/imu"));
-    node->get_parameter_or("common/map", map_frame, std::string("camera_init"));
-    node->get_parameter_or("common/body_frame", body_frame, std::string(""));
+    ros::param::param("localization_mode", pure_localization, false);
+    ros::param::param("config_file", config_file, std::string(""));
 
-    node->get_parameter_or("mapping/max_iteration", num_max_iterations, 4);
-    node->get_parameter_or("common/timedelay_lidar2imu", slam.timedelay_lidar2imu, 0.0);
-    node->get_parameter_or("mapping/surf_frame_ds_res", slam.frontend->surf_frame_ds_res, 0.5);
-    node->get_parameter_or("mapping/lidar_model_search_range", slam.frontend->lidar_model_search_range, 5);
-    node->get_parameter_or("mapping/point_skip_num", slam.frontend->point_skip_num, 2);
-    node->get_parameter_or("mapping/ikdtree_resolution", slam.frontend->ikdtree_resolution, 0.5);
-    node->get_parameter_or("mapping/cube_side_length", slam.frontend->cube_len, 200.);
-    node->get_parameter_or("mapping/keyframe_add_dist_threshold", slam.backend->keyframe_add_dist_threshold, 1);
-    node->get_parameter_or("mapping/keyframe_add_angle_threshold", slam.backend->keyframe_add_angle_threshold, 0.2);
-    node->get_parameter_or("mapping/pose_cov_threshold", slam.backend->pose_cov_threshold, 25);
-    node->get_parameter_or("mapping/gnssValidInterval", slam.gnss->gnssValidInterval, 0.2);
-    node->get_parameter_or("mapping/gpsCovThreshold", slam.gnss->gpsCovThreshold, 2);
-    node->get_parameter_or("mapping/useGpsElevation", slam.gnss->useGpsElevation, false);
-    node->get_parameter_or("mapping/recontruct_kdtree", slam.backend->recontruct_kdtree, true);
-    node->get_parameter_or("mapping/ikdtree_reconstruct_keyframe_num", slam.backend->ikdtree_reconstruct_keyframe_num, 10);
-    node->get_parameter_or("mapping/ikdtree_reconstruct_downsamp_size", slam.backend->ikdtree_reconstruct_downsamp_size, 0.1);
-    node->get_parameter_or("mapping/loop_closure_enable_flag", slam.loop_closure_enable_flag, false);
-    node->get_parameter_or("mapping/manually_fine_tune_loop_closure", slam.loopClosure->manually_fine_tune_loop_closure, false);
-    node->get_parameter_or("mapping/loop_keyframe_num_thld", slam.loopClosure->loop_keyframe_num_thld, 50);
-    node->get_parameter_or("mapping/loop_closure_search_radius", slam.loopClosure->loop_closure_search_radius, 10);
-    node->get_parameter_or("mapping/loop_closure_search_time_interval", slam.loopClosure->loop_closure_search_time_interval, 30);
-    node->get_parameter_or("mapping/keyframe_search_num", slam.loopClosure->keyframe_search_num, 20);
-    node->get_parameter_or("mapping/loop_closure_fitness_score_thld", slam.loopClosure->loop_closure_fitness_score_thld, 0.05);
-    node->get_parameter_or("mapping/icp_downsamp_size", slam.loopClosure->icp_downsamp_size, 0.1);
-    node->get_parameter_or("mapping/odom_loop_vaild_period", slam.loopClosure->loop_vaild_period["odom"], vector<double>());
-    node->get_parameter_or("mapping/scancontext_loop_vaild_period", slam.loopClosure->loop_vaild_period["scancontext"], vector<double>());
-    node->get_parameter_or("mapping/gyr_cov", gyr_cov, 0.1);
-    node->get_parameter_or("mapping/acc_cov", acc_cov, 0.1);
-    node->get_parameter_or("mapping/b_gyr_cov", b_gyr_cov, 0.0001);
-    node->get_parameter_or("mapping/b_acc_cov", b_acc_cov, 0.0001);
-    node->get_parameter_or("preprocess/blind", blind, 0.01);
-    node->get_parameter_or("preprocess/det_range", detect_range, 300.);
-    node->get_parameter_or("preprocess/lidar_type", lidar_type, int(AVIA));
-    node->get_parameter_or("preprocess/scan_line", n_scans, 16);
-    node->get_parameter_or("preprocess/timestamp_unit", time_unit, int(US));
-    node->get_parameter_or("preprocess/scan_rate", scan_rate, 10);
-    node->get_parameter_or("mapping/runtime_log_enable", slam.loger.runtime_log, 0);
-    node->get_parameter_or("mapping/extrinsic_est_en", slam.frontend->extrinsic_est_en, true);
-    node->get_parameter_or("official/save_globalmap_en", save_globalmap_en, false);
-    node->get_parameter_or("official/save_keyframe_en", slam.save_keyframe_en, false);
-    node->get_parameter_or("official/save_resolution", slam.save_resolution, 0.1f);
-    node->get_parameter_or("mapping/extrinsic_T", extrinT, vector<double>());
-    node->get_parameter_or("mapping/extrinsic_R", extrinR, vector<double>());
-    cout << "current lidar_type: " << lidar_type << endl;
-
-    node->get_parameter_or("scan_context/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
-    node->get_parameter_or("scan_context/sc_dist_thres", slam.relocalization->sc_manager->SC_DIST_THRES, 0.5);
-
-    if (pure_localization)
-    {
-        node->get_parameter_or("relocalization_cfg/algorithm_type", slam.relocalization->algorithm_type, std::string("UNKONW"));
-
-        BnbOptions match_option;
-        node->get_parameter_or("bnb3d/linear_xy_window_size", match_option.linear_xy_window_size, 10.);
-        node->get_parameter_or("bnb3d/linear_z_window_size", match_option.linear_z_window_size, 1.);
-        node->get_parameter_or("bnb3d/angular_search_window", match_option.angular_search_window, 30.);
-        node->get_parameter_or("bnb3d/pc_resolutions", match_option.pc_resolutions, std::vector<double>());
-        node->get_parameter_or("bnb3d/bnb_depth", match_option.bnb_depth, 5);
-        node->get_parameter_or("bnb3d/bnb_min_score", match_option.min_score, 0.1);
-        node->get_parameter_or("bnb3d/min_xy_resolution", match_option.min_xy_resolution, 0.2);
-        node->get_parameter_or("bnb3d/min_z_resolution", match_option.min_z_resolution, 0.1);
-        node->get_parameter_or("bnb3d/min_angular_resolution", match_option.min_angular_resolution, 0.1);
-        node->get_parameter_or("bnb3d/thread_num", match_option.thread_num, 4);
-        node->get_parameter_or("bnb3d/filter_size_scan", match_option.filter_size_scan, 0.1);
-        node->get_parameter_or("bnb3d/debug_mode", match_option.debug_mode, false);
-
-        Pose lidar_extrinsic;
-        node->get_parameter_or("relocalization_cfg/lidar_ext/x", lidar_extrinsic.x, 0.);
-        node->get_parameter_or("relocalization_cfg/lidar_ext/y", lidar_extrinsic.y, 0.);
-        node->get_parameter_or("relocalization_cfg/lidar_ext/z", lidar_extrinsic.z, 0.);
-        node->get_parameter_or("relocalization_cfg/lidar_ext/roll", lidar_extrinsic.roll, 0.);
-        node->get_parameter_or("relocalization_cfg/lidar_ext/pitch", lidar_extrinsic.pitch, 0.);
-        node->get_parameter_or("relocalization_cfg/lidar_ext/yaw", lidar_extrinsic.yaw, 0.);
-        slam.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
-
-        double step_size, resolution;
-        node->get_parameter_or("ndt/step_size", step_size, 0.1);
-        node->get_parameter_or("ndt/resolution", resolution, 1);
-        slam.relocalization->set_ndt_param(step_size, resolution);
-
-        bool use_gicp;
-        double gicp_downsample, search_radius, teps, feps, fitness_score;
-        node->get_parameter_or("gicp/use_gicp", use_gicp, true);
-        node->get_parameter_or("gicp/gicp_downsample", gicp_downsample, 0.2);
-        node->get_parameter_or("gicp/search_radius", search_radius, 0.5);
-        node->get_parameter_or("gicp/teps", teps, 1e-3);
-        node->get_parameter_or("gicp/feps", feps, 1e-3);
-        node->get_parameter_or("gicp/fitness_score", fitness_score, 0.3);
-        slam.relocalization->set_gicp_param(use_gicp, gicp_downsample, search_radius, teps, feps, fitness_score);
-    }
-
-    vector<double> gravity;
-    node->get_parameter_or("localization/gravity", gravity, vector<double>());
-
-    slam.lidar->init(n_scans, scan_rate, time_unit, blind, detect_range);
-    slam.imu->set_gyr_cov(V3D(gyr_cov, gyr_cov, gyr_cov));
-    slam.imu->set_acc_cov(V3D(acc_cov, acc_cov, acc_cov));
-    slam.imu->set_gyr_bias_cov(V3D(b_gyr_cov, b_gyr_cov, b_gyr_cov));
-    slam.imu->set_acc_bias_cov(V3D(b_acc_cov, b_acc_cov, b_acc_cov));
-
-    // imu = R * lidar + t
-    V3D Lidar_T_wrt_IMU;
-    M3D Lidar_R_wrt_IMU;
-    V3D gravity_vec;
-    Lidar_T_wrt_IMU << VEC_FROM_ARRAY(extrinT);
-    Lidar_R_wrt_IMU << MAT_FROM_ARRAY(extrinR);
-    gravity_vec << VEC_FROM_ARRAY(gravity);
-    slam.frontend->set_extrinsic(Lidar_T_wrt_IMU, Lidar_R_wrt_IMU, gravity_vec);
-    slam.init_system_mode(pure_localization);
+    load_ros_parameters(string(ROOT_DIR) + config_file, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, map_frame, body_frame);
+    load_parameters(slam, string(ROOT_DIR) + config_file, pure_localization, save_globalmap_en, lidar_type);
 
     /*** ROS subscribe initialization ***/
     rclcpp::Subscription<livox_interfaces2::msg::CustomMsg>::SharedPtr sub_pcl1;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_pcl2;
     if (lidar_type == AVIA)
-        sub_pcl1 = node->create_subscription<livox_interfaces2::msg::CustomMsg>(lid_topic, 200000, livox_pcl_cbk);
+        sub_pcl1 = node->create_subscription<livox_interfaces2::msg::CustomMsg>(lidar_topic, 200000, livox_pcl_cbk);
     else
-        sub_pcl2 = node->create_subscription<sensor_msgs::msg::PointCloud2>(lid_topic, 200000, standard_pcl_cbk);
+        sub_pcl2 = node->create_subscription<sensor_msgs::msg::PointCloud2>(lidar_topic, 200000, standard_pcl_cbk);
     auto sub_imu = node->create_subscription<sensor_msgs::msg::Imu>(imu_topic, 200000, imu_cbk);
     // 发布当前正在扫描的点云，topic名字为/cloud_registered
     auto pubLaserCloudFull = node->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered", 100000);

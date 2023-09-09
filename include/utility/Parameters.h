@@ -1,6 +1,19 @@
 #include <yaml-cpp/yaml.h>
 #include "system/System.hpp"
 
+inline void load_ros_parameters(const std::string &config_path, bool &path_en, bool &scan_pub_en, bool &dense_pub_en,
+                                std::string &lidar_topic, std::string &imu_topic, std::string &map_frame, std::string &body_frame)
+{
+    YAML::Node config = YAML::LoadFile(config_path);
+    path_en = config["publish"]["path_en"].IsDefined() ? config["publish"]["path_en"].as<bool>() : false;
+    scan_pub_en = config["publish"]["scan_publish_en"].IsDefined() ? config["publish"]["scan_publish_en"].as<bool>() : false;
+    dense_pub_en = config["publish"]["dense_publish_en"].IsDefined() ? config["publish"]["dense_publish_en"].as<bool>() : false;
+
+    lidar_topic = config["common"]["lidar_topic"].IsDefined() ? config["common"]["lidar_topic"].as<string>() : std::string("/livox/lidar");
+    imu_topic = config["common"]["imu_topic"].IsDefined() ? config["common"]["imu_topic"].as<string>() : std::string("/livox/imu");
+    map_frame = config["common"]["map_frame"].IsDefined() ? config["common"]["map_frame"].as<string>() : std::string("camera_init");
+    body_frame = config["common"]["body_frame"].IsDefined() ? config["common"]["body_frame"].as<string>() : std::string("body");
+}
 
 inline void load_parameters(System &slam, const std::string &config_path, bool pure_localization, bool &save_globalmap_en, int &lidar_type)
 {
