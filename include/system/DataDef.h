@@ -252,11 +252,19 @@ public:
 
         total_avetime = (total_avetime * (frame_num - 1) + total_time) / frame_num;
 
+#if 0
         printf("[ave_time]: feats_undistort: %d, feats_down: %d, preprocess: %0.3f, imu: %0.3f, downsample: %0.3f, search: %0.3f, match: %0.3f, "
                "meas update: %0.3f, map incre: %0.3f, map remove: %0.3f, ave total: %0.3f\n",
                feats_undistort_size, feats_down_size,
                preprocess_avetime, imu_process_avetime, downsample_avetime, kdtree_search_avetime, match_avetime,
                meas_update_avetime, map_incre_avetime, map_remove_avetime, total_avetime);
+#else
+        printf("[cur_time]: feats_undistort: %d, feats_down: %d, preprocess: %0.3f, imu: %0.3f, downsample: %0.3f, search: %0.3f, match: %0.3f, "
+               "meas update: %0.3f, map incre: %0.3f, map remove: %0.3f, total: %0.3f\n",
+               feats_undistort_size, feats_down_size,
+               preprocess_time, imu_process_time, downsample_time, kdtree_search_time, match_time,
+               meas_update_time, map_incre_time, map_remove_time, total_time);
+#endif
     }
 
     // 0 : not, 1 : TUM
