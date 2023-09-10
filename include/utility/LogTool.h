@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <chrono>
 #include <iostream>
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 using namespace std;
 
 class TimeStamp {
@@ -47,7 +49,7 @@ enum LogLevel
                 printf("[%s]", #level);                               \
                 printf("%s", TimeStamp::GetLocalTimeStamp());         \
                 if (level >= error)                                   \
-                        printf("(%s, %d), ", __FUNCTION__, __LINE__); \
+                        printf("(%s, %d), ", fs::path(__FILE__).filename().string().c_str(), __LINE__); \
                 printf(__VA_ARGS__);                                  \
                 printf("\033[0m\n");                                  \
         }                                                             \
