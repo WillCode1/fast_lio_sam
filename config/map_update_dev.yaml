@@ -14,8 +14,7 @@ preprocess:
     det_range: 80.0
 
 mapping:
-    point_skip_num: 4
-    # point_skip_num: 1            # for mapping, Increase accuracy 4 -> 1
+    point_skip_num: 1            # for mapping, Increase accuracy 4 -> 1
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
     ikdtree_resolution: 0.5      # In unstructured scenarios, smaller is more likely to degenerate
@@ -79,7 +78,6 @@ scan_context:
 
 bnb3d:
     linear_xy_window_size: 5   # meter
-    # linear_xy_window_size: 10   # meter
     linear_z_window_size: 0.5  # meter
     angular_search_window: 180  # degree 0~180
     pc_resolutions: [0.2, 0.3, 0.5]
