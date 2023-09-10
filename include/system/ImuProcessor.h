@@ -8,7 +8,6 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/common/transforms.h>
-#include <pcl/kdtree/kdtree_flann.h>
 #include "use-ikfom.hpp"
 #include "DataDef.h"
 

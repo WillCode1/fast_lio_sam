@@ -1,7 +1,5 @@
 #pragma once
-#include <pcl/impl/pcl_base.hpp>
-#include <pcl/filters/impl/voxel_grid.hpp>
-#include <pcl/kdtree/impl/kdtree_flann.hpp>
+#include <pcl/filters/voxel_grid.h>
 
 #include <gtsam/geometry/Rot3.h>
 #include <gtsam/geometry/Pose3.h>

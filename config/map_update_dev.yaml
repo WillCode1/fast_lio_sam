@@ -97,7 +97,7 @@ ndt:
     resolution: 1
 
 gicp:
-    use_gicp: false
+    use_gicp: true
     gicp_downsample: 0.1
     search_radius: 0.5
     teps: 1.0e-4
