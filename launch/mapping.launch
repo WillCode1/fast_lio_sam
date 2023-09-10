@@ -10,10 +10,10 @@
 	<param name="config_file" type="string" value="/config/mapping_dev.yaml" />
 
 	<param name="map_update_mode" type="bool" value="false" />
-    <node pkg="fast_lio3" type="fastlio_ros1" name="system" output="screen" /> 
+    <node pkg="fast_lio_sam" type="fastlio_ros1" name="system" output="screen" /> 
 
 	<group if="$(arg rviz)">
-		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_lio3)/rviz_cfg/mapping.rviz" />
+		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_lio_sam)/rviz_cfg/mapping.rviz" />
 	</group>
 
 </launch>

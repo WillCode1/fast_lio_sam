@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(fast_lio3)
+project(fast_lio_sam)
 
 # set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_BUILD_TYPE Release)
