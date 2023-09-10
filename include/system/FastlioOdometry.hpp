@@ -65,10 +65,10 @@ public:
         kf.change_x(state);
     }
 
-    bool run(bool localization_mode, shared_ptr<ImuProcessor> &imu, MeasureCollection &measures,
+    bool run(bool map_update_mode, shared_ptr<ImuProcessor> &imu, MeasureCollection &measures,
              PointCloudType::Ptr &feats_undistort, LogAnalysis &loger)
     {
-        imu->Process(measures, kf, feats_undistort, localization_mode);
+        imu->Process(measures, kf, feats_undistort, map_update_mode);
         state = kf.get_x();
         loger.imu_process_time = loger.timer.elapsedLast();
         loger.feats_undistort_size = feats_undistort->points.size();
@@ -80,7 +80,7 @@ public:
         }
 
         /*** initialize the map kdtree ***/
-        if (!localization_mode && ikdtree.Root_Node == nullptr)
+        if (!map_update_mode && ikdtree.Root_Node == nullptr)
         {
             if (feats_undistort->size() > 5)
             {
@@ -129,23 +129,16 @@ public:
         loger.output2file(state, loger.fout_update, measures.lidar_beg_time - loger.first_lidar_beg_time);
         loger.dump_state_to_log(state, measures.lidar_beg_time - loger.first_lidar_beg_time);
 
-        if (!localization_mode)
+        if (extrinsic_est_en)
         {
-            if (extrinsic_est_en)
-            {
-                loger.print_extrinsic(state, false);
-            }
-            /*** map update ***/
-            lasermap_fov_segment(loger);
-            loger.map_remove_time = loger.timer.elapsedLast();
-            map_incremental(loger);
-            loger.map_incre_time = loger.timer.elapsedLast();
-            loger.kdtree_size_end = ikdtree.size();
+            loger.print_extrinsic(state, false);
         }
-        else
-        {
-            // TODO: location mode dongtai load submap, and when not in raw map, could add new scan into ikdtree.
-        }
+        /*** map update ***/
+        lasermap_fov_segment(loger);
+        loger.map_remove_time = loger.timer.elapsedLast();
+        map_incremental(loger);
+        loger.map_incre_time = loger.timer.elapsedLast();
+        loger.kdtree_size_end = ikdtree.size();
         return true;
     }
 

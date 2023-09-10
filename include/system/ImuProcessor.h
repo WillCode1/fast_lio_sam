@@ -30,7 +30,7 @@ public:
   void set_acc_cov(const V3D &scaler);
   void set_gyr_bias_cov(const V3D &b_g);
   void set_acc_bias_cov(const V3D &b_a);
-  void Process(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudType::Ptr pcl_un_, bool pure_localization);
+  void Process(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudType::Ptr pcl_un_, bool map_update_mode);
 
   V3D cov_acc;
   V3D cov_gyr;
@@ -41,7 +41,7 @@ public:
   deque<ImuData::Ptr> imu_buffer;
 
 private:
-  void IMU_init(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, int &N, bool pure_localization);
+  void IMU_init(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, int &N, bool map_update_mode);
   void UndistortPcl(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudType &pcl_in_out);
 
   ImuData::Ptr last_imu_;

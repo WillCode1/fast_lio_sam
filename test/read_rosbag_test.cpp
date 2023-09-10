@@ -13,10 +13,9 @@
 #include "utility/Parameters.h"
 using namespace std;
 
-bool save_globalmap_en, pure_localization;
+bool save_globalmap_en;
 const std::string root_path = std::string(ROOT_DIR);
 std::string config_filename;
-std::string dataset_path;
 std::vector<std::string> topics;
 
 std::set<std::string> test_bag_name;
@@ -113,7 +112,7 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
     }
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
-    load_parameters(slam, config_path, pure_localization, save_globalmap_en, lidar_type);
+    load_parameters(slam, config_path, false, save_globalmap_en, lidar_type);
 
     ros::Time start_time = view.getBeginTime();
     ros::Time end_time = view.getEndTime();
@@ -228,7 +227,6 @@ int main(int argc, char** argv)
     YAML::Node test_config = YAML::LoadFile(root_path + "/test/test_config.yaml");
 
     signal(SIGINT, SigHandle);
-    pure_localization = test_config["pure_localization"].IsDefined() ? test_config["pure_localization"].as<bool>() : false;
 
     config_filename = "mapping_dev.yaml";
 

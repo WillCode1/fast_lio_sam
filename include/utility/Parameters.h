@@ -15,7 +15,7 @@ inline void load_ros_parameters(const std::string &config_path, bool &path_en, b
     body_frame = config["common"]["body_frame"].IsDefined() ? config["common"]["body_frame"].as<string>() : std::string("body");
 }
 
-inline void load_parameters(System &slam, const std::string &config_path, bool pure_localization, bool &save_globalmap_en, int &lidar_type)
+inline void load_parameters(System &slam, const std::string &config_path, bool map_update_mode, bool &save_globalmap_en, int &lidar_type)
 {
     YAML::Node config = YAML::LoadFile(config_path);
 
@@ -74,7 +74,7 @@ inline void load_parameters(System &slam, const std::string &config_path, bool p
     slam.relocalization->sc_manager->LIDAR_HEIGHT = config["scan_context"]["lidar_height"].IsDefined() ? config["scan_context"]["lidar_height"].as<double>() : 2.0;
     slam.relocalization->sc_manager->SC_DIST_THRES = config["scan_context"]["sc_dist_thres"].IsDefined() ? config["scan_context"]["sc_dist_thres"].as<double>() : 0.5;
 
-    if (pure_localization)
+    if (map_update_mode)
     {
         slam.relocalization->algorithm_type = config["relocalization_cfg"]["algorithm_type"].IsDefined() ? config["relocalization_cfg"]["algorithm_type"].as<string>() : std::string("UNKONW");
 
@@ -134,5 +134,5 @@ inline void load_parameters(System &slam, const std::string &config_path, bool p
     Lidar_R_wrt_IMU << MAT_FROM_ARRAY(extrinR);
     gravity_vec << VEC_FROM_ARRAY(gravity);
     slam.frontend->set_extrinsic(Lidar_T_wrt_IMU, Lidar_R_wrt_IMU, gravity_vec);
-    slam.init_system_mode(pure_localization);
+    slam.init_system_mode(map_update_mode);
 }

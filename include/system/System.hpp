@@ -50,9 +50,9 @@ public:
     {
     }
 
-    void init_system_mode(bool pure_localization)
+    void init_system_mode(bool _map_update_mode)
     {
-        localization_mode = pure_localization;
+        map_update_mode = _map_update_mode;
         frontend->detect_range = lidar->detect_range;
 
         double epsi[23] = {0.001};
@@ -60,7 +60,7 @@ public:
         auto lidar_meas_model = [&](state_ikfom &a, esekfom::dyn_share_datastruct<double> &b) { frontend->lidar_meas_model(a, b, loger); };
         frontend->kf.init_dyn_share(get_f, df_dx, df_dw, lidar_meas_model, frontend->num_max_iterations, epsi);
 
-        if (!localization_mode)
+        if (!map_update_mode)
         {
             FileOperation::createDirectoryOrRecreate(keyframe_path);
             FileOperation::createDirectoryOrRecreate(scd_path);
@@ -217,7 +217,7 @@ public:
         }
 
         /*** relocalization for localization mode ***/
-        if (localization_mode && !system_state_vaild)
+        if (map_update_mode && !system_state_vaild)
         {
             Eigen::Matrix4d imu_pose;
             if (relocalization->run(measures->lidar, imu_pose))
@@ -227,9 +227,6 @@ public:
             }
             else
             {
-#ifdef DEDUB_MODE
-                frontend->reset_state(imu_pose);
-#endif
                 system_state_vaild = false;
                 return system_state_vaild;
             }
@@ -237,7 +234,7 @@ public:
 
         /*** frontend ***/
         loger.resetTimer();
-        if (!frontend->run(localization_mode, imu, *measures, feats_undistort, loger))
+        if (!frontend->run(map_update_mode, imu, *measures, feats_undistort, loger))
         {
             system_state_vaild = false;
             return system_state_vaild;
@@ -255,9 +252,6 @@ public:
 #endif
 
         system_state_vaild = true;
-
-        if (localization_mode)
-            return system_state_vaild;
 
         /*** backend ***/
         backend->set_current_pose(measures->lidar_end_time, frontend->state, keyframe_pose6d_unoptimized->size());
@@ -291,12 +285,6 @@ public:
 
     void save_globalmap()
     {
-        if (localization_mode)
-        {
-            LOG_WARN("localization mode don't save map!");
-            return;
-        }
-
         auto keyframe_num = keyframe_scan->size();
         PointCloudType::Ptr pcl_map_full(new PointCloudType());
         if (keyframe_pose6d_optimized->size() == keyframe_num)
@@ -340,19 +328,13 @@ public:
         }
         LOG_WARN("Success save global optimized poses to file ...");
 
-        if (!localization_mode)
-        {
-            pcl::PCDWriter pcd_writer;
-            pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
-            LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
-        }
+        pcl::PCDWriter pcd_writer;
+        pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
+        LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
     }
 
     PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize)
     {
-        if (localization_mode)
-            return PointCloudType::Ptr(nullptr);
-
         pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose(new pcl::PointCloud<PointXYZIRPYT>());
         backend->pose_mtx.lock();
         if (loop_closure_enable_flag)
@@ -418,7 +400,7 @@ private:
 
 public:
     bool system_state_vaild = false; // true: system ok
-    bool localization_mode = false;  // true: localization, false: slam
+    bool map_update_mode = false;  // true: localization, false: slam
     bool loop_closure_enable_flag = false;
     LogAnalysis loger;
 
@@ -440,7 +422,6 @@ public:
     shared_ptr<LoopClosure> loopClosure;
     shared_ptr<Relocalization> relocalization;
 
-    int loop_closure_interval = 2;
     LoopConstraint loop_constraint;
 
     /*** keyframe config ***/

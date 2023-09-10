@@ -301,7 +301,7 @@ void initialPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
     init_pose.roll = rpy.x();
     init_pose.pitch = rpy.y();
     init_pose.yaw = rpy.z();
-    if (slam.localization_mode)
+    if (slam.map_update_mode)
         slam.relocalization->set_init_pose(init_pose);
 }
 
@@ -309,19 +309,18 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "SLAM");
     ros::NodeHandle nh;
-    bool pure_localization = false;
+    bool map_update_mode = false;
     bool save_globalmap_en = false, path_en = true;
     bool scan_pub_en = false, dense_pub_en = false;
     string lidar_topic, imu_topic, config_file;
 
-    ros::param::param("localization_mode", pure_localization, false);
+    ros::param::param("map_update_mode", map_update_mode, false);
     ros::param::param("config_file", config_file, std::string(""));
 
     load_ros_parameters(string(ROOT_DIR) + config_file, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, map_frame, body_frame);
-    load_parameters(slam, string(ROOT_DIR) + config_file, pure_localization, save_globalmap_en, lidar_type);
+    load_parameters(slam, string(ROOT_DIR) + config_file, map_update_mode, save_globalmap_en, lidar_type);
 
     /*** ROS subscribe initialization ***/
-    ros::Subscriber sub_initpose = nh.subscribe("/initialpose", 1, initialPoseCallback);
     ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lidar_topic, 200000, livox_pcl_cbk) : nh.subscribe(lidar_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
     // 发布当前正在扫描的点云，topic名字为/cloud_registered
@@ -337,13 +336,13 @@ int main(int argc, char **argv)
     ros::Publisher pubGlobalmap;
     ros::Publisher pubLoopConstraintEdge;
     std::thread visualizeMapThread;
-    if (!slam.localization_mode)
+    if (!slam.map_update_mode)
     {
         pubGlobalmap = nh.advertise<sensor_msgs::PointCloud2>("/map_global", 1);
         visualizeMapThread = std::thread(&visualize_globalmap_thread, pubGlobalmap);
         pubLoopConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>("/loop_closure_constraints", 1);
     }
-    ros::Publisher pubrelocalizationDebug = nh.advertise<sensor_msgs::PointCloud2>("/relocalization_debug", 1);
+    ros::Subscriber sub_initpose = nh.subscribe("/initialpose", 1, initialPoseCallback);
 
     //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
@@ -368,8 +367,7 @@ int main(int argc, char **argv)
             if (path_en)
             {
                 publish_imu_path(pubImuPath, state, slam.lidar_end_time);
-                if (!slam.localization_mode)
-                    publish_lidar_keyframe_trajectory(pubLidarPath, *slam.keyframe_pose6d_optimized, slam.lidar_end_time);
+                publish_lidar_keyframe_trajectory(pubLidarPath, *slam.keyframe_pose6d_optimized, slam.lidar_end_time);
             }
             if (scan_pub_en)
                 if (dense_pub_en)
@@ -385,12 +383,6 @@ int main(int argc, char **argv)
                 slam.frontend->get_ikdtree_point(featsFromMap);
                 publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.lidar_end_time);
             }
-        }
-        else
-        {
-#ifdef DEDUB_MODE
-            publish_cloud_world(pubrelocalizationDebug, slam.measures->lidar, slam.frontend->state, slam.lidar_end_time);
-#endif
         }
 
         rate.sleep();

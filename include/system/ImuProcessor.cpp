@@ -56,7 +56,7 @@ void ImuProcessor::set_acc_bias_cov(const V3D &b_a)
  * 1. 初始化重力、陀螺偏差、acc和陀螺仪协方差
  * 2. 将加速度测量值标准化为单位重力
  **/
-void ImuProcessor::IMU_init(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, int &N, bool pure_localization)
+void ImuProcessor::IMU_init(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, int &N, bool map_update_mode)
 {
   /** 1. initializing the gravity, gyro bias, acc and gyro covariance
    ** 2. normalize the acceleration measurenments to unit gravity **/
@@ -99,7 +99,7 @@ void ImuProcessor::IMU_init(const MeasureCollection &meas, esekfom::esekf<state_
     N++;
   }
   state_ikfom init_state = kf_state.get_x();
-  if (!pure_localization)
+  if (!map_update_mode)
   {
     init_state.grav = S2(-mean_acc / mean_acc.norm() * G_m_s2);
     LOG_WARN_COND(std::abs(mean_acc.x()) > 0.1 || std::abs(mean_acc.y()) > 0.1,
@@ -272,7 +272,7 @@ void ImuProcessor::UndistortPcl(const MeasureCollection &meas, esekfom::esekf<st
   }
 }
 
-void ImuProcessor::Process(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudType::Ptr cur_pcl_un_, bool pure_localization)
+void ImuProcessor::Process(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudType::Ptr cur_pcl_un_, bool map_update_mode)
 {
   if (meas.imu.empty())
   {
@@ -283,7 +283,7 @@ void ImuProcessor::Process(const MeasureCollection &meas, esekfom::esekf<state_i
   if (imu_need_init_)
   {
     /// The very first lidar frame
-    IMU_init(meas, kf_state, init_iter_num, pure_localization);
+    IMU_init(meas, kf_state, init_iter_num, map_update_mode);
 
     last_imu_ = meas.imu.back();
 
@@ -298,7 +298,7 @@ void ImuProcessor::Process(const MeasureCollection &meas, esekfom::esekf<state_i
       // cov_acc = cov_acc.cwiseProduct(cov_acc_scale);
       // cov_gyr = cov_gyr.cwiseProduct(cov_gyr_scale);
 
-      if (!pure_localization)
+      if (!map_update_mode)
         std::cout << imu_state.grav << std::endl;
       LOG_INFO("IMU Initial Done");
       // LOG_INFO("IMU Initial Done: Gravity: %.4f %.4f %.4f %.4f; state.bias_g: %.4f %.4f %.4f; acc covarience: %.8f %.8f %.8f; gry covarience: %.8f %.8f %.8f",\
