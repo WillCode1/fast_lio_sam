@@ -12,6 +12,7 @@ preprocess:
     timestamp_unit: 0            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
     blind: 1
     det_range: 80.0
+    # det_range: 200.0
 
 mapping:
     point_skip_num: 1            # for mapping, Increase accuracy 4 -> 1
@@ -98,6 +99,7 @@ ndt:
 
 gicp:
     use_gicp: true
+    filter_range: 80.0
     gicp_downsample: 0.1
     search_radius: 0.5
     teps: 1.0e-4
