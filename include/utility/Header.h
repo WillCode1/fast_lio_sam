@@ -111,6 +111,9 @@ inline bool check_for_not_converged(const double &timestamp, int step)
     static unsigned int cnt = 0;
     static double last_timestamp = 0;
 
+    if (timestamp < last_timestamp)         // for test
+        cnt = 0;
+
     if (cnt == 0)
     {
         last_timestamp = timestamp;
