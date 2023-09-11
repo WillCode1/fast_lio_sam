@@ -442,7 +442,6 @@ public:
     pcl::VoxelGrid<PointType> surf_frame_ds_filter;
     int feats_down_size = 0;
     PointCloudType::Ptr feats_down_lidar;
-    const int not_converged_times_thold = 5;
 
     /*** ESKF inputs and output ***/
     esekfom::esekf<state_ikfom, 12, input_ikfom> kf;
