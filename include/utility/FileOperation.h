@@ -13,7 +13,7 @@ public:
             fs::remove_all(directory_path);
         }
 
-        return fs::create_directory(directory_path);
+        return fs::create_directories(directory_path);
     }
 
     static int getFilesNumByExtension(const std::string &directory_path, const std::string& extension)

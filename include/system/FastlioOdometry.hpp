@@ -111,18 +111,7 @@ public:
         point_matched_surface.resize(feats_down_size);
         nearest_points.resize(feats_down_size);
         normvec->resize(feats_down_size);
-        bool measure_valid = true, iter_converge = false;
-        kf.update_iterated_dyn_share_modified(LASER_POINT_COV, loger.iterate_ekf_time, measure_valid, iter_converge);
-        if (!measure_valid)
-        {
-            LOG_ERROR("Lidar degradation!");
-            return false;
-        }
-        else if (!iter_converge && check_for_not_converged(measures.lidar_beg_time, not_converged_times_thold))
-        {
-            LOG_ERROR("Iteration doesn't converge beyond the limit, reset the system!");
-            return false;
-        }
+        kf.update_iterated_dyn_share_modified(LASER_POINT_COV, loger.iterate_ekf_time);
         state = kf.get_x();
         loger.meas_update_time = loger.timer.elapsedLast();
 
