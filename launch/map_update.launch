@@ -13,11 +13,7 @@
     <node pkg="fast_lio_sam" type="fastlio_sam_ros1" name="system" output="screen" /> 
 
 	<group if="$(arg rviz)">
-		<!-- glbal map-->
-		<arg name="map" default="$(find fast_lio_sam)/PCD/globalmap.pcd" />
-    	<node pkg="pcl_ros" type="pcd_to_pointcloud" name="map_publisher" args="$(arg map) 2 _frame_id:=map cloud_pcd:=map" output="screen" />
-
-		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_lio_sam)/rviz_cfg/localization.rviz" />
+		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_lio_sam)/rviz_cfg/mapping.rviz" />
 	</group>
 
 </launch>
