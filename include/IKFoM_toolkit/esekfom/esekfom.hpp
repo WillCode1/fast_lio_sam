@@ -1975,7 +1975,7 @@ private:
 	measurementMatrix2_dyn *h_v_dyn;
 
 	measurementModel_share *h_share;
-	measurementModel_dyn_share *h_dyn_share;
+	measurementModel_dyn_share h_dyn_share;
 
 	int maximum_iter = 0;
 	scalar_type limit[n];
