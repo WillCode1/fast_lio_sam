@@ -8,6 +8,7 @@
 	<!-- <param name="config_file" type="string" value="/config/velodyne.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/ouster64.yaml" /> -->
 	<param name="config_file" type="string" value="/config/mapping_dev.yaml" />
+	<!-- <param name="config_file" type="string" value="/config/mapping_zdrift_indoor_dev.yaml" /> -->
 
 	<param name="map_update_mode" type="bool" value="false" />
     <node pkg="fast_lio_sam" type="fastlio_sam_ros1" name="system" output="screen" /> 

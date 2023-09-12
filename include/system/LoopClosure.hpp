@@ -25,49 +25,6 @@ public:
         sc_manager = scManager;
     }
 
-    bool detect_loop_by_scancontext(int &latest_id, int &closest_id, float &sc_yaw_rad)
-    {
-        auto detectResult = sc_manager->detectLoopClosureID(50); // first: nn index, second: yaw diff
-        closest_id = detectResult.first;
-        sc_yaw_rad = detectResult.second;
-
-        if (closest_id == -1)
-          return false;
-
-        latest_id = copy_keyframe_pose6d->size() - 1;
-        LOG_WARN("detect_loop_by_scancontext, id is %d.", closest_id);
-        return true;
-    }
-
-    bool detect_loop_by_distance(int &latest_id, int &closest_id, const double &lidar_end_time)
-    {
-        latest_id = copy_keyframe_pose6d->size() - 1; // 当前关键帧索引
-        closest_id = -1;
-
-        // 当前帧已经添加过闭环对应关系，不再继续添加
-        auto it = loop_constraint_records.find(latest_id);
-        if (it != loop_constraint_records.end())
-            return false;
-
-        // 在历史关键帧中查找与当前关键帧距离最近的关键帧
-        std::vector<int> indices;
-        std::vector<float> distances;
-        kdtree_history_keyframe_pose->setInputCloud(copy_keyframe_pose6d);
-        kdtree_history_keyframe_pose->radiusSearch(copy_keyframe_pose6d->back(), loop_closure_search_radius, indices, distances, 0);
-        for (int i = 0; i < (int)indices.size(); ++i)
-        {
-            int id = indices[i];
-            if (abs(copy_keyframe_pose6d->points[id].time - lidar_end_time) > loop_closure_search_time_interval)
-            {
-                closest_id = id;
-                break;
-            }
-        }
-        if (closest_id == -1 || latest_id == closest_id)
-            return false;
-        return true;
-    }
-
     /**
      * 提取key索引的关键帧前后相邻若干帧的关键帧特征点集合，降采样
      */
@@ -94,31 +51,9 @@ public:
         icp_downsamp_filter.filter(*near_keyframes);
     }
 
-    void run(const double lidar_end_time, const deque<PointCloudType::Ptr> &keyframe_scan)
+    void perform_loop_closure(const deque<PointCloudType::Ptr> &keyframe_scan, int loop_key_cur, int loop_key_ref,
+                              bool use_guess = false, const Eigen::Matrix4f &init_guess = Eigen::Matrix4f::Identity())
     {
-        if (copy_keyframe_pose6d->points.size() < loop_keyframe_num_thld)
-        {
-            return;
-        }
-
-        const double &dartion_time = copy_keyframe_pose6d->back().time - copy_keyframe_pose6d->front().time;
-        // 当前关键帧索引，候选闭环匹配帧索引
-        int loop_key_cur;
-        int loop_key_ref;
-        float sc_yaw_rad = -1; // sc2右移 <=> lidar左转 <=> 左+sc_yaw_rad
-
-        {
-            // 1.在历史关键帧中查找与当前关键帧距离最近的关键帧
-            if (!is_vaild_loop_time_period(dartion_time, loop_vaild_period["odom"]) || !detect_loop_by_distance(loop_key_cur, loop_key_ref, lidar_end_time))
-            {
-                return;
-            }
-            // 2.scan context
-            if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["scancontext"]))
-                if (!detect_loop_by_scancontext(loop_key_cur, loop_key_ref, sc_yaw_rad))
-                    return;
-        }
-
         // extract cloud
         PointCloudType::Ptr cur_keyframe_cloud(new PointCloudType());
         PointCloudType::Ptr ref_near_keyframe_cloud(new PointCloudType());
@@ -145,15 +80,8 @@ public:
         gicp.setInputSource(cur_keyframe_cloud);
         gicp.setInputTarget(ref_near_keyframe_cloud);
         PointCloudType::Ptr unused_result(new PointCloudType());
-        if (sc_yaw_rad >= 0)
-        {
-            const auto &pose_ref = copy_keyframe_pose6d->points[loop_key_ref];
-            Eigen::Matrix4f pose_ref_mat = EigenMath::CreateAffineMatrix(V3D(pose_ref.x, pose_ref.y, pose_ref.z), V3D(pose_ref.roll, pose_ref.pitch, pose_ref.yaw + sc_yaw_rad)).cast<float>();
-
-            const auto &pose_cur = copy_keyframe_pose6d->back();
-            Eigen::Matrix4f pose_cur_mat = EigenMath::CreateAffineMatrix(V3D(pose_cur.x, pose_cur.y, pose_cur.z), V3D(pose_cur.roll, pose_cur.pitch, pose_cur.yaw)).cast<float>();
-            gicp.align(*unused_result, pose_cur_mat.inverse() * pose_ref_mat);
-        }
+        if (use_guess)
+            gicp.align(*unused_result, init_guess);
         else
             gicp.align(*unused_result);
 
@@ -201,6 +129,82 @@ public:
 
         LOG_WARN("Loop Factor Added by keyframe id = %d, noise = %.3f.", loop_key_ref, noiseScore);
         loop_constraint_records[loop_key_cur] = loop_key_ref;
+    }
+
+
+    void detect_loop_by_scancontext(const deque<PointCloudType::Ptr> &keyframe_scan)
+    {
+        // 当前关键帧索引，候选闭环匹配帧索引
+        int loop_key_cur = copy_keyframe_pose6d->size() - 1;
+
+        auto detectResult = sc_manager->detectLoopClosureID(50); // first: nn index, second: yaw diff
+        int loop_key_ref = detectResult.first;
+        float sc_yaw_rad = detectResult.second; // sc2右移 <=> lidar左转 <=> 左+sc_yaw_rad
+
+        if (loop_key_ref == -1)
+          return;
+
+        const auto &pose_ref = copy_keyframe_pose6d->points[loop_key_ref];
+        Eigen::Matrix4f pose_ref_mat = EigenMath::CreateAffineMatrix(V3D(pose_ref.x, pose_ref.y, pose_ref.z), V3D(pose_ref.roll, pose_ref.pitch, pose_ref.yaw + sc_yaw_rad)).cast<float>();
+        const auto &pose_cur = copy_keyframe_pose6d->back();
+        Eigen::Matrix4f pose_cur_mat = EigenMath::CreateAffineMatrix(V3D(pose_cur.x, pose_cur.y, pose_cur.z), V3D(pose_cur.roll, pose_cur.pitch, pose_cur.yaw)).cast<float>();
+
+        perform_loop_closure(keyframe_scan, loop_key_cur, loop_key_ref, true, pose_cur_mat.inverse() * pose_ref_mat);
+        LOG_WARN("detect_loop_by_scancontext, id is %d.", loop_key_ref);
+    }
+
+    void detect_loop_by_distance(const deque<PointCloudType::Ptr> &keyframe_scan, const double &lidar_end_time)
+    {
+        int latest_id = copy_keyframe_pose6d->size() - 1;   // 当前关键帧索引
+        int closest_id = -1;                                // 最近关键帧索引
+
+        // 当前帧已经添加过闭环对应关系，不再继续添加
+        auto it = loop_constraint_records.find(latest_id);
+        if (it != loop_constraint_records.end())
+            return;
+
+        // 在历史关键帧中查找与当前关键帧距离最近的关键帧
+        std::vector<int> indices;
+        std::vector<float> distances;
+        kdtree_history_keyframe_pose->setInputCloud(copy_keyframe_pose6d);
+        kdtree_history_keyframe_pose->radiusSearch(copy_keyframe_pose6d->back(), loop_closure_search_radius, indices, distances, 0);
+        for (int i = 0; i < (int)indices.size(); ++i)
+        {
+            int id = indices[i];
+            if (abs(copy_keyframe_pose6d->points[id].time - lidar_end_time) > loop_closure_search_time_interval)
+            {
+                closest_id = id;
+                break;
+            }
+        }
+        if (closest_id == -1 || latest_id == closest_id)
+            return;
+
+        perform_loop_closure(keyframe_scan, latest_id, closest_id);
+    }
+
+    void run(const double &lidar_end_time, const deque<PointCloudType::Ptr> &keyframe_scan)
+    {
+        if (copy_keyframe_pose6d->points.size() < loop_keyframe_num_thld)
+        {
+            return;
+        }
+
+        const double &dartion_time = copy_keyframe_pose6d->back().time - copy_keyframe_pose6d->front().time;
+
+        // 1.在历史关键帧中查找与当前关键帧距离最近的关键帧
+        if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["odom"]))
+        {
+            detect_loop_by_distance(keyframe_scan, lidar_end_time);
+            // return;
+        }
+
+        // 2.scan context
+        if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["scancontext"]))
+        {
+            detect_loop_by_scancontext(keyframe_scan);
+            // return;
+        }
     }
 
     void get_loop_constraint(LoopConstraint &loop_constr)

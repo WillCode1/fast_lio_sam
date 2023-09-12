@@ -39,7 +39,7 @@ mapping:
     loop_closure_search_radius: 10
     loop_closure_search_time_interval: 30
     keyframe_search_num: 20
-    loop_closure_fitness_score_thld: 0.3
+    loop_closure_fitness_score_thld: 0.1
     icp_downsamp_size: 0.1
 
     acc_cov: 0.1
@@ -75,7 +75,7 @@ relocalization_cfg:
 
 scan_context:
     lidar_height: 2.2
-    sc_dist_thres: 0.7
+    sc_dist_thres: 0.13
 
 bnb3d:
     linear_xy_window_size: 5   # meter
