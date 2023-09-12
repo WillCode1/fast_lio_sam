@@ -52,7 +52,7 @@ public:
     }
 
     void perform_loop_closure(const deque<PointCloudType::Ptr> &keyframe_scan, int loop_key_cur, int loop_key_ref,
-                              bool use_guess = false, const Eigen::Matrix4f &init_guess = Eigen::Matrix4f::Identity())
+                              const std::string &type, bool use_guess = false, const Eigen::Matrix4f &init_guess = Eigen::Matrix4f::Identity())
     {
         // extract cloud
         PointCloudType::Ptr cur_keyframe_cloud(new PointCloudType());
@@ -87,7 +87,7 @@ public:
 
         if (gicp.hasConverged() == false || gicp.getFitnessScore() > loop_closure_fitness_score_thld)
         {
-            LOG_ERROR("loop closure failed, %d, %.3f, %.3f", gicp.hasConverged(), gicp.getFitnessScore(), loop_closure_fitness_score_thld);
+            LOG_WARN("loop closure failed by %s! %d, %.3f, %.3f", type.c_str(), gicp.hasConverged(), gicp.getFitnessScore(), loop_closure_fitness_score_thld);
             return;
         }
 
@@ -127,30 +127,8 @@ public:
         loop_constraint.loop_noise.push_back(constraintNoise);
         loop_mtx.unlock();
 
-        LOG_WARN("Loop Factor Added by keyframe id = %d, noise = %.3f.", loop_key_ref, noiseScore);
+        LOG_INFO("Loop Factor Added by %s! keyframe id = %d, noise = %.3f.", type.c_str(), loop_key_ref, noiseScore);
         loop_constraint_records[loop_key_cur] = loop_key_ref;
-    }
-
-
-    void detect_loop_by_scancontext(const deque<PointCloudType::Ptr> &keyframe_scan)
-    {
-        // 当前关键帧索引，候选闭环匹配帧索引
-        int loop_key_cur = copy_keyframe_pose6d->size() - 1;
-
-        auto detectResult = sc_manager->detectLoopClosureID(50); // first: nn index, second: yaw diff
-        int loop_key_ref = detectResult.first;
-        float sc_yaw_rad = detectResult.second; // sc2右移 <=> lidar左转 <=> 左+sc_yaw_rad
-
-        if (loop_key_ref == -1)
-          return;
-
-        const auto &pose_ref = copy_keyframe_pose6d->points[loop_key_ref];
-        Eigen::Matrix4f pose_ref_mat = EigenMath::CreateAffineMatrix(V3D(pose_ref.x, pose_ref.y, pose_ref.z), V3D(pose_ref.roll, pose_ref.pitch, pose_ref.yaw + sc_yaw_rad)).cast<float>();
-        const auto &pose_cur = copy_keyframe_pose6d->back();
-        Eigen::Matrix4f pose_cur_mat = EigenMath::CreateAffineMatrix(V3D(pose_cur.x, pose_cur.y, pose_cur.z), V3D(pose_cur.roll, pose_cur.pitch, pose_cur.yaw)).cast<float>();
-
-        perform_loop_closure(keyframe_scan, loop_key_cur, loop_key_ref, true, pose_cur_mat.inverse() * pose_ref_mat);
-        LOG_WARN("detect_loop_by_scancontext, id is %d.", loop_key_ref);
     }
 
     void detect_loop_by_distance(const deque<PointCloudType::Ptr> &keyframe_scan, const double &lidar_end_time)
@@ -180,7 +158,26 @@ public:
         if (closest_id == -1 || latest_id == closest_id)
             return;
 
-        perform_loop_closure(keyframe_scan, latest_id, closest_id);
+        perform_loop_closure(keyframe_scan, latest_id, closest_id, "odom");
+    }
+
+    void detect_loop_by_scancontext(const deque<PointCloudType::Ptr> &keyframe_scan)
+    {
+        int loop_key_cur = copy_keyframe_pose6d->size() - 1;
+
+        auto detectResult = sc_manager->detectLoopClosureID(50); // first: nn index, second: yaw diff
+        int loop_key_ref = detectResult.first;
+        float sc_yaw_rad = detectResult.second; // sc2右移 <=> lidar左转 <=> 左+sc_yaw_rad
+
+        if (loop_key_ref == -1)
+          return;
+
+        const auto &pose_ref = copy_keyframe_pose6d->points[loop_key_ref];
+        Eigen::Matrix4f pose_ref_mat = EigenMath::CreateAffineMatrix(V3D(pose_ref.x, pose_ref.y, pose_ref.z), V3D(pose_ref.roll, pose_ref.pitch, pose_ref.yaw + sc_yaw_rad)).cast<float>();
+        const auto &pose_cur = copy_keyframe_pose6d->back();
+        Eigen::Matrix4f pose_cur_mat = EigenMath::CreateAffineMatrix(V3D(pose_cur.x, pose_cur.y, pose_cur.z), V3D(pose_cur.roll, pose_cur.pitch, pose_cur.yaw)).cast<float>();
+
+        perform_loop_closure(keyframe_scan, loop_key_cur, loop_key_ref, "scancontext", true, pose_cur_mat.inverse() * pose_ref_mat);
     }
 
     void run(const double &lidar_end_time, const deque<PointCloudType::Ptr> &keyframe_scan)
@@ -196,14 +193,12 @@ public:
         if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["odom"]))
         {
             detect_loop_by_distance(keyframe_scan, lidar_end_time);
-            // return;
         }
 
         // 2.scan context
         if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["scancontext"]))
         {
             detect_loop_by_scancontext(keyframe_scan);
-            // return;
         }
     }
 

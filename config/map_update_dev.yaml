@@ -53,7 +53,7 @@ mapping:
                    0, 0, -1 ]
 
 localization:
-    gravity: [ 0.0889961, 0.110843, 9.80797 ]
+    gravity: [ 0, 0, -9.81 ]
 
 publish:
     path_en:  true

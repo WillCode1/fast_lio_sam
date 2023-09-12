@@ -14,7 +14,7 @@ preprocess:
     det_range: 100.0
 
 mapping:
-    point_skip_num: 1            # for mapping, Increase accuracy 4 -> 1
+    point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
     # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
@@ -49,10 +49,10 @@ mapping:
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-    extrinsic_T: [ -0.00665, 0, -1.51277]
+    extrinsic_T: [ 1.061, 0, 1.651 ]
     extrinsic_R: [ 1, 0, 0, 
-                   0, -1, 0, 
-                   0, 0, -1 ]
+                   0, 1, 0, 
+                   0, 0, 1 ]
 
 localization:
     gravity: [ 0, 0, -9.81 ]

@@ -171,16 +171,23 @@ public:
             point_matched_surface[i] = false;
             if (esti_plane(abcd, points_near, 0.1f))
             {
+                // abcd 分别为 Ax + By + Cz + D = 0 中的系数，dis = |Ax + By + Cz + D| / sqrt(A^2 + B^2 + C^2)
+                // A、B、C 是平面的法向量，D 是原点离平面的有符号距离.
                 float dis = abcd(0) * point.x + abcd(1) * point.y + abcd(2) * point.z + abcd(3);
+                // 1.点到面距离越大，可能性越小
+                // 2.但是根据雷达物理模型原理，远处点的可以放宽一些
                 float s = 1 - 0.9 * fabs(dis) / sqrt(p_lidar.norm());
+                // float s = 1 - 0.9 * fabs(dis);
 
+                bool is_ground_plane = judge_if_ground_plane(abcd, 0.5);
+                // if (s > 0.9 || is_ground_plane)
                 if (s > 0.9)
                 {
                     point_matched_surface[i] = true;
                     normvec->points[i].x = abcd(0);
                     normvec->points[i].y = abcd(1);
                     normvec->points[i].z = abcd(2);
-                    normvec->points[i].intensity = dis;
+                    normvec->points[i].intensity = is_ground_plane ? dis * 2 : dis;
                 }
             }
         }
@@ -413,6 +420,11 @@ private:
             }
         }
         return true;
+    }
+
+    bool judge_if_ground_plane(const Eigen::Vector4d &abcd, const double& lidar_height = 2)
+    {
+        return abcd(2) > 0.98 && abcd(3) / abcd(2) > lidar_height;
     }
 
     struct EffectFeature
