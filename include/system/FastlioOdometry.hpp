@@ -177,17 +177,14 @@ public:
                 // 1.点到面距离越大，可能性越小
                 // 2.但是根据雷达物理模型原理，远处点的可以放宽一些
                 float s = 1 - 0.9 * fabs(dis) / sqrt(p_lidar.norm());
-                // float s = 1 - 0.9 * fabs(dis);
 
-                bool is_ground_plane = judge_if_ground_plane(abcd, 0.5);
-                // if (s > 0.9 || is_ground_plane)
                 if (s > 0.9)
                 {
                     point_matched_surface[i] = true;
                     normvec->points[i].x = abcd(0);
                     normvec->points[i].y = abcd(1);
                     normvec->points[i].z = abcd(2);
-                    normvec->points[i].intensity = is_ground_plane ? dis * 2 : dis;
+                    normvec->points[i].intensity = dis;
                 }
             }
         }
