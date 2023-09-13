@@ -75,7 +75,7 @@ relocalization_cfg:
 
 scan_context:
     lidar_height: 2.2
-    sc_dist_thres: 0.13
+    sc_dist_thres: 0.7
 
 bnb3d:
     linear_xy_window_size: 5   # meter
