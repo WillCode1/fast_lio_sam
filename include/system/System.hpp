@@ -239,18 +239,9 @@ public:
             system_state_vaild = false;
             return system_state_vaild;
         }
-        else if (feats_undistort->empty() || (feats_undistort == NULL))
-        {
-            return false;
-        }
 
         loger.update_average_time();
         loger.frame_log_output_to_csv(measures->lidar_beg_time);
-#if 0
-        // for test
-        loger.save_trajectory(file_pose_unoptimized, frontend->state.pos, frontend->state.rot, measures->lidar_end_time);
-#endif
-
         system_state_vaild = true;
 
         /*** backend ***/

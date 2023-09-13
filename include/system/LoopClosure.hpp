@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <pcl/search/kdtree.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/registration/gicp.h>
 #include "DataDef.h"

@@ -76,7 +76,7 @@ public:
         if (feats_undistort->empty() || (feats_undistort == NULL))
         {
             LOG_WARN("No point, skip this scan!");
-            return true;
+            return false;
         }
 
         /*** initialize the map kdtree ***/
@@ -417,11 +417,6 @@ private:
             }
         }
         return true;
-    }
-
-    bool judge_if_ground_plane(const Eigen::Vector4d &abcd, const double& lidar_height = 2)
-    {
-        return abcd(2) > 0.98 && abcd(3) / abcd(2) > lidar_height;
     }
 
     struct EffectFeature

@@ -142,6 +142,13 @@ public:
         fclose(fp2);
     }
 
+    void print_pose(const state_ikfom &state, const std::string &print)
+    {
+        const auto &xyz = state.pos;
+        const auto &rpy = EigenMath::Quaternion2RPY(state.rot);
+        LOG_INFO("%s, xyz, rpy: (%.5f, %.5f, %.5f, %.5f, %.5f, %.5f)", print.c_str(), xyz(0), xyz(1), xyz(2), RAD2DEG(rpy(0)), RAD2DEG(rpy(1)), RAD2DEG(rpy(2)));
+    }
+
     void print_extrinsic(const state_ikfom &state, bool need_print)
     {
         const auto &offset_xyz = state.offset_T_L_I;
