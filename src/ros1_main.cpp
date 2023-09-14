@@ -343,6 +343,7 @@ int main(int argc, char **argv)
         pubLoopConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>("/loop_closure_constraints", 1);
     }
     ros::Subscriber sub_initpose = nh.subscribe("/initialpose", 1, initialPoseCallback);
+    // ros::Publisher pubground_points = nh.advertise<sensor_msgs::PointCloud2>("/ground_points", 100000);
 
     //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
@@ -374,6 +375,7 @@ int main(int argc, char **argv)
                     publish_cloud_world(pubLaserCloudFull, slam.feats_undistort, state, slam.lidar_end_time);
                 else
                     publish_cloud_world(pubLaserCloudFull, slam.frontend->feats_down_lidar, state, slam.lidar_end_time);
+            // publish_cloud_world(pubground_points, slam.frontend->ground_filter.ground_points, state, slam.lidar_end_time);
 
             visualize_loop_closure_constraints(pubLoopConstraintEdge, slam.lidar_end_time, slam.loopClosure->loop_constraint_records, slam.loopClosure->copy_keyframe_pose6d, slam.frontend->state);
             // publish_cloud_world(pubLaserCloudEffect, laserCloudOri, state, slam.lidar_end_time);
