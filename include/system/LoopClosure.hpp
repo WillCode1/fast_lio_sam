@@ -88,7 +88,7 @@ public:
 
         if (gicp.hasConverged() == false || gicp.getFitnessScore() > loop_closure_fitness_score_thld)
         {
-            LOG_WARN("loop closure failed by %s! %d, %.3f, %.3f", type.c_str(), gicp.hasConverged(), gicp.getFitnessScore(), loop_closure_fitness_score_thld);
+            LOG_WARN("dartion_time = %.2f.loop closure failed by %s! %d, %.3f, %.3f", dartion_time, type.c_str(), gicp.hasConverged(), gicp.getFitnessScore(), loop_closure_fitness_score_thld);
             return;
         }
 
@@ -104,7 +104,7 @@ public:
         correctionLidarFrame = gicp.getFinalTransformation();
         float noiseScore = gicp.getFitnessScore();
 
-        if (manually_fine_tune_loop_closure)
+        if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["manually"]))
         {
             pcl::getTranslationAndEulerAngles(correctionLidarFrame, trans_state[0], trans_state[1], trans_state[2], trans_state[3], trans_state[4], trans_state[5]);
             noiseScore = manually_adjust_loop_closure(ref_near_keyframe_cloud, cur_keyframe_cloud, correctionLidarFrame);
@@ -128,7 +128,7 @@ public:
         loop_constraint.loop_noise.push_back(constraintNoise);
         loop_mtx.unlock();
 
-        LOG_INFO("Loop Factor Added by %s! keyframe id = %d, noise = %.3f.", type.c_str(), loop_key_ref, noiseScore);
+        LOG_INFO("dartion_time = %.2f.Loop Factor Added by %s! keyframe id = %d, noise = %.3f.", dartion_time, type.c_str(), loop_key_ref, noiseScore);
         loop_constraint_records[loop_key_cur] = loop_key_ref;
     }
 
@@ -188,7 +188,7 @@ public:
             return;
         }
 
-        const double &dartion_time = copy_keyframe_pose6d->back().time - copy_keyframe_pose6d->front().time;
+        dartion_time = copy_keyframe_pose6d->back().time - copy_keyframe_pose6d->front().time;
 
         // 1.在历史关键帧中查找与当前关键帧距离最近的关键帧
         if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["odom"]))
@@ -236,7 +236,6 @@ public:
     }
 
 public:
-    bool manually_fine_tune_loop_closure = false;
     std::unordered_map<std::string, std::vector<double>> loop_vaild_period;
     std::mutex loop_mtx;
     int loop_keyframe_num_thld = 50;
@@ -255,6 +254,7 @@ public:
     std::shared_ptr<ScanContext::SCManager> sc_manager; // scan context
 
     // for visualize
+    double dartion_time;
     PointCloudType::Ptr curKeyframeCloud;
     PointCloudType::Ptr prevKeyframeCloud;
 };
