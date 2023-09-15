@@ -161,8 +161,8 @@ public:
         if (!runtime_log)
             return;
 
-        auto cur_euler = EigenMath::RotationMatrix2RPY(state.rot.toRotationMatrix());
-        auto ext_euler = EigenMath::RotationMatrix2RPY(state.offset_R_L_I.toRotationMatrix());
+        auto cur_euler = EigenMath::RotationMatrix2RPY2(state.rot.toRotationMatrix());
+        auto ext_euler = EigenMath::RotationMatrix2RPY2(state.offset_R_L_I.toRotationMatrix());
         fout_file << setw(20) << delta_time << " " << cur_euler.transpose() << " " << state.pos.transpose()
                   << " " << ext_euler.transpose() << " " << state.offset_T_L_I.transpose() << " " << state.vel.transpose()
                   << " " << state.bg.transpose() << " " << state.ba.transpose() << " " << state.grav << endl;
