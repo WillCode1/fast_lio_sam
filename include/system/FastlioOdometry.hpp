@@ -113,6 +113,14 @@ public:
         normvec->resize(feats_down_size);
         kf.update_iterated_dyn_share_modified(LASER_POINT_COV, loger.iterate_ekf_time);
         state = kf.get_x();
+
+#ifdef Not_Optimize_Z_Axis
+        state = kf.get_x();
+        state.pos.z() = 0;
+        auto rpy = EigenMath::Quaternion2RPY(state.rot);
+        state.rot = EigenMath::RPY2Quaternion(V3D(0, 0, rpy(2)));
+        kf.change_x(state);
+#endif
         loger.meas_update_time = loger.timer.elapsedLast();
 
         loger.output2file(state, loger.fout_update, measures.lidar_beg_time - loger.first_lidar_beg_time);
