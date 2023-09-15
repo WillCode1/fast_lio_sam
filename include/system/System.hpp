@@ -39,15 +39,15 @@ public:
 
         file_pose_unoptimized = fopen(DEBUG_FILE_DIR("keyframe_pose.txt").c_str(), "w");
         file_pose_optimized = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized.txt").c_str(), "w");
-        file_pose_gnss = fopen(DEBUG_FILE_DIR("gnss_pose.txt").c_str(), "w");
 
         fprintf(file_pose_unoptimized, "# keyframe trajectory unoptimized\n# timestamp tx ty tz qx qy qz qw\n");
         fprintf(file_pose_optimized, "# keyframe trajectory optimized\n# timestamp tx ty tz qx qy qz qw\n");
-        fprintf(file_pose_gnss, "# gnss trajectory\n# timestamp tx ty tz qx qy qz qw\n");
     }
 
     ~System()
     {
+        fclose(file_pose_unoptimized);
+        fclose(file_pose_optimized);
     }
 
     void init_system_mode(bool _map_update_mode)
@@ -240,8 +240,8 @@ public:
             return system_state_vaild;
         }
 
-        loger.update_average_time();
-        loger.frame_log_output_to_csv(measures->lidar_beg_time);
+        loger.print_fastlio_cost_time();
+        loger.output_fastlio_log_to_csv(measures->lidar_beg_time);
         system_state_vaild = true;
 
         /*** backend ***/
@@ -418,7 +418,6 @@ public:
     /*** keyframe config ***/
     FILE *file_pose_unoptimized;
     FILE *file_pose_optimized;
-    FILE *file_pose_gnss;
     bool save_keyframe_en = false;
     PointCloudType::Ptr feats_undistort;
     shared_ptr<deque<PointCloudType::Ptr>> keyframe_scan;

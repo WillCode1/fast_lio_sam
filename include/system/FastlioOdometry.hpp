@@ -105,7 +105,7 @@ public:
         feats_down_size = feats_down_lidar->points.size();
         loger.feats_down_size = feats_down_size;
         loger.downsample_time = loger.timer.elapsedLast();
-        loger.output2file(state, loger.fout_predict, measures.lidar_beg_time - loger.first_lidar_beg_time);
+        loger.dump_state_to_log(loger.fout_predict, state, measures.lidar_beg_time - loger.first_lidar_beg_time);
 
         /*** iterated state estimation ***/
         point_matched_surface.resize(feats_down_size);
@@ -121,10 +121,9 @@ public:
         state.rot = EigenMath::RPY2Quaternion(V3D(0, 0, rpy(2)));
         kf.change_x(state);
 #endif
-        loger.meas_update_time = loger.timer.elapsedLast();
 
-        loger.output2file(state, loger.fout_update, measures.lidar_beg_time - loger.first_lidar_beg_time);
-        loger.dump_state_to_log(state, measures.lidar_beg_time - loger.first_lidar_beg_time);
+        loger.meas_update_time = loger.timer.elapsedLast();
+        loger.dump_state_to_log(loger.fout_update, state, measures.lidar_beg_time - loger.first_lidar_beg_time);
 
         if (extrinsic_est_en)
         {
