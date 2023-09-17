@@ -40,7 +40,8 @@ public:
         // outdoor: 1e-2, 1e-2, M_PI*M_PI, 1e8, 1e8, 1e8
         // prior_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
 #ifdef Not_Optimize_Z_Axis
-        odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-6, 1e-4, 1e-4, 1e-12).finished());
+        // odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+        odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-6, 1e-6, 1e-4, 1e-4, 3e-5).finished());
 #else
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
 #endif

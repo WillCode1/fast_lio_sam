@@ -23,6 +23,7 @@ int lidar_type;
 System slam;
 std::string map_frame;
 std::string body_frame;
+FILE *imu_quat_eular = fopen(DEBUG_FILE_DIR("imu_quat_eular.txt").c_str(), "w");
 
 bool flg_exit = false;
 void SigHandle(int sig)
@@ -90,6 +91,21 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
     slam.cache_imu_data(msg->header.stamp.toSec(),
                         V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z), 
                         V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z));
+#ifdef Optimize_Use_Imu_Orientation
+    slam.imu->imu_orientation = QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z);
+#endif
+    if (slam.loger.runtime_log)
+    {
+        static bool flag = false;
+        static double start_time = 0;
+        if (!flag)
+        {
+            flag = true;
+            start_time = msg->header.stamp.toSec();
+        }
+        auto rpy = EigenMath::Quaternion2RPY(QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
+        fprintf(imu_quat_eular, "%0.4lf %0.4f %0.4f %0.4f %0.4f %0.4f %0.4f\n", msg->header.stamp.toSec() - start_time, 0., 0., 0., rpy.x(), rpy.y(), rpy.z());
+    }
 }
 
 void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, const double& lidar_end_time, const std::string& frame_id)

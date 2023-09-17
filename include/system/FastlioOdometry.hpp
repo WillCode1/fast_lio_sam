@@ -79,6 +79,15 @@ public:
             return false;
         }
 
+#ifdef Optimize_Use_Imu_Orientation
+        static bool imu_orientation = false;
+        static QD last_imu_orientation = QD::Identity();
+        if (!imu_orientation)
+        {
+            imu_orientation = true;
+            last_imu_orientation = imu->imu_orientation;
+        }
+#endif
         /*** initialize the map kdtree ***/
         if (!map_update_mode && ikdtree.Root_Node == nullptr)
         {
@@ -117,11 +126,23 @@ public:
         state = kf.get_x();
 
 #ifdef Not_Optimize_Z_Axis
+#ifdef Optimize_Use_Imu_Orientation
+        auto imu_orientation_incre = last_imu_orientation.inverse() * imu->imu_orientation;
+        last_imu_orientation = imu->imu_orientation;
+
         state = kf.get_x();
-        state.pos.z() = 0;
-        auto rpy = EigenMath::Quaternion2RPY(state.rot);
-        state.rot = EigenMath::RPY2Quaternion(V3D(0, 0, rpy(2)));
+        // state.pos.z() = 0;
+        auto rpy_increment = EigenMath::Quaternion2RPY(imu_orientation_incre);
+        auto imu_state = EigenMath::Quaternion2RPY(state.rot);
+        state.rot = EigenMath::RPY2Quaternion(V3D(imu_state(0), rpy_increment(1), imu_state(2)));
         kf.change_x(state);
+#else
+        state = kf.get_x();
+        // state.pos.z() = 0;
+        auto rpy = EigenMath::Quaternion2RPY(state.rot);
+        state.rot = EigenMath::RPY2Quaternion(V3D(rpy(0), 0, rpy(2)));
+        kf.change_x(state);
+#endif
 #endif
 
         if (extrinsic_est_en)

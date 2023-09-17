@@ -38,6 +38,9 @@ public:
   V3D cov_bias_gyr;
   V3D cov_bias_acc;
   deque<ImuData::Ptr> imu_buffer;
+#ifdef Optimize_Use_Imu_Orientation
+  QD imu_orientation;
+#endif
 
 private:
   void IMU_init(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, int &N, bool map_update_mode);
