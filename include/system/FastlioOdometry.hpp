@@ -172,14 +172,9 @@ public:
 #endif
         for (int i = 0; i < feats_down_size; i++)
         {
-            PointType point = feats_down_lidar->points[i];
-
             /* transform to world frame */
-            V3D p_lidar(point.x, point.y, point.z);
-            V3D p_world = state.rot * (state.offset_R_L_I * p_lidar + state.offset_T_L_I) + state.pos;
-            point.x = p_world.x();
-            point.y = p_world.y();
-            point.z = p_world.z(); 
+            PointType point_world;
+            pointLidarToWorld(feats_down_lidar->points[i], point_world, state);
 
             auto &points_near = nearest_points[i];
 
@@ -187,7 +182,7 @@ public:
             {
                 /** Find the closest surfaces in the map **/
                 vector<float> pointSearchSqDis(NUM_MATCH_POINTS);
-                ikdtree.Nearest_Search(point, NUM_MATCH_POINTS, points_near, pointSearchSqDis, lidar_model_search_range);
+                ikdtree.Nearest_Search(point_world, NUM_MATCH_POINTS, points_near, pointSearchSqDis, lidar_model_search_range);
                 point_matched_surface[i] = points_near.size() < NUM_MATCH_POINTS ? false : true;
             }
 
@@ -200,10 +195,10 @@ public:
             {
                 // abcd 分别为 Ax + By + Cz + D = 0 中的系数，dis = |Ax + By + Cz + D| / sqrt(A^2 + B^2 + C^2)
                 // A、B、C 是平面的法向量，D 是原点离平面的有符号距离.
-                float dis = abcd(0) * point.x + abcd(1) * point.y + abcd(2) * point.z + abcd(3);
+                float dis = abcd(0) * point_world.x + abcd(1) * point_world.y + abcd(2) * point_world.z + abcd(3);
                 // 1.点到面距离越大，可能性越小
                 // 2.但是根据雷达物理模型原理，远处点的可以放宽一些
-                float s = 1 - 0.9 * fabs(dis) / sqrt(p_lidar.norm());
+                float s = 1 - 0.9 * fabs(dis) / sqrt(pointDistance(feats_down_lidar->points[i]));
 
                 if (s > 0.9)
                 {
