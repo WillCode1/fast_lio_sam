@@ -1,7 +1,5 @@
 #ifndef USE_IKFOM_H
 #define USE_IKFOM_H
-//#define USE_sparse
-
 #include <IKFoM_toolkit/esekfom/esekfom.hpp>
 
 typedef MTK::vect<1, double> vect1;
