@@ -15,11 +15,21 @@ preprocess:
     # det_range: 200.0
 
 mapping:
+    start_in_aggressive_motion: true   # if true, a preknown gravity should be provided in following gravity_init
+    gravity_init: [0, 0, 9.81]         # [0.0, 9.810, 0.0] # preknown gravity in the first IMU body frame, use when imu_en is false or start from a non-stationary state
+    preset_gravity: [0, 0, -9.81]       # [0.0, 9.810, 0.0] # the direction of gravity(map) to be aligned
+    gravity_align: false                # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
+    frontend_type: 0                    # frontend type
+
+    # fastlio
     point_skip_num: 1            # for mapping, Increase accuracy 4 -> 1
+    space_down_sample: true
+    # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
     ikdtree_resolution: 0.5      # In unstructured scenarios, smaller is more likely to degenerate
     lidar_model_search_range: 5
+    lidar_meas_cov: 0.001
     cube_side_length: 200
     runtime_log_enable: 0
 
@@ -54,9 +64,6 @@ mapping:
                    0, -1, 0, 
                    0, 0, -1 ]
 
-localization:
-    gravity: [ 0, 0, -9.81 ]
-
 publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
@@ -76,7 +83,7 @@ relocalization_cfg:
     lidar_ext/yaw: 0
 
 scan_context:
-    lidar_height: 2.2
+    lidar_height: 2.183
     sc_dist_thres: 0.7
 
 bnb3d:

@@ -10,7 +10,7 @@ preprocess:
     scan_line: 16
     scan_rate: 10                # only need to be set for velodyne, unit: Hz,
     timestamp_unit: 0            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
-    blind: 2
+    blind: 2.5
     det_range: 100.0
 
 mapping:
@@ -18,7 +18,7 @@ mapping:
     gravity_init: [0, 0, -9.81]         # [0.0, 9.810, 0.0] # preknown gravity in the first IMU body frame, use when imu_en is false or start from a non-stationary state
     preset_gravity: [0, 0, -9.81]       # [0.0, 9.810, 0.0] # the direction of gravity(map) to be aligned
     gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
-    frontend_type: 0                    # frontend type
+    frontend_type: 1                    # frontend type
 
     # fastlio
     point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
@@ -28,9 +28,25 @@ mapping:
     max_iteration: 3
     ikdtree_resolution: 0.5      # In unstructured scenarios, smaller is more likely to degenerate
     lidar_model_search_range: 5
-    lidar_meas_cov: 0.001
+    lidar_meas_cov: 0.01
     cube_side_length: 1000
     runtime_log_enable: 0
+
+    # pointlio
+    imu_en: true
+    use_imu_as_input: true
+    prop_at_freq_of_imu: true
+    check_saturation: true      # check the saturation value of IMU
+    imu_time_inte: 0.01 # = 1 / frequency of IMU
+    saturation_acc: 30.0        # the saturation value of IMU's acceleration. not related to the units
+    saturation_gyro: 35         # the saturation value of IMU's angular velocity. not related to the units
+    imu_meas_acc_cov: 0.1 # 2
+    imu_meas_omg_cov: 0.1 # 2
+    gyr_cov_input: 0.01         # for IMU as input model
+    acc_cov_input: 0.1          # for IMU as input model
+    vel_cov: 20
+    acc_cov_output: 500
+    gyr_cov_output: 1000
 
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2
@@ -42,7 +58,7 @@ mapping:
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1
 
-    loop_closure_enable_flag: true
+    loop_closure_enable_flag: false
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 10
     loop_closure_search_time_interval: 30
@@ -58,7 +74,7 @@ mapping:
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-    extrinsic_T: [ -0.00665, 0, -1.51277 ]
+    extrinsic_T: [ -0.00665, 0, -1.51277]
     extrinsic_R: [ 1, 0, 0, 
                    0, -1, 0, 
                    0, 0, -1 ]
@@ -70,7 +86,7 @@ scan_context:
 publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
-    dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
+    dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
 
 official:
     save_globalmap_en: false

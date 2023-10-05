@@ -13,7 +13,6 @@
 
 #include "DataDef.h"
 #include "ikd-Tree/ikd_Tree.h"
-#include "use-ikfom.hpp"
 #include "GnssProcessor.hpp"
 #include "utility/Header.h"
 
@@ -47,13 +46,14 @@ public:
 #endif
     }
 
-    void set_current_pose(const double &lidar_end_time, const state_ikfom &cur_state, uint32_t keyframe_index)
+    template <typename ikfom_state>
+    void set_current_pose(const double &lidar_end_time, const ikfom_state &cur_state, uint32_t keyframe_index)
     {
         // imu pose -> lidar pose
         M3D lidar_rot = cur_state.rot.toRotationMatrix() * cur_state.offset_R_L_I;
         V3D lidar_pos = cur_state.rot * cur_state.offset_T_L_I + cur_state.pos;
 
-        Eigen::Vector3d eulerAngle = EigenMath::RotationMatrix2RPY2(lidar_rot.matrix());
+        Eigen::Vector3d eulerAngle = EigenMath::RotationMatrix2RPY2(lidar_rot);
         this_pose6d.x = lidar_pos(0); // x
         this_pose6d.y = lidar_pos(1); // y
         this_pose6d.z = lidar_pos(2); // z
@@ -83,11 +83,12 @@ public:
         return true;
     }
 
-    void run(LoopConstraint &loop_constraint, FastlioOdometry &frontend, LogAnalysis &loger)
+    template <typename ikfom_state>
+    void run(LoopConstraint &loop_constraint, ikfom_state &state, KD_TREE<PointType> &ikdtree)
     {
-        add_factor_and_optimize(loop_constraint, frontend);
+        add_factor_and_optimize(loop_constraint, state);
 
-        correct_poses(frontend.ikdtree, frontend.state, loger);
+        correct_poses(ikdtree);
     }
 
     void get_keyframe_pose6d(pcl::PointCloud<PointXYZIRPYT>::Ptr& copy_keyframe_pose6d)
@@ -156,7 +157,8 @@ private:
         loop_is_closed = true;
     }
 
-    void add_factor_and_optimize(LoopConstraint &loop_constraint, FastlioOdometry &frontend)
+    template <typename ikfom_state>
+    void add_factor_and_optimize(LoopConstraint &loop_constraint, ikfom_state &state)
     {
         add_odom_factor();
 
@@ -198,20 +200,17 @@ private:
 
         if (loop_is_closed == true)
         {
-            frontend.state = frontend.kf.get_x();
             Eigen::Vector3d lidar_pos(cur_estimate.translation().x(), cur_estimate.translation().y(), cur_estimate.translation().z());
             Eigen::Vector3d lidar_rot(cur_estimate.rotation().roll(), cur_estimate.rotation().pitch(), cur_estimate.rotation().yaw());
-            frontend.state.rot = EigenMath::RPY2Quaternion(lidar_rot) * frontend.state.offset_R_L_I.toRotationMatrix().transpose();
-            frontend.state.pos = lidar_pos - frontend.state.rot * frontend.state.offset_T_L_I;
-            frontend.kf.change_x(frontend.state);
+            state.rot = (EigenMath::RPY2Quaternion(lidar_rot) * state.offset_R_L_I).normalized();
+            state.pos = lidar_pos - state.rot.normalized() * state.offset_T_L_I;
         }
     }
 
-    void reset_ikdtree(KD_TREE<PointType> &ikdtree, const state_ikfom &state, LogAnalysis &loger)
+    void reset_ikdtree(KD_TREE<PointType> &ikdtree)
     {
         if (recontruct_kdtree)
         {
-            // loger.timer.record();
             PointCloudType::Ptr submap_keyframes(new PointCloudType());
             PointCloudType::Ptr submap_keyframesDS(new PointCloudType());
             pcl::VoxelGrid<PointType> downsize_filter_submap;
@@ -219,20 +218,17 @@ private:
             int key_poses_num = keyframe_pose6d_optimized->size();
             for (int i = key_poses_num - ikdtree_reconstruct_keyframe_num; i < key_poses_num; ++i)
             {
-                *submap_keyframes += *pointcloudLidarToWorld((*keyframe_scan)[i], keyframe_pose6d_optimized->points[i]);
+                *submap_keyframes += *pointcloudKeyframeToWorld((*keyframe_scan)[i], keyframe_pose6d_optimized->points[i]);
             }
             downsize_filter_submap.setLeafSize(ikdtree_reconstruct_downsamp_size, ikdtree_reconstruct_downsamp_size, ikdtree_reconstruct_downsamp_size);
             downsize_filter_submap.setInputCloud(submap_keyframes);
             downsize_filter_submap.filter(*submap_keyframesDS);
 
             ikdtree.reconstruct(submap_keyframesDS->points);
-
-            loger.kdtree_size = ikdtree.size();
-            // LOG_INFO("Reconstructed ikdtree, points size = %lu, reconstruct cost time = %f ms", submap_keyframesDS->points.size(), loger.timer.elapsedLast());
         }
     }
 
-    void correct_poses(KD_TREE<PointType> &ikdtree, const state_ikfom &state, LogAnalysis &loger)
+    void correct_poses(KD_TREE<PointType> &ikdtree)
     {
         if (keyframe_pose6d_optimized->points.empty())
             return;
@@ -252,7 +248,7 @@ private:
                 keyframe_pose6d_optimized->points[i].yaw = optimized_estimate.at<gtsam::Pose3>(i).rotation().yaw();
             }
             pose_mtx.unlock();
-            reset_ikdtree(ikdtree, state, loger);
+            reset_ikdtree(ikdtree);
             loop_is_closed = false;
         }
     }

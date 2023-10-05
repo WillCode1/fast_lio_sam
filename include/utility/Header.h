@@ -106,6 +106,8 @@ inline Eigen::Affine3f pclPointToAffine3f(const PointXYZIRPYT &thisPoint)
     return pcl::getTransformation(thisPoint.x, thisPoint.y, thisPoint.z, thisPoint.roll, thisPoint.pitch, thisPoint.yaw);
 }
 
+inline const bool compare_timestamp(PointType &x, PointType &y) { return (x.curvature < y.curvature); };
+
 inline bool check_for_not_converged(const double &timestamp, int step)
 {
     static unsigned int cnt = 0;

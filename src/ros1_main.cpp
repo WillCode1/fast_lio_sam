@@ -43,12 +43,12 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     {
     case OUST64:
         pcl::fromROSMsg(*msg, pl_orig_oust);
-        slam.lidar->oust64_handler(pl_orig_oust, scan);
+        slam.frontend->lidar->oust64_handler(pl_orig_oust, scan);
         break;
 
     case VELO16:
         pcl::fromROSMsg(*msg, pl_orig_velo);
-        slam.lidar->velodyne_handler(pl_orig_velo, scan);
+        slam.frontend->lidar->velodyne_handler(pl_orig_velo, scan);
         break;
 
     default:
@@ -56,8 +56,8 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
         break;
     }
 
-    slam.cache_pointcloud_data(msg->header.stamp.toSec(), scan);
-    slam.loger.preprocess_time = timer.elapsedStart();
+    slam.frontend->cache_pointcloud_data(msg->header.stamp.toSec(), scan);
+    slam.frontend->loger.preprocess_time = timer.elapsedStart();
 }
 
 void livox_pcl_cbk(const livox_ros_driver::CustomMsg::ConstPtr &msg)
@@ -81,20 +81,20 @@ void livox_pcl_cbk(const livox_ros_driver::CustomMsg::ConstPtr &msg)
             pl_orig->points.push_back(point);
         }
     }
-    slam.lidar->avia_handler(pl_orig, scan);
-    slam.cache_pointcloud_data(msg->header.stamp.toSec(), scan);
-    slam.loger.preprocess_time = timer.elapsedStart();
+    slam.frontend->lidar->avia_handler(pl_orig, scan);
+    slam.frontend->cache_pointcloud_data(msg->header.stamp.toSec(), scan);
+    slam.frontend->loger.preprocess_time = timer.elapsedStart();
 }
 
 void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
 {
-    slam.cache_imu_data(msg->header.stamp.toSec(),
-                        V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z), 
-                        V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z));
+    slam.frontend->cache_imu_data(msg->header.stamp.toSec(),
+                                  V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
+                                  V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z));
 #ifdef Optimize_Use_Imu_Orientation
-    slam.imu->imu_orientation = QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z);
+    slam.frontend->imu->imu_orientation = QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z);
 #endif
-    if (slam.loger.runtime_log)
+    if (slam.frontend->loger.runtime_log)
     {
         static bool flag = false;
         static double start_time = 0;
@@ -218,8 +218,7 @@ void publish_lidar_keyframe_trajectory(const ros::Publisher &pubPath, const pcl:
 
 void visualize_loop_closure_constraints(const ros::Publisher &pubLoopConstraintEdge, const double &timestamp,
                                         const unordered_map<int, int> &loop_constraint_records,
-                                        const pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d,
-                                        const state_ikfom &state)
+                                        const pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d)
 {
     if (loop_constraint_records.empty())
         return;
@@ -286,7 +285,7 @@ void visualize_globalmap_thread(const ros::Publisher &pubGlobalmap)
         auto submap_visual = slam.get_submap_visual(1000, 3, 0.2);
         if (submap_visual == nullptr)
             continue;
-        publish_cloud(pubGlobalmap, submap_visual, slam.lidar_end_time, map_frame);
+        publish_cloud(pubGlobalmap, submap_visual, slam.frontend->lidar_end_time, map_frame);
     }
 }
 
@@ -357,36 +356,36 @@ int main(int argc, char **argv)
             break;
         ros::spinOnce();
 
-        if (!slam.sync_sensor_data())
+        if (!slam.frontend->sync_sensor_data())
             continue;
 
         if (slam.run())
         {
-            const auto &state = slam.frontend->state;
+            const auto &state = slam.frontend->get_state();
 
             /******* Publish odometry *******/
-            publish_odometry(pubOdomAftMapped, state, slam.lidar_end_time);
+            publish_odometry(pubOdomAftMapped, state, slam.frontend->lidar_end_time);
 
             /******* Publish points *******/
             if (path_en)
             {
-                publish_imu_path(pubImuPath, state, slam.lidar_end_time);
-                publish_lidar_keyframe_trajectory(pubLidarPath, *slam.keyframe_pose6d_optimized, slam.lidar_end_time);
+                publish_imu_path(pubImuPath, state, slam.frontend->lidar_end_time);
+                publish_lidar_keyframe_trajectory(pubLidarPath, *slam.keyframe_pose6d_optimized, slam.frontend->lidar_end_time);
             }
             if (scan_pub_en)
                 if (dense_pub_en)
-                    publish_cloud_world(pubLaserCloudFull, slam.feats_undistort, state, slam.lidar_end_time);
+                    publish_cloud_world(pubLaserCloudFull, slam.feats_undistort, state, slam.frontend->lidar_end_time);
                 else
-                    publish_cloud_world(pubLaserCloudFull, slam.frontend->feats_down_lidar, state, slam.lidar_end_time);
-            // publish_cloud_world(pubground_points, slam.frontend->ground_filter.ground_points, state, slam.lidar_end_time);
+                    publish_cloud(pubLaserCloudFull, slam.frontend->feats_down_world, slam.frontend->lidar_end_time, map_frame);
+            // publish_cloud_world(pubground_points, slam.frontend->ground_filter.ground_points, state, slam.frontend->lidar_end_time);
 
-            visualize_loop_closure_constraints(pubLoopConstraintEdge, slam.lidar_end_time, slam.loopClosure->loop_constraint_records, slam.loopClosure->copy_keyframe_pose6d, slam.frontend->state);
-            // publish_cloud_world(pubLaserCloudEffect, laserCloudOri, state, slam.lidar_end_time);
+            visualize_loop_closure_constraints(pubLoopConstraintEdge, slam.frontend->lidar_end_time, slam.loopClosure->loop_constraint_records, slam.loopClosure->copy_keyframe_pose6d);
+            // publish_cloud_world(pubLaserCloudEffect, laserCloudOri, state, slam.frontend->lidar_end_time);
             if (0)
             {
                 PointCloudType::Ptr featsFromMap(new PointCloudType());
                 slam.frontend->get_ikdtree_point(featsFromMap);
-                publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.lidar_end_time);
+                publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.frontend->lidar_end_time);
             }
         }
 

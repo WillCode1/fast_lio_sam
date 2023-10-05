@@ -107,7 +107,8 @@ namespace esekfom
 
 		// typedef void measurementModel_dyn_share(state &,  dyn_share_datastruct<scalar_type> &);
 		using measurementModel_dyn_share = std::function<void(state &, dyn_share_datastruct<scalar_type> &)>;
-		typedef void measurementModel_dyn_share_modified(state &, dyn_share_modified<scalar_type> &);
+		// typedef void measurementModel_dyn_share_modified(state &, dyn_share_modified<scalar_type> &);
+		using measurementModel_dyn_share_modified = std::function<void(state &, dyn_share_modified<scalar_type> &)>;
 		typedef Eigen::Matrix<scalar_type, l, n> measurementMatrix1(state &);
 		typedef Eigen::Matrix<scalar_type, Eigen::Dynamic, n> measurementMatrix1_dyn(state &);
 		typedef Eigen::Matrix<scalar_type, l, measurement_noise_dof> measurementMatrix2(state &);
@@ -135,33 +136,6 @@ namespace esekfom
 			x_.build_S2_state();
 			x_.build_SO3_state();
 			x_.build_vect_state();
-		}
-
-		void init_dyn_share_modified(processModel f_in, processMatrix1 f_x_in, measurementModel_dyn_share_modified h_dyn_share_in)
-		{
-			f = f_in;
-			f_x = f_x_in;
-			// f_w = f_w_in;
-			h_dyn_share_modified_1 = h_dyn_share_in;
-			maximum_iter = 1;
-			x_.build_S2_state();
-			x_.build_SO3_state();
-			x_.build_vect_state();
-			x_.build_SEN_state();
-		}
-
-		void init_dyn_share_modified_2h(processModel f_in, processMatrix1 f_x_in, measurementModel_dyn_share_modified h_dyn_share_in1, measurementModel_dyn_share_modified h_dyn_share_in2)
-		{
-			f = f_in;
-			f_x = f_x_in;
-			// f_w = f_w_in;
-			h_dyn_share_modified_1 = h_dyn_share_in1;
-			h_dyn_share_modified_2 = h_dyn_share_in2;
-			maximum_iter = 1;
-			x_.build_S2_state();
-			x_.build_SO3_state();
-			x_.build_vect_state();
-			x_.build_SEN_state();
 		}
 
 		// iterated error state EKF propogation. for fastlio2
@@ -288,62 +262,6 @@ namespace esekfom
 			F_x1 += f_x_final * dt;
 			P_ = (F_x1)*P_ * (F_x1).transpose() + (dt * f_w_final) * Q * (dt * f_w_final).transpose();
 #endif
-		}
-
-		// iterated error state EKF propogation
-		void predict(double &dt, processnoisecovariance &Q, const input &i_in, bool predict_state, bool prop_cov)
-		{
-			if (predict_state)
-			{
-				flatted_state f_ = f(x_, i_in);
-				x_.oplus(f_, dt);
-			}
-
-			if (prop_cov)
-			{
-				flatted_state f_ = f(x_, i_in);
-				// state x_before = x_;
-
-				cov_ f_x_ = f_x(x_, i_in);
-				cov f_x_final;
-				F_x1 = cov::Identity();
-				for (std::vector<std::pair<std::pair<int, int>, int>>::iterator it = x_.vect_state.begin(); it != x_.vect_state.end(); it++)
-				{
-					int idx = (*it).first.first;
-					int dim = (*it).first.second;
-					int dof = (*it).second;
-					for (int i = 0; i < n; i++)
-					{
-						for (int j = 0; j < dof; j++)
-						{
-							f_x_final(idx + j, i) = f_x_(dim + j, i);
-						}
-					}
-				}
-
-				Matrix<scalar_type, 3, 3> res_temp_SO3;
-				MTK::vect<3, scalar_type> seg_SO3;
-				for (std::vector<std::pair<int, int>>::iterator it = x_.SO3_state.begin(); it != x_.SO3_state.end(); it++)
-				{
-					int idx = (*it).first;
-					int dim = (*it).second;
-					for (int i = 0; i < 3; i++)
-					{
-						seg_SO3(i) = -1 * f_(dim + i) * dt;
-					}
-					MTK::SO3<scalar_type> res;
-					res.w() = MTK::exp<scalar_type, 3>(res.vec(), seg_SO3, scalar_type(1 / 2));
-					F_x1.template block<3, 3>(idx, idx) = res.normalized().toRotationMatrix();
-					res_temp_SO3 = MTK::A_matrix(seg_SO3);
-					for (int i = 0; i < n; i++)
-					{
-						f_x_final.template block<3, 1>(idx, i) = res_temp_SO3 * (f_x_.template block<3, 1>(dim, i));
-					}
-				}
-
-				F_x1 += f_x_final * dt;
-				P_ = F_x1 * P_ * (F_x1).transpose() + Q * (dt * dt);
-			}
 		}
 
 		// iterated error state EKF update modified for one specific system. for fastlio2
@@ -678,6 +596,90 @@ namespace esekfom
 			}
 		}
 
+		// for pointlio
+		void init_dyn_share_modified(processModel f_in, processMatrix1 f_x_in, measurementModel_dyn_share_modified h_dyn_share_in)
+		{
+			f = f_in;
+			f_x = f_x_in;
+			// f_w = f_w_in;
+			h_dyn_share_modified_1 = h_dyn_share_in;
+			maximum_iter = 1;
+			x_.build_S2_state();
+			x_.build_SO3_state();
+			x_.build_vect_state();
+			x_.build_SEN_state();
+		}
+
+		void init_dyn_share_modified_2h(processModel f_in, processMatrix1 f_x_in, measurementModel_dyn_share_modified h_dyn_share_in1, measurementModel_dyn_share_modified h_dyn_share_in2)
+		{
+			f = f_in;
+			f_x = f_x_in;
+			// f_w = f_w_in;
+			h_dyn_share_modified_1 = h_dyn_share_in1;
+			h_dyn_share_modified_2 = h_dyn_share_in2;
+			maximum_iter = 1;
+			x_.build_S2_state();
+			x_.build_SO3_state();
+			x_.build_vect_state();
+			x_.build_SEN_state();
+		}
+
+		// iterated error state EKF propogation
+		void predict(double &dt, processnoisecovariance &Q, const input &i_in, bool predict_state, bool prop_cov)
+		{
+			if (predict_state)
+			{
+				flatted_state f_ = f(x_, i_in);
+				x_.oplus(f_, dt);
+			}
+
+			if (prop_cov)
+			{
+				flatted_state f_ = f(x_, i_in);
+				// state x_before = x_;
+
+				cov_ f_x_ = f_x(x_, i_in);
+				cov f_x_final;
+				F_x1 = cov::Identity();
+				for (std::vector<std::pair<std::pair<int, int>, int>>::iterator it = x_.vect_state.begin(); it != x_.vect_state.end(); it++)
+				{
+					int idx = (*it).first.first;
+					int dim = (*it).first.second;
+					int dof = (*it).second;
+					for (int i = 0; i < n; i++)
+					{
+						for (int j = 0; j < dof; j++)
+						{
+							f_x_final(idx + j, i) = f_x_(dim + j, i);
+						}
+					}
+				}
+
+				Matrix<scalar_type, 3, 3> res_temp_SO3;
+				MTK::vect<3, scalar_type> seg_SO3;
+				for (std::vector<std::pair<int, int>>::iterator it = x_.SO3_state.begin(); it != x_.SO3_state.end(); it++)
+				{
+					int idx = (*it).first;
+					int dim = (*it).second;
+					for (int i = 0; i < 3; i++)
+					{
+						seg_SO3(i) = -1 * f_(dim + i) * dt;
+					}
+					MTK::SO3<scalar_type> res;
+					res.w() = MTK::exp<scalar_type, 3>(res.vec(), seg_SO3, scalar_type(1 / 2));
+					F_x1.template block<3, 3>(idx, idx) = res.normalized().toRotationMatrix();
+					res_temp_SO3 = MTK::A_matrix(seg_SO3);
+					for (int i = 0; i < n; i++)
+					{
+						f_x_final.template block<3, 1>(idx, i) = res_temp_SO3 * (f_x_.template block<3, 1>(dim, i));
+					}
+				}
+
+				F_x1 += f_x_final * dt;
+				P_ = F_x1 * P_ * (F_x1).transpose() + Q * (dt * dt);
+			}
+		}
+
 		bool update_iterated_dyn_share_modified()
 		{
 			dyn_share_modified<scalar_type> dyn_share;
@@ -880,8 +882,8 @@ namespace esekfom
 		measurementMatrix2_dyn *h_v_dyn;
 
 		measurementModel_dyn_share h_dyn_share;
-		measurementModel_dyn_share_modified *h_dyn_share_modified_1;
-		measurementModel_dyn_share_modified *h_dyn_share_modified_2;
+		measurementModel_dyn_share_modified h_dyn_share_modified_1;
+		measurementModel_dyn_share_modified h_dyn_share_modified_2;
 
 		int maximum_iter = 0;
 		scalar_type limit[n];

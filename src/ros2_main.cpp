@@ -37,12 +37,12 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
     {
     case OUST64:
         pcl::fromROSMsg(*msg, pl_orig_oust);
-        slam.lidar->oust64_handler(pl_orig_oust, scan);
+        slam.frontend->lidar->oust64_handler(pl_orig_oust, scan);
         break;
 
     case VELO16:
         pcl::fromROSMsg(*msg, pl_orig_velo);
-        slam.lidar->velodyne_handler(pl_orig_velo, scan);
+        slam.frontend->lidar->velodyne_handler(pl_orig_velo, scan);
         break;
 
     default:
@@ -50,8 +50,8 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
         break;
     }
 
-    slam.cache_pointcloud_data(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9, scan);
-    slam.loger.preprocess_time = timer.elapsedStart();
+    slam.frontend->cache_pointcloud_data(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9, scan);
+    slam.frontend->loger.preprocess_time = timer.elapsedStart();
 }
 
 void livox_pcl_cbk(const livox_interfaces2::msg::CustomMsg::SharedPtr msg)
@@ -75,14 +75,14 @@ void livox_pcl_cbk(const livox_interfaces2::msg::CustomMsg::SharedPtr msg)
             pl_orig->points.push_back(point);
         }
     }
-    slam.lidar->avia_handler(pl_orig, scan);
-    slam.cache_pointcloud_data(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9, scan);
-    slam.loger.preprocess_time = timer.elapsedStart();
+    slam.frontend->lidar->avia_handler(pl_orig, scan);
+    slam.frontend->cache_pointcloud_data(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9, scan);
+    slam.frontend->loger.preprocess_time = timer.elapsedStart();
 }
 
 void imu_cbk(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
-    slam.cache_imu_data(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9,
+    slam.frontend->cache_imu_data(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9,
                         V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
                         V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z));
 }
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
             break;
         rclcpp::spin_some(node);
 
-        if (!slam.sync_sensor_data())
+        if (!slam.frontend->sync_sensor_data())
             continue;
 
         if (slam.run())
@@ -229,23 +229,23 @@ int main(int argc, char **argv)
             const auto &state = slam.frontend->state;
 
             /******* Publish odometry *******/
-            publish_odometry(pubOdomAftMapped, broadcaster, state, slam.frontend->kf, slam.lidar_end_time);
+            publish_odometry(pubOdomAftMapped, broadcaster, state, slam.frontend->kf, slam.frontend->lidar_end_time);
 
             /******* Publish points *******/
             if (path_en)
-                publish_imu_path(pubImuPath, state, slam.lidar_end_time);
+                publish_imu_path(pubImuPath, state, slam.frontend->lidar_end_time);
             if (scan_pub_en)
                 if (dense_pub_en)
-                    publish_cloud_world(pubLaserCloudFull, slam.feats_undistort, state, slam.lidar_end_time);
+                    publish_cloud_world(pubLaserCloudFull, slam.feats_undistort, state, slam.frontend->lidar_end_time);
                 else
-                    publish_cloud_world(pubLaserCloudFull, slam.frontend->feats_down_lidar, state, slam.lidar_end_time);
+                    publish_cloud_world(pubLaserCloudFull, slam.frontend->feats_down_lidar, state, slam.frontend->lidar_end_time);
 
-            // publish_cloud_world(pubLaserCloudEffect, laserCloudOri, state, slam.lidar_end_time);
+            // publish_cloud_world(pubLaserCloudEffect, laserCloudOri, state, slam.frontend->lidar_end_time);
             if (0)
             {
                 PointCloudType::Ptr featsFromMap(new PointCloudType());
                 slam.frontend->get_ikdtree_point(featsFromMap);
-                publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.lidar_end_time);
+                publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.frontend->lidar_end_time);
             }
         }
 

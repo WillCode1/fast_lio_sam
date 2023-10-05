@@ -14,11 +14,20 @@ preprocess:
     det_range: 100.0
 
 mapping:
+    start_in_aggressive_motion: false   # if true, a preknown gravity should be provided in following gravity_init
+    gravity_init: [0, 0, -9.81]         # [0.0, 9.810, 0.0] # preknown gravity in the first IMU body frame, use when imu_en is false or start from a non-stationary state
+    preset_gravity: [0, 0, -9.81]       # [0.0, 9.810, 0.0] # the direction of gravity(map) to be aligned
+    gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
+    frontend_type: 0                    # frontend type
+
+    # fastlio
     point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
+    space_down_sample: true
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
     ikdtree_resolution: 0.5      # In unstructured scenarios, smaller is more likely to degenerate
     lidar_model_search_range: 5
+    lidar_meas_cov: 0.001
     cube_side_length: 1000
     runtime_log_enable: 0
 
@@ -48,13 +57,10 @@ mapping:
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-    extrinsic_T: [ 1.061, 0, 1.651 ]
+    extrinsic_T: [ -0.00665, 0, -1.51277]
     extrinsic_R: [ 1, 0, 0, 
-                   0, 1, 0, 
-                   0, 0, 1 ]
-
-localization:
-    gravity: [ 0, 0, -9.81 ]
+                   0, -1, 0, 
+                   0, 0, -1 ]
 
 scan_context:
     lidar_height: 2.183
@@ -63,7 +69,7 @@ scan_context:
 publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
-    dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
+    dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
 
 official:
     save_globalmap_en: false

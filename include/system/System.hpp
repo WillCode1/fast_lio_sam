@@ -2,13 +2,11 @@
 #include <omp.h>
 #include <math.h>
 #include <thread>
-#include <mutex>
 #include <thread>
 #include <pcl/io/pcd_io.h>
 #include "ikd-Tree/ikd_Tree.h"
-#include "ImuProcessor.h"
-#include "LidarProcessor.hpp"
-#include "FastlioOdometry.hpp"
+#include "frontend/FastlioOdometry.hpp"
+#include "frontend/PointlioOdometry.hpp"
 #include "FactorGraphOptimization.hpp"
 #include "LoopClosure.hpp"
 #include "Relocalization.hpp"
@@ -21,16 +19,12 @@ public:
     {
         save_resolution = 0.1;
 
-        lidar = make_shared<LidarProcessor>();
-        imu = make_shared<ImuProcessor>();
         gnss = make_shared<GnssProcessor>();
 
         keyframe_pose6d_unoptimized.reset(new pcl::PointCloud<PointXYZIRPYT>());
         keyframe_pose6d_optimized.reset(new pcl::PointCloud<PointXYZIRPYT>());
         keyframe_scan.reset(new deque<PointCloudType::Ptr>());
 
-        measures = make_shared<MeasureCollection>();
-        frontend = make_shared<FastlioOdometry>();
         backend = std::make_shared<FactorGraphOptimization>(keyframe_pose6d_optimized, keyframe_scan, gnss);
         relocalization = make_shared<Relocalization>();
         loopClosure = make_shared<LoopClosure>(relocalization->sc_manager);
@@ -53,12 +47,8 @@ public:
     void init_system_mode(bool _map_update_mode)
     {
         map_update_mode = _map_update_mode;
-        frontend->detect_range = lidar->detect_range;
-
-        double epsi[23] = {0.001};
-        fill(epsi, epsi + 23, 0.001);
-        auto lidar_meas_model = [&](state_ikfom &a, esekfom::dyn_share_datastruct<double> &b) { frontend->lidar_meas_model(a, b, loger); };
-        frontend->kf.init_dyn_share(get_f, df_dx, df_dw, lidar_meas_model, frontend->num_max_iterations, epsi);
+        frontend->detect_range = frontend->lidar->detect_range;
+        frontend->init_estimator();
 
         if (!map_update_mode)
         {
@@ -111,116 +101,13 @@ public:
         frontend->init_global_map(global_map);
     }
 
-    void cache_imu_data(double timestamp, const V3D &angular_velocity, const V3D &linear_acceleration)
-    {
-        timestamp = timestamp + timedelay_lidar2imu; // 时钟同步该采样同步td
-        std::lock_guard<std::mutex> lock(mtx_buffer);
-
-        if (timestamp < latest_timestamp_imu)
-        {
-            LOG_WARN("imu loop back, clear buffer");
-            imu->imu_buffer.clear();
-        }
-
-        latest_timestamp_imu = timestamp;
-        imu->imu_buffer.push_back(make_shared<ImuData>(latest_timestamp_imu, angular_velocity, linear_acceleration));
-    }
-
-    void cache_pointcloud_data(const double &lidar_beg_time, const PointCloudType::Ptr &scan)
-    {
-        std::lock_guard<std::mutex> lock(mtx_buffer);
-        if (lidar_beg_time < latest_lidar_beg_time)
-        {
-            LOG_ERROR("lidar loop back, clear buffer");
-            lidar->lidar_buffer.clear();
-        }
-
-        latest_lidar_beg_time = lidar_beg_time;
-        double latest_lidar_end_time = latest_lidar_beg_time + scan->points.back().curvature / 1000;
-
-        if (abs(latest_lidar_end_time - latest_timestamp_imu) > 1)
-        {
-            LOG_WARN("IMU and LiDAR's clock not synced, IMU time: %lf, lidar time: %lf. Maybe set timedelay_lidar2imu = %lf.\n",
-                     latest_timestamp_imu, latest_lidar_end_time, latest_lidar_end_time - latest_timestamp_imu);
-        }
-
-        lidar->lidar_buffer.push_back(scan);
-        lidar->time_buffer.push_back(latest_lidar_beg_time);
-    }
-
-    // 同步得到，当前帧激光点的开始和结束时间里的所有imu数据
-    bool sync_sensor_data()
-    {
-        static bool lidar_pushed = false;
-        static double lidar_mean_scantime = 0.0;
-        static int scan_num = 0;
-
-        std::lock_guard<std::mutex> lock(mtx_buffer);
-        if (lidar->lidar_buffer.empty() || imu->imu_buffer.empty())
-        {
-            return false;
-        }
-
-        /*** push a lidar scan ***/
-        if (!lidar_pushed)
-        {
-            measures->lidar = lidar->lidar_buffer.front();
-            measures->lidar_beg_time = lidar->time_buffer.front();
-            if (measures->lidar->points.size() <= 1) // time too little
-            {
-                lidar_end_time = measures->lidar_beg_time + lidar_mean_scantime;
-                LOG_WARN("Too few input point cloud!\n");
-            }
-            else if (measures->lidar->points.back().curvature / double(1000) < 0.5 * lidar_mean_scantime)
-            {
-                lidar_end_time = measures->lidar_beg_time + lidar_mean_scantime;
-            }
-            else
-            {
-                scan_num++;
-                lidar_end_time = measures->lidar_beg_time + measures->lidar->points.back().curvature / double(1000);
-                lidar_mean_scantime += (measures->lidar->points.back().curvature / double(1000) - lidar_mean_scantime) / scan_num;
-            }
-
-            measures->lidar_end_time = lidar_end_time;
-
-            lidar_pushed = true;
-        }
-
-        if (latest_timestamp_imu < lidar_end_time)
-        {
-            return false;
-        }
-
-        /*** push imu data, and pop from imu buffer ***/
-        double imu_time = imu->imu_buffer.front()->timestamp;
-        measures->imu.clear();
-        while ((!imu->imu_buffer.empty()) && (imu_time <= lidar_end_time))
-        {
-            measures->imu.push_back(imu->imu_buffer.front());
-            imu->imu_buffer.pop_front();
-            imu_time = imu->imu_buffer.front()->timestamp;
-        }
-
-        lidar->lidar_buffer.pop_front();
-        lidar->time_buffer.pop_front();
-        lidar_pushed = false;
-        return true;
-    }
-
     bool run()
     {
-        if (loger.runtime_log && !loger.inited_first_lidar_beg_time)
-        {
-            loger.first_lidar_beg_time = measures->lidar_beg_time;
-            loger.inited_first_lidar_beg_time = true;
-        }
-
         /*** relocalization for localization mode ***/
         if (map_update_mode && !system_state_vaild)
         {
             Eigen::Matrix4d imu_pose;
-            if (relocalization->run(measures->lidar, imu_pose))
+            if (relocalization->run(frontend->measures->lidar, imu_pose))
             {
                 frontend->reset_state(imu_pose);
                 system_state_vaild = true;
@@ -233,19 +120,17 @@ public:
         }
 
         /*** frontend ***/
-        loger.resetTimer();
-        if (!frontend->run(map_update_mode, imu, *measures, feats_undistort, loger))
+        if (!frontend->run(map_update_mode, feats_undistort))
         {
             system_state_vaild = false;
             return system_state_vaild;
         }
 
-        loger.print_fastlio_cost_time();
-        loger.output_fastlio_log_to_csv(measures->lidar_beg_time);
         system_state_vaild = true;
 
         /*** backend ***/
-        backend->set_current_pose(measures->lidar_end_time, frontend->state, keyframe_pose6d_unoptimized->size());
+        auto cur_state = frontend->get_state();
+        backend->set_current_pose(frontend->lidar_end_time, cur_state, keyframe_pose6d_unoptimized->size());
         if (backend->is_keykrame())
         {
             // save keyframe info
@@ -263,11 +148,12 @@ public:
             if (loop_closure_enable_flag)
             {
                 backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-                loopClosure->run(lidar_end_time, *keyframe_scan);
+                loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
             }
 
             loopClosure->get_loop_constraint(loop_constraint);
-            backend->run(loop_constraint, *frontend, loger);
+            backend->run(loop_constraint, cur_state, frontend->ikdtree);
+            frontend->set_pose(cur_state);
             return system_state_vaild;
         }
 
@@ -280,10 +166,10 @@ public:
         PointCloudType::Ptr pcl_map_full(new PointCloudType());
         if (keyframe_pose6d_optimized->size() == keyframe_num)
             for (auto i = 0; i < keyframe_num; ++i)
-                *pcl_map_full += *pointcloudLidarToWorld((*keyframe_scan)[i], (*keyframe_pose6d_optimized)[i]);
+                *pcl_map_full += *pointcloudKeyframeToWorld((*keyframe_scan)[i], (*keyframe_pose6d_optimized)[i]);
         else if (keyframe_pose6d_unoptimized->size() == keyframe_num)
             for (auto i = 0; i < keyframe_num; ++i)
-                *pcl_map_full += *pointcloudLidarToWorld((*keyframe_scan)[i], (*keyframe_pose6d_unoptimized)[i]);
+                *pcl_map_full += *pointcloudKeyframeToWorld((*keyframe_scan)[i], (*keyframe_pose6d_unoptimized)[i]);
         else
             LOG_ERROR("no keyframe_num matched, when save global map!");
 
@@ -305,7 +191,7 @@ public:
             const auto &pose = keyframe_pose6d_unoptimized->points[i];
             const auto &state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
             const auto &state_pos = V3D(pose.x, pose.y, pose.z);
-            loger.save_trajectory(file_pose_unoptimized, state_pos, state_rot, pose.time);
+            frontend->loger.save_trajectory(file_pose_unoptimized, state_pos, state_rot, pose.time);
         }
         LOG_WARN("Success save global unoptimized poses to file ...");
 
@@ -315,7 +201,7 @@ public:
             const auto &pose = keyframe_pose6d_optimized->points[i];
             const auto &state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
             const auto &state_pos = V3D(pose.x, pose.y, pose.z);
-            loger.save_trajectory(file_pose_optimized, state_pos, state_rot, pose.time);
+            frontend->loger.save_trajectory(file_pose_optimized, state_pos, state_rot, pose.time);
         }
         LOG_WARN("Success save global optimized poses to file ...");
 
@@ -367,7 +253,7 @@ public:
             if (pointDistance(globalMapKeyPosesDS->points[i], keyframe_pose->back()) > globalMapVisualizationSearchRadius)
                 continue;
             int thisKeyInd = (int)globalMapKeyPosesDS->points[i].intensity;
-            *globalMapKeyFrames += *pointcloudLidarToWorld((*keyframe_scan)[thisKeyInd], keyframe_pose->points[thisKeyInd]);
+            *globalMapKeyFrames += *pointcloudKeyframeToWorld((*keyframe_scan)[thisKeyInd], keyframe_pose->points[thisKeyInd]);
         }
         // downsample key frames
         pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames;
@@ -393,21 +279,11 @@ public:
     bool system_state_vaild = false; // true: system ok
     bool map_update_mode = false;  // true: localization, false: slam
     bool loop_closure_enable_flag = false;
-    LogAnalysis loger;
 
     /*** sensor data processor ***/
-    shared_ptr<LidarProcessor> lidar;
-    shared_ptr<ImuProcessor> imu;
     shared_ptr<GnssProcessor> gnss;
 
-    double latest_lidar_beg_time = 0;
-    double latest_timestamp_imu = -1.0;
-    double timedelay_lidar2imu = 0.0;
-    double lidar_end_time = 0;
-    mutex mtx_buffer;
-
     /*** module ***/
-    shared_ptr<MeasureCollection> measures;
     shared_ptr<FastlioOdometry> frontend;
     shared_ptr<FactorGraphOptimization> backend;
     shared_ptr<LoopClosure> loopClosure;

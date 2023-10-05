@@ -40,7 +40,7 @@ public:
             if (key_near < 0 || key_near >= cloudSize)
                 continue;
 
-            *near_keyframes += *pointcloudLidarToWorld(keyframe_scan[key_near], copy_keyframe_pose6d->points[key_near]);
+            *near_keyframes += *pointcloudKeyframeToWorld(keyframe_scan[key_near], copy_keyframe_pose6d->points[key_near]);
         }
 
         if (near_keyframes->empty())
