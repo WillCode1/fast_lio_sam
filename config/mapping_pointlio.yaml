@@ -22,7 +22,7 @@ mapping:
 
     # fastlio
     point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
-    space_down_sample: true
+    space_down_sample: false
     # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
