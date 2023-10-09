@@ -297,6 +297,7 @@ public:
         kf.change_x(state);
 #else
         state = kf.get_x();
+        state.pos.z() = 0;
         // state.pos.z() = 0;
         auto rpy = EigenMath::Quaternion2RPY(state.rot);
         state.rot = EigenMath::RPY2Quaternion(V3D(rpy(0), 0, rpy(2)));
