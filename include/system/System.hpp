@@ -48,6 +48,7 @@ public:
     {
         map_update_mode = _map_update_mode;
         frontend->detect_range = frontend->lidar->detect_range;
+        gnss->need_record_gnss = frontend->loger.runtime_log;
         frontend->init_estimator();
 
         if (!map_update_mode)
@@ -191,7 +192,7 @@ public:
             const auto &pose = keyframe_pose6d_unoptimized->points[i];
             const auto &state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
             const auto &state_pos = V3D(pose.x, pose.y, pose.z);
-            frontend->loger.save_trajectory(file_pose_unoptimized, state_pos, state_rot, pose.time);
+            LogAnalysis::save_trajectory(file_pose_unoptimized, state_pos, state_rot, pose.time);
         }
         LOG_WARN("Success save global unoptimized poses to file ...");
 
@@ -201,7 +202,7 @@ public:
             const auto &pose = keyframe_pose6d_optimized->points[i];
             const auto &state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
             const auto &state_pos = V3D(pose.x, pose.y, pose.z);
-            frontend->loger.save_trajectory(file_pose_optimized, state_pos, state_rot, pose.time);
+            LogAnalysis::save_trajectory(file_pose_optimized, state_pos, state_rot, pose.time);
         }
         LOG_WARN("Success save global optimized poses to file ...");
 
