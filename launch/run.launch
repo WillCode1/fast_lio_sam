@@ -8,6 +8,8 @@
 	<!-- <param name="config_file" type="string" value="/config/velodyne.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/ouster64.yaml" /> -->
 
+	<!-- <param name="config_file" type="string" value="/config/nclt.yaml" /> -->
+
 	<!-- <param name="config_file" type="string" value="/config/mapping_backup.yaml" /> -->
 	<param name="config_file" type="string" value="/config/mapping_dev.yaml" />
 	<!-- <param name="config_file" type="string" value="/config/mapping_imu_backshaft.yaml" /> -->
