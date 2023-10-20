@@ -32,7 +32,7 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     slam.gnss->gpsCovThreshold = config["mapping"]["gpsCovThreshold"].IsDefined() ? config["mapping"]["gpsCovThreshold"].as<float>() : 2;
     slam.gnss->useGpsElevation = config["mapping"]["useGpsElevation"].IsDefined() ? config["mapping"]["useGpsElevation"].as<bool>() : false;
     slam.backend->recontruct_kdtree = config["mapping"]["recontruct_kdtree"].IsDefined() ? config["mapping"]["recontruct_kdtree"].as<bool>() : true;
-    slam.backend->ikdtree_reconstruct_keyframe_num = config["mapping"]["ikdtree_reconstruct_keyframe_num"].IsDefined() ? config["mapping"]["ikdtree_reconstruct_keyframe_num"].as<float>() : 10;
+    slam.backend->ikdtree_reconstruct_keyframe_num = config["mapping"]["ikdtree_reconstruct_keyframe_num"].IsDefined() ? config["mapping"]["ikdtree_reconstruct_keyframe_num"].as<int>() : 10;
     slam.backend->ikdtree_reconstruct_downsamp_size = config["mapping"]["ikdtree_reconstruct_downsamp_size"].IsDefined() ? config["mapping"]["ikdtree_reconstruct_downsamp_size"].as<float>() : 0.1;
 
     slam.loop_closure_enable_flag = config["mapping"]["loop_closure_enable_flag"].IsDefined() ? config["mapping"]["loop_closure_enable_flag"].as<bool>() : false;
@@ -146,10 +146,8 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     slam.frontend->imu->set_imu_cov(process_noise_cov(gyr_cov, acc_cov, b_gyr_cov, b_acc_cov));
 
     slam.frontend->timedelay_lidar2imu = config["common"]["timedelay_lidar2imu"].IsDefined() ? config["common"]["timedelay_lidar2imu"].as<double>() : 0;
-    slam.frontend->non_station_start = config["mapping"]["start_in_aggressive_motion"].IsDefined() ? config["mapping"]["start_in_aggressive_motion"].as<bool>() : false;
-    slam.frontend->gravity_align = config["mapping"]["gravity_align"].IsDefined() ? config["mapping"]["gravity_align"].as<bool>() : true;
-    slam.frontend->gravity_init = config["mapping"]["gravity_init"].IsDefined() ? config["mapping"]["gravity_init"].as<vector<double>>() : vector<double>();
-    slam.frontend->preset_gravity_vec = config["mapping"]["preset_gravity"].IsDefined() ? config["mapping"]["preset_gravity"].as<vector<double>>() : vector<double>();
+    slam.frontend->map_rotate = config["mapping"]["map_rotate"].IsDefined() ? config["mapping"]["map_rotate"].as<bool>() : true;
+    slam.frontend->eular_init = config["mapping"]["eular_init"].IsDefined() ? config["mapping"]["eular_init"].as<vector<double>>() : vector<double>();
 
     slam.frontend->num_max_iterations = config["mapping"]["max_iteration"].IsDefined() ? config["mapping"]["max_iteration"].as<int>() : 4;
     slam.frontend->surf_frame_ds_res = config["mapping"]["surf_frame_ds_res"].IsDefined() ? config["mapping"]["surf_frame_ds_res"].as<double>() : 0.5;

@@ -210,6 +210,7 @@ public:
             loger.first_lidar_beg_time = measures->lidar_beg_time;
             loger.inited_first_lidar_beg_time = true;
         }
+        state_pre = kf.get_x();
         loger.resetTimer();
         imu->Process(*measures, kf, feats_undistort);
 
@@ -271,7 +272,12 @@ public:
         nearest_points.resize(feats_down_size);
         normvec->resize(feats_down_size);
 
+#if 0
         kf.update_iterated_fastlio2();
+#else
+        auto lidar_ground_constraint = [&](state_ikfom &a, esekfom::fastlio_ground_constraint_datastruct<double> &b) { this->lidar_ground_constraint(a, b); };
+        kf.update_iterated_fastlio2_with_ground_constraint(lidar_ground_constraint);
+#endif
         loger.iterate_ekf_time = loger.timer.elapsedLast();
         loger.meas_update_time = loger.iterate_ekf_time;
         state = kf.get_x();
@@ -459,6 +465,67 @@ private:
         }
         ekfom_data.R = lidar_meas_cov;
         loger.cal_H_time += (omp_get_wtime() - solve_start) * 1000;
+    }
+
+    // https://blog.csdn.net/u010949023/article/details/121248834
+    // 更多的约束条件，可能会导致高斯牛顿求解失败
+    void lidar_ground_constraint(state_ikfom &s2, esekfom::fastlio_ground_constraint_datastruct<double> &ekfom_data)
+    {
+        esekfom::fastlio_datastruct<double> tmp;
+        tmp.valid = ekfom_data.valid;
+        tmp.converge = ekfom_data.converge;
+        lidar_meas_model(s2, tmp);
+        ekfom_data.valid = tmp.valid;
+        ekfom_data.converge = tmp.converge;
+        ekfom_data.H = tmp.H;
+        ekfom_data.z = tmp.z;
+        ekfom_data.R = tmp.R;
+        /************************/
+
+        ekfom_data.r = MatrixXd::Zero(1, 3);
+        ekfom_data.G = MatrixXd::Zero(3, 12);
+
+        Eigen::Vector3d e3 = Eigen::Vector3d::UnitZ();
+        Eigen::MatrixXd A = Eigen::MatrixXd::Identity(2, 3);
+        const state_ikfom &s1 = state_pre;
+
+        Eigen::Quaterniond R1T = s1.rot.conjugate() * s1.offset_R_L_I;
+        Eigen::Quaterniond R2 = s2.offset_R_L_I.conjugate() * s2.rot;
+        Eigen::Vector3d p1 = s1.offset_R_L_I.conjugate() * (s1.pos - s1.offset_T_L_I);
+        Eigen::Vector3d p2 = s2.offset_R_L_I.conjugate() * (s2.pos - s2.offset_T_L_I);
+
+        /*** calculate residual ***/
+        ekfom_data.r.block<1, 1>(0, 0) = -e3.transpose() * (R1T * (p2 - p1));     // z
+        ekfom_data.r.block<1, 2>(0, 1) = -A * (R1T * R2).toRotationMatrix() * e3; // roll, pitch
+
+        /*** calculate Jacobian matrix H ***/
+        if (extrinsic_est_en)
+        {
+            const auto &R1T_tmp = R1T * s2.offset_R_L_I.conjugate();
+            ekfom_data.G.block<1, 3>(0, 0) = -e3.transpose() * R1T_tmp.toRotationMatrix();                                                                    // z/pos
+            ekfom_data.G.block<1, 3>(0, 3) = Eigen::MatrixXd::Zero(1, 3);                                                                                     // z/rot
+            ekfom_data.G.block<1, 3>(0, 6) = -e3.transpose() * (R1T * SO3Math::get_skew_symmetric(s2.offset_R_L_I.conjugate() * (s2.pos - s2.offset_T_L_I))); // z/ext_R
+            ekfom_data.G.block<1, 3>(0, 9) = e3.transpose() * R1T_tmp.toRotationMatrix();                                                                     // z/ext_t
+
+            ekfom_data.G.block<2, 3>(1, 0) = Eigen::MatrixXd::Zero(2, 3);                                                                          // roll, pitch/pos
+            ekfom_data.G.block<2, 3>(1, 3) = A * (R1T * R2).toRotationMatrix() * SO3Math::get_skew_symmetric(e3);                                  // roll, pitch/rot
+            ekfom_data.G.block<2, 3>(1, 6) = -A * R1T.toRotationMatrix() * SO3Math::get_skew_symmetric(s2.offset_R_L_I.conjugate() * s2.rot * e3); // roll, pitch/ext_R
+            ekfom_data.G.block<2, 3>(1, 9) = Eigen::MatrixXd::Zero(2, 3);                                                                          // roll, pitch/ext_t
+        }
+        else
+        {
+            ekfom_data.G.block<1, 3>(0, 0) = -e3.transpose() * s1.rot.conjugate().toRotationMatrix();                                // z/pos
+            ekfom_data.G.block<1, 3>(0, 3) = Eigen::MatrixXd::Zero(1, 3);                                                            // z/rot
+            ekfom_data.G.block<2, 3>(1, 0) = Eigen::MatrixXd::Zero(2, 3);                                                            // roll, pitch/pos
+            ekfom_data.G.block<2, 3>(1, 3) = A * (s1.rot.conjugate() * s2.rot).toRotationMatrix() * SO3Math::get_skew_symmetric(e3); // roll, pitch/rot
+        }
+        ekfom_data.N = 0.0001;
+
+        // ekfom_data.r = MatrixXd::Zero(1, 3);
+        // ekfom_data.G = MatrixXd::Zero(3, 12);
+
+        // std::cout << ekfom_data.r << std::endl;
+        // std::cout << ekfom_data.G << std::endl;
     }
 
 protected:
@@ -686,4 +753,5 @@ public:
 private:
     esekfom::esekf<state_ikfom, 12, input_ikfom> kf;
     state_ikfom state;
+    state_ikfom state_pre;
 };

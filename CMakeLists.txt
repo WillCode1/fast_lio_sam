@@ -60,6 +60,7 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${GTSAM_INCLUDE_DIR}
+  ${YAML_CPP_INCLUDE_DIR}
   include)
 
 catkin_package(

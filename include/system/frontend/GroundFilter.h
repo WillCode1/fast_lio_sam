@@ -13,7 +13,7 @@ public:
         last_ground_points.reset(new PointCloudType);
     }
 
-    void simple_ground_filter_by_lidar_height(const PointCloudType &pointcloud, const double &lidar_height = 2, const double &error_thold = 0.05)
+    void simple_ground_filter_by_lidar_height(const PointCloudType &pointcloud, const double &lidar_height = 2, const double &error_thold = 0.05, const double &distance = 30)
     {
         *last_ground_points = *ground_points;
         ground_points->clear();
@@ -21,6 +21,8 @@ public:
 
         for (const auto &point : pointcloud)
         {
+            if (pointDistance(point) > distance)
+                continue;
             if (std::abs(lidar_height + point.z) < error_thold)
                 ground_points->push_back(point);
             else

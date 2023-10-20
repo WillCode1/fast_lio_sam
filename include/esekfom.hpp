@@ -67,6 +67,19 @@ namespace esekfom
 	};
 
 	template <typename T>
+	struct fastlio_ground_constraint_datastruct
+	{
+		bool valid;
+		bool converge;
+		Eigen::Matrix<T, Eigen::Dynamic, 1> z;
+		Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> H;
+		double R;
+		Eigen::Matrix<T, Eigen::Dynamic, 1> r;
+		Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> G;
+		double N;
+	};
+
+	template <typename T>
 	struct pointlio_datastruct
 	{
 		bool valid;
@@ -537,6 +550,216 @@ namespace esekfom
 					}
 #endif
 
+					Matrix<scalar_type, 3, 3> res_temp_SO3;
+					MTK::vect<3, scalar_type> seg_SO3;
+					for (std::vector<std::pair<int, int>>::iterator it = x_.SO3_state.begin(); it != x_.SO3_state.end(); it++)
+					{
+						int idx = (*it).first;
+						for (int i = 0; i < 3; i++)
+						{
+							seg_SO3(i) = dx_(i + idx);
+						}
+						res_temp_SO3 = MTK::A_matrix(seg_SO3).transpose();
+						for (int i = 0; i < n; i++)
+						{
+							L_.template block<3, 1>(idx, i) = res_temp_SO3 * (P_.template block<3, 1>(idx, i));
+						}
+						for (int i = 0; i < std::min((int)n, dof_Measurement); i++)
+						{
+							KH.template block<3, 1>(idx, i) = res_temp_SO3 * (KH.template block<3, 1>(idx, i));
+						}
+						for (int i = 0; i < n; i++)
+						{
+							L_.template block<1, 3>(i, idx) = (L_.template block<1, 3>(i, idx)) * res_temp_SO3.transpose();
+							P_.template block<1, 3>(i, idx) = (P_.template block<1, 3>(i, idx)) * res_temp_SO3.transpose();
+						}
+					}
+
+					Matrix<scalar_type, 2, 2> res_temp_S2;
+					MTK::vect<2, scalar_type> seg_S2;
+					for (std::vector<std::pair<int, int>>::iterator it = x_.S2_state.begin(); it != x_.S2_state.end(); it++)
+					{
+						int idx = (*it).first;
+
+						for (int i = 0; i < 2; i++)
+						{
+							seg_S2(i) = dx_(i + idx);
+						}
+
+						Eigen::Matrix<scalar_type, 2, 3> Nx;
+						Eigen::Matrix<scalar_type, 3, 2> Mx;
+						x_.S2_Nx_yy(Nx, idx);
+						x_propagated.S2_Mx(Mx, seg_S2, idx);
+						res_temp_S2 = Nx * Mx;
+						for (int i = 0; i < n; i++)
+						{
+							L_.template block<2, 1>(idx, i) = res_temp_S2 * (P_.template block<2, 1>(idx, i));
+						}
+						for (int i = 0; i < std::min((int)n, dof_Measurement); i++)
+						{
+							KH.template block<2, 1>(idx, i) = res_temp_S2 * (KH.template block<2, 1>(idx, i));
+						}
+						for (int i = 0; i < n; i++)
+						{
+							L_.template block<1, 2>(i, idx) = (L_.template block<1, 2>(i, idx)) * res_temp_S2.transpose();
+							P_.template block<1, 2>(i, idx) = (P_.template block<1, 2>(i, idx)) * res_temp_S2.transpose();
+						}
+					}
+
+					// 7.状态方差的测量更新
+					P_ = L_ - KH.template block<n, 12>(0, 0) * P_.template block<12, n>(0, 0);
+					return;
+				}
+			}
+		}
+
+		void update_iterated_fastlio2_with_ground_constraint(measurementModel_ground_constraint h_dyn_share)
+		{
+			fastlio_ground_constraint_datastruct<scalar_type> dyn_share;
+			dyn_share.valid = true;
+			dyn_share.converge = true;
+			int t = 0;
+			state x_propagated = x_;
+			cov P_propagated = P_;
+			int dof_Measurement;
+
+			Matrix<scalar_type, n, 1> Kz;
+			Matrix<scalar_type, n, n> KH;
+			Matrix<scalar_type, n, n> J;
+
+			// vectorized_state Jx_new = vectorized_state::Zero();
+			for (int i = -1; i < maximum_iter; i++)
+			{
+				dyn_share.valid = true;
+				// 1.计算residual和测量jacob矩阵
+				h_dyn_share(x_, dyn_share);
+
+				if (!dyn_share.valid)
+				{
+					continue;
+				}
+
+				double R = dyn_share.R;
+				Eigen::Matrix<scalar_type, Eigen::Dynamic, 12> h_x = dyn_share.H;
+				dof_Measurement = h_x.rows();
+				// 2.计算当前误差
+				vectorized_state error_x;
+				x_.boxminus(error_x, x_propagated);
+				// Jx_new = error_x;
+				J.setIdentity();
+
+				P_ = P_propagated;
+
+				// 3.计算特殊流形状态的jacob^-1 * error_x, 并对P进行预测更新 P = JPJ(用block子矩阵来计算，可以加速求解)
+				Matrix<scalar_type, 3, 3> res_temp_SO3;
+				MTK::vect<3, scalar_type> seg_SO3;
+				for (std::vector<std::pair<int, int>>::iterator it = x_.SO3_state.begin(); it != x_.SO3_state.end(); it++)
+				{
+					int idx = (*it).first;
+					int dim = (*it).second;
+					for (int i = 0; i < 3; i++)
+					{
+						seg_SO3(i) = error_x(idx + i);
+					}
+
+					res_temp_SO3 = MTK::A_matrix(seg_SO3).transpose();	// J^-1
+					// Jx_new.template block<3, 1>(idx, 0) = res_temp_SO3 * Jx_new.template block<3, 1>(idx, 0);
+					J.template block<3, 3>(idx, idx) = res_temp_SO3.inverse();
+					for (int i = 0; i < n; i++)
+					{
+						P_.template block<3, 1>(idx, i) = res_temp_SO3 * (P_.template block<3, 1>(idx, i));
+					}
+					for (int i = 0; i < n; i++)
+					{
+						P_.template block<1, 3>(i, idx) = (P_.template block<1, 3>(i, idx)) * res_temp_SO3.transpose();
+					}
+				}
+
+				Matrix<scalar_type, 2, 2> res_temp_S2;
+				MTK::vect<2, scalar_type> seg_S2;
+				for (std::vector<std::pair<int, int>>::iterator it = x_.S2_state.begin(); it != x_.S2_state.end(); it++)
+				{
+					int idx = (*it).first;
+					int dim = (*it).second;
+					for (int i = 0; i < 2; i++)
+					{
+						seg_S2(i) = error_x(idx + i);
+					}
+
+					Eigen::Matrix<scalar_type, 2, 3> Nx;
+					Eigen::Matrix<scalar_type, 3, 2> Mx;
+					x_.S2_Nx_yy(Nx, idx);
+					x_propagated.S2_Mx(Mx, seg_S2, idx);
+					res_temp_S2 = Nx * Mx;
+					// Jx_new.template block<2, 1>(idx, 0) = res_temp_S2 * Jx_new.template block<2, 1>(idx, 0);
+					for (int i = 0; i < n; i++)
+					{
+						P_.template block<2, 1>(idx, i) = res_temp_S2 * (P_.template block<2, 1>(idx, i));
+					}
+					for (int i = 0; i < n; i++)
+					{
+						P_.template block<1, 2>(i, idx) = (P_.template block<1, 2>(i, idx)) * res_temp_S2.transpose();
+					}
+				}
+
+#if	1
+				auto G = dyn_share.G;
+				double N = dyn_share.N;
+				cov U = P_.inverse();
+				U.template block<12, 12>(0, 0) += G.transpose() * G / N;
+				U = U.inverse();
+				auto Gr = G.transpose() / N * dyn_share.r;
+				auto Jd = J.transpose() * P_.inverse() * error_x;
+				P_ = U; // U = J^TPJ+G^TNG
+#endif
+
+				// 4.通过观测维度，区分使用哪种方式计算K
+				if (n > dof_Measurement)
+				{
+					// K = PH^T(HPH^T+R)^-1
+					Matrix<scalar_type, Dynamic, Dynamic> H_x = Matrix<scalar_type, Dynamic, Dynamic>::Zero(dof_Measurement, n);
+					H_x.topLeftCorner(dof_Measurement, 12) = h_x;
+					auto K = P_ * H_x.transpose() * (H_x * P_ * H_x.transpose() + R * Matrix<scalar_type, Dynamic, Dynamic>::Identity(dof_Measurement, dof_Measurement)).inverse();
+					Kz = K * dyn_share.z;
+					KH = K * H_x;
+				}
+				else
+				{
+					// K = (H^T R^-1 H + P^-1)^-1 H^T R^-1
+					cov P_temp = (P_ / R).inverse();
+					Matrix<scalar_type, 12, 12> HTH = h_x.transpose() * h_x;
+					P_temp.template block<12, 12>(0, 0) += HTH;
+					cov P_inv = P_temp.inverse();
+					Kz = P_inv.template block<n, 12>(0, 0) * h_x.transpose() * dyn_share.z;
+					KH.setZero();
+					KH.template block<n, 12>(0, 0) = P_inv.template block<n, 12>(0, 0) * HTH;
+				}
+
+				Matrix<scalar_type, n, 1> dx_ = Kz + (KH - Matrix<scalar_type, n, n>::Identity()) * P_ * (Jd + Gr);
+				// Matrix<scalar_type, n, 1> dx_ = Kz + (KH - Matrix<scalar_type, n, n>::Identity()) * Jx_new;
+				// 5.更新状态
+				x_.boxplus(dx_);
+				dyn_share.converge = true;
+				for (int i = 0; i < n; i++)
+				{
+					if (std::fabs(dx_[i]) > limit[i])
+					{
+						dyn_share.converge = false;
+						break;
+					}
+				}
+				if (dyn_share.converge)
+					t++;
+
+				if (!t && i == maximum_iter - 2)
+				{
+					dyn_share.converge = true;
+				}
+
+				if (t > 1 || i == maximum_iter - 1)
+				{
+					L_ = P_;
+					// 6.像3一样，最后传播一次P
 					Matrix<scalar_type, 3, 3> res_temp_SO3;
 					MTK::vect<3, scalar_type> seg_SO3;
 					for (std::vector<std::pair<int, int>>::iterator it = x_.SO3_state.begin(); it != x_.SO3_state.end(); it++)

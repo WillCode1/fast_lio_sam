@@ -44,6 +44,7 @@ public:
 #else
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
 #endif
+        ground_constraint_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-6, 1e-6, 1e-6, 1e-12).finished());
     }
 
     template <typename ikfom_state>
@@ -84,9 +85,9 @@ public:
     }
 
     template <typename ikfom_state>
-    void run(LoopConstraint &loop_constraint, ikfom_state &state, KD_TREE<PointType> &ikdtree)
+    void run(LoopConstraint &loop_constraint, ikfom_state &state, KD_TREE<PointType> &ikdtree, bool add_ground_constraint)
     {
-        add_factor_and_optimize(loop_constraint, state);
+        add_factor_and_optimize(loop_constraint, state, add_ground_constraint);
 
         correct_poses(ikdtree);
     }
@@ -99,7 +100,7 @@ public:
     }
 
 private:
-    void add_odom_factor()
+    void add_odom_factor(bool add_ground_constraint)
     {
         if (keyframe_pose6d_optimized->points.empty())
         {
@@ -111,6 +112,18 @@ private:
             gtsam::Pose3 poseFrom = pclPointTogtsamPose3(keyframe_pose6d_optimized->points.back());
             gtsam::Pose3 poseTo = pclPointTogtsamPose3(this_pose6d);
             gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(poseTo), odometry_noise));
+
+            if (add_ground_constraint)
+            {
+                PointXYZIRPYT ground_constraint_pose = this_pose6d;
+                ground_constraint_pose.z = keyframe_pose6d_optimized->points.back().z;
+                ground_constraint_pose.roll = keyframe_pose6d_optimized->points.back().roll;
+                ground_constraint_pose.pitch = keyframe_pose6d_optimized->points.back().pitch;
+                gtsam::Pose3 ground_constraint = pclPointTogtsamPose3(ground_constraint_pose);
+                gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(ground_constraint), ground_constraint_noise));
+                loop_is_closed = true;
+            }
+
             init_estimate.insert(keyframe_pose6d_optimized->size(), poseTo);
         }
     }
@@ -158,9 +171,9 @@ private:
     }
 
     template <typename ikfom_state>
-    void add_factor_and_optimize(LoopConstraint &loop_constraint, ikfom_state &state)
+    void add_factor_and_optimize(LoopConstraint &loop_constraint, ikfom_state &state, bool add_ground_constraint)
     {
-        add_odom_factor();
+        add_odom_factor(add_ground_constraint);
 
         add_gnss_factor();
 
@@ -216,7 +229,7 @@ private:
             pcl::VoxelGrid<PointType> downsize_filter_submap;
 
             int key_poses_num = keyframe_pose6d_optimized->size();
-            for (int i = key_poses_num - ikdtree_reconstruct_keyframe_num; i < key_poses_num; ++i)
+            for (int i = std::max(0, key_poses_num - ikdtree_reconstruct_keyframe_num); i < key_poses_num; ++i)
             {
                 *submap_keyframes += *pointcloudKeyframeToWorld((*keyframe_scan)[i], keyframe_pose6d_optimized->points[i]);
             }
@@ -272,6 +285,7 @@ public:
     gtsam::ISAM2 *isam;
     gtsam::noiseModel::Diagonal::shared_ptr prior_noise;
     gtsam::noiseModel::Diagonal::shared_ptr odometry_noise;
+    gtsam::noiseModel::Diagonal::shared_ptr ground_constraint_noise;
     Eigen::MatrixXd pose_covariance;
 
     // key frame param
@@ -280,6 +294,6 @@ public:
 
     // ikdtree reconstruct
     bool recontruct_kdtree = true;
-    float ikdtree_reconstruct_keyframe_num = 10;
+    int ikdtree_reconstruct_keyframe_num = 10;
     float ikdtree_reconstruct_downsamp_size = 0.1;
 };
