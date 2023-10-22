@@ -104,7 +104,6 @@ namespace esekfom
 
 		// typedef void measurementModel_dyn_share(state &,  fastlio_datastruct<scalar_type> &);
 		using measurementModel_dyn_share = std::function<void(state &, fastlio_datastruct<scalar_type> &)>;
-		using measurementModel_ground_constraint = std::function<void(state &, fastlio_ground_constraint_datastruct<scalar_type> &)>;
 		// typedef void measurementModel_dyn_share_modified(state &, pointlio_datastruct<scalar_type> &);
 		using measurementModel_dyn_share_modified = std::function<void(state &, pointlio_datastruct<scalar_type> &)>;
 		typedef Eigen::Matrix<scalar_type, l, n> measurementMatrix1(state &);

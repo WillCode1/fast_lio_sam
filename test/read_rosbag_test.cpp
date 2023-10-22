@@ -86,7 +86,8 @@ void imu_cbk(System& slam, const sensor_msgs::Imu::ConstPtr &msg)
 {
     slam.frontend->cache_imu_data(msg->header.stamp.toSec(),
                                   V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
-                                  V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z));
+                                  V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
+                                  QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
 }
 
 void test_rosbag(const std::string &bagfile, const std::string &config_path, const std::vector<std::string> &topics, const std::string &bag_path)
@@ -111,6 +112,7 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
     load_parameters(slam, config_path, false, save_globalmap_en, lidar_type);
+    slam.test_mode = true;
 
     ros::Time start_time = view.getBeginTime();
     ros::Time end_time = view.getEndTime();
@@ -232,11 +234,14 @@ int main(int argc, char** argv)
 
     Timer timer;
     auto dataset_paths = test_config["dataset_paths"].IsDefined() ? test_config["dataset_paths"].as<vector<std::string>>() : vector<std::string>();
+    LOG_WARN("111");
     for (const auto& path: dataset_paths)
     {
+        LOG_WARN("222");
         if (fs::exists(path) && fs::is_directory(path))
             traverse_for_config(path);
     }
+    LOG_WARN("333");
     test_cost_total_time += timer.elapsedStart() / 1000;
 
     LOG_WARN("=================total test bag=================");

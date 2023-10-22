@@ -43,11 +43,11 @@ public:
 
         Eigen::Matrix<double, 23, 23> init_P;
         init_P.setIdentity();
-        init_P.block<3, 3>(6, 6).diagonal() << 0.00001, 0.00001, 0.00001;   // lidar和imu外参旋转量协方差
-        init_P.block<3, 3>(9, 9).diagonal() << 0.00001, 0.00001, 0.00001;   // lidar和imu外参平移量协方差
-        init_P.block<3, 3>(15, 15).diagonal() << 0.0001, 0.0001, 0.0001;    // 陀螺仪偏差协方差
-        init_P.block<3, 3>(18, 18).diagonal() << 0.001, 0.001, 0.001;       // 加速度偏差协方差
-        init_P.block<2, 2>(21, 21).diagonal() << 0.00001, 0.00001;          // 重力协方差
+        init_P.block<3, 3>(6, 6).diagonal() << 0.00001, 0.00001, 0.00001; // lidar和imu外参旋转量协方差
+        init_P.block<3, 3>(9, 9).diagonal() << 0.00001, 0.00001, 0.00001; // lidar和imu外参平移量协方差
+        init_P.block<3, 3>(15, 15).diagonal() << 0.0001, 0.0001, 0.0001;  // 陀螺仪偏差协方差
+        init_P.block<3, 3>(18, 18).diagonal() << 0.001, 0.001, 0.001;     // 加速度偏差协方差
+        init_P.block<2, 2>(21, 21).diagonal() << 0.00001, 0.00001;        // 重力协方差
         kf.change_P(init_P);
     }
 
@@ -64,7 +64,7 @@ public:
 
     virtual void init_state(shared_ptr<ImuProcessor> &imu)
     {
-        /* 
+        /*
          * 1. initializing the gravity, gyro bias, acc and gyro covariance
          * 2. normalize the acceleration measurenments to unit gravity
          */
@@ -102,7 +102,7 @@ public:
         kf.change_x(state);
     }
 
-    virtual void cache_imu_data(double timestamp, const V3D &angular_velocity, const V3D &linear_acceleration)
+    virtual void cache_imu_data(double timestamp, const V3D &angular_velocity, const V3D &linear_acceleration, const QD &orientation)
     {
         timestamp = timestamp + timedelay_lidar2imu; // 时钟同步该采样同步td
         std::lock_guard<std::mutex> lock(mtx_buffer);
@@ -114,7 +114,7 @@ public:
         }
 
         latest_timestamp_imu = timestamp;
-        imu_buffer.push_back(make_shared<ImuData>(latest_timestamp_imu, angular_velocity, linear_acceleration));
+        imu_buffer.push_back(make_shared<ImuData>(latest_timestamp_imu, angular_velocity, linear_acceleration, orientation));
     }
 
     virtual void cache_pointcloud_data(const double &lidar_beg_time, const PointCloudType::Ptr &scan)
@@ -226,15 +226,6 @@ public:
         loger.imu_process_time = loger.timer.elapsedLast();
         loger.feats_undistort_size = feats_undistort->points.size();
 
-#ifdef Optimize_Use_Imu_Orientation
-        static bool imu_orientation = false;
-        static QD last_imu_orientation = QD::Identity();
-        if (!imu_orientation)
-        {
-            imu_orientation = true;
-            last_imu_orientation = imu->imu_orientation;
-        }
-#endif
         /*** initialize the map kdtree ***/
         if (!map_update_mode && ikdtree.Root_Node == nullptr)
         {
@@ -272,31 +263,9 @@ public:
         normvec->resize(feats_down_size);
 
         kf.update_iterated_fastlio2();
-        loger.iterate_ekf_time = loger.timer.elapsedLast();
-        loger.meas_update_time = loger.iterate_ekf_time;
+        loger.meas_update_time = loger.timer.elapsedLast();
         state = kf.get_x();
         loger.dump_state_to_log(loger.fout_update, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
-
-#ifdef Not_Optimize_Z_Axis
-#ifdef Optimize_Use_Imu_Orientation
-        auto imu_orientation_incre = last_imu_orientation.inverse() * imu->imu_orientation;
-        last_imu_orientation = imu->imu_orientation;
-
-        state = kf.get_x();
-        // state.pos.z() = 0;
-        auto rpy_increment = EigenMath::Quaternion2RPY(imu_orientation_incre);
-        auto imu_state = EigenMath::Quaternion2RPY(state.rot);
-        state.rot = EigenMath::RPY2Quaternion(V3D(imu_state(0), rpy_increment(1), imu_state(2)));
-        kf.change_x(state);
-#else
-        state = kf.get_x();
-        state.pos.z() = 0;
-        // state.pos.z() = 0;
-        auto rpy = EigenMath::Quaternion2RPY(state.rot);
-        state.rot = EigenMath::RPY2Quaternion(V3D(rpy(0), 0, rpy(2)));
-        kf.change_x(state);
-#endif
-#endif
 
         /*** map update ***/
         V3D pos_Lidar_world = state.pos + state.rot * state.offset_T_L_I;
@@ -311,7 +280,7 @@ public:
     }
 
 public:
-    void init_global_map(PointCloudType::Ptr& submap)
+    void init_global_map(PointCloudType::Ptr &submap)
     {
         if (ikdtree.Root_Node != nullptr)
         {
@@ -432,10 +401,10 @@ private:
 #endif
         for (int i = 0; i < effct_feat_num; i++)
         {
-            const V3D& point_lidar = effect_features[i].point_lidar;
-            const M3D& point_be_crossmat = SO3Math::get_skew_symmetric(point_lidar);
-            const V3D& point_imu = state.offset_R_L_I * point_lidar + state.offset_T_L_I;
-            const M3D& point_crossmat = SO3Math::get_skew_symmetric(point_imu);
+            const V3D &point_lidar = effect_features[i].point_lidar;
+            const M3D &point_be_crossmat = SO3Math::get_skew_symmetric(point_lidar);
+            const V3D &point_imu = state.offset_R_L_I * point_lidar + state.offset_T_L_I;
+            const M3D &point_crossmat = SO3Math::get_skew_symmetric(point_imu);
 
             /*** get the normal vector of closest surface ***/
             const V3D &norm_vec = effect_features[i].norm_vec;
@@ -475,7 +444,7 @@ protected:
 
         // 初始化局部地图包围盒角点，以为w系下lidar位置为中心,得到长宽高200*200*200的局部地图
         if (!localmap_initialized)
-        { 
+        {
             for (int i = 0; i < 3; i++)
             {
                 local_map_bbox.vertex_min[i] = pos_Lidar_world(i) - cube_len / 2.0;
@@ -550,7 +519,7 @@ protected:
                 mid_point.z = (floor(feats_down_world->points[i].z / ikdtree_resolution) + 0.5) * ikdtree_resolution;
 
                 if (fabs(points_near[0].x - mid_point.x) > 0.5 * ikdtree_resolution &&
-                    fabs(points_near[0].y - mid_point.y) > 0.5 * ikdtree_resolution && 
+                    fabs(points_near[0].y - mid_point.y) > 0.5 * ikdtree_resolution &&
                     fabs(points_near[0].z - mid_point.z) > 0.5 * ikdtree_resolution)
                 {
                     PointNoNeedDownsample.push_back(feats_down_world->points[i]);

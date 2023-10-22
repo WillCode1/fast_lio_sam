@@ -2,7 +2,6 @@
 #include <omp.h>
 #include <math.h>
 #include <thread>
-#include <thread>
 #include <pcl/io/pcd_io.h>
 #include "ikd-Tree/ikd_Tree.h"
 #include "frontend/FastlioOdometry.hpp"
@@ -40,6 +39,9 @@ public:
 
     ~System()
     {
+        if (loopthread.joinable())
+            loopthread.join();
+
         fclose(file_pose_unoptimized);
         fclose(file_pose_optimized);
     }
@@ -50,6 +52,7 @@ public:
         frontend->detect_range = frontend->lidar->detect_range;
         gnss->need_record_gnss = frontend->loger.runtime_log;
         frontend->init_estimator();
+        loopthread = std::thread(&System::loopClosureThread, this);
 
         if (!map_update_mode)
         {
@@ -146,14 +149,21 @@ public:
                 save_keyframe(keyframe_scan->size());
 
             /*** loop closure ***/
-            if (loop_closure_enable_flag)
+            if (loop_closure_enable_flag && test_mode)
             {
                 backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
                 loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
             }
 
             loopClosure->get_loop_constraint(loop_constraint);
-            backend->run(loop_constraint, cur_state, frontend->ikdtree);
+            if (false)
+            {
+                backend->run(loop_constraint, cur_state, frontend->ikdtree, 0);
+            }
+            else
+            {
+                backend->run(loop_constraint, cur_state, frontend->ikdtree, 3);
+            }
             frontend->set_pose(cur_state);
             return system_state_vaild;
         }
@@ -181,7 +191,7 @@ public:
 
         pcl::PCDWriter pcd_writer;
         pcd_writer.writeBinary(globalmap_path, *pcl_map_full);
-        LOG_WARN("Success save global map poses to %s.", globalmap_path.c_str());
+        LOG_WARN("Success save global map to %s.", globalmap_path.c_str());
     }
 
     void save_trajectory()
@@ -276,6 +286,20 @@ private:
         pcd_writer.writeBinary(keyframe_file, *feats_undistort);
     }
 
+    void loopClosureThread()
+    {
+        if (loop_closure_enable_flag == false)
+            return;
+
+        LOG_WARN("loop closure enabled!");
+        while (test_mode == false)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(loop_closure_interval));
+            backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
+            loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
+        }
+    }
+
 public:
     bool system_state_vaild = false; // true: system ok
     bool map_update_mode = false;  // true: localization, false: slam
@@ -290,7 +314,10 @@ public:
     shared_ptr<LoopClosure> loopClosure;
     shared_ptr<Relocalization> relocalization;
 
+    int loop_closure_interval = 300;
+    std::thread loopthread;
     LoopConstraint loop_constraint;
+    bool test_mode = false;
 
     /*** keyframe config ***/
     FILE *file_pose_unoptimized;

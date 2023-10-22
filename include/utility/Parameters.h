@@ -36,6 +36,7 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     slam.backend->ikdtree_reconstruct_downsamp_size = config["mapping"]["ikdtree_reconstruct_downsamp_size"].IsDefined() ? config["mapping"]["ikdtree_reconstruct_downsamp_size"].as<float>() : 0.1;
 
     slam.loop_closure_enable_flag = config["mapping"]["loop_closure_enable_flag"].IsDefined() ? config["mapping"]["loop_closure_enable_flag"].as<bool>() : false;
+    slam.loop_closure_interval = config["mapping"]["loop_closure_interval"].IsDefined() ? config["mapping"]["loop_closure_interval"].as<int>() : 1000;
     slam.loopClosure->loop_keyframe_num_thld = config["mapping"]["loop_keyframe_num_thld"].IsDefined() ? config["mapping"]["loop_keyframe_num_thld"].as<int>() : 50;
     slam.loopClosure->loop_closure_search_radius = config["mapping"]["loop_closure_search_radius"].IsDefined() ? config["mapping"]["loop_closure_search_radius"].as<float>() : 10;
     slam.loopClosure->loop_closure_search_time_interval = config["mapping"]["loop_closure_search_time_interval"].IsDefined() ? config["mapping"]["loop_closure_search_time_interval"].as<float>() : 30;

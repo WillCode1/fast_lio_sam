@@ -38,13 +38,12 @@ public:
         prior_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12).finished());
         // outdoor: 1e-2, 1e-2, M_PI*M_PI, 1e8, 1e8, 1e8
         // prior_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
-#ifdef Not_Optimize_Z_Axis
+#ifdef Ground_Constraint
         // odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-6, 1e-6, 1e-4, 1e-4, 3e-5).finished());
 #else
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
 #endif
-        ground_constraint_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-6, 1e-6, 1e-6, 1e-12).finished());
     }
 
     template <typename ikfom_state>
@@ -85,9 +84,9 @@ public:
     }
 
     template <typename ikfom_state>
-    void run(LoopConstraint &loop_constraint, ikfom_state &state, KD_TREE<PointType> &ikdtree, bool add_ground_constraint)
+    void run(LoopConstraint &loop_constraint, ikfom_state &state, KD_TREE<PointType> &ikdtree, int ground_constraint_type, const V3D& imu_rpy = V3D::Zero())
     {
-        add_factor_and_optimize(loop_constraint, state, add_ground_constraint);
+        add_factor_and_optimize(loop_constraint, state, ground_constraint_type, imu_rpy);
 
         correct_poses(ikdtree);
     }
@@ -100,7 +99,7 @@ public:
     }
 
 private:
-    void add_odom_factor(bool add_ground_constraint)
+    void add_odom_factor(int ground_constraint_type, const V3D& imu_rpy)
     {
         if (keyframe_pose6d_optimized->points.empty())
         {
@@ -113,14 +112,22 @@ private:
             gtsam::Pose3 poseTo = pclPointTogtsamPose3(this_pose6d);
             gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(poseTo), odometry_noise));
 
-            if (add_ground_constraint)
+            if (ground_constraint_type)
             {
                 PointXYZIRPYT ground_constraint_pose = this_pose6d;
                 ground_constraint_pose.z = keyframe_pose6d_optimized->points.back().z;
-                ground_constraint_pose.roll = keyframe_pose6d_optimized->points.back().roll;
-                ground_constraint_pose.pitch = keyframe_pose6d_optimized->points.back().pitch;
+                if (ground_constraint_type == 3)
+                {
+                    ground_constraint_pose.roll = keyframe_pose6d_optimized->points.back().roll;
+                    ground_constraint_pose.pitch = keyframe_pose6d_optimized->points.back().pitch;
+                }
                 gtsam::Pose3 ground_constraint = pclPointTogtsamPose3(ground_constraint_pose);
+                if (ground_constraint_type == 3)
+                    ground_constraint_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e6, 1e6, 1e6, 1e-12).finished());
+                else
+                    ground_constraint_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e6, 1e6, 1e6, 1e6, 1e6, 1e-12).finished());
                 gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(ground_constraint), ground_constraint_noise));
+                // gtsam_graph.add(LocalGroundConstraintFactor2(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(poseTo), ground_constraint_noise));
                 loop_is_closed = true;
             }
 
@@ -171,9 +178,9 @@ private:
     }
 
     template <typename ikfom_state>
-    void add_factor_and_optimize(LoopConstraint &loop_constraint, ikfom_state &state, bool add_ground_constraint)
+    void add_factor_and_optimize(LoopConstraint &loop_constraint, ikfom_state &state, int ground_constraint_type, const V3D& imu_rpy)
     {
-        add_odom_factor(add_ground_constraint);
+        add_odom_factor(ground_constraint_type, imu_rpy);
 
         add_gnss_factor();
 
@@ -248,7 +255,6 @@ private:
 
         if (loop_is_closed == true)
         {
-            // globalPath.poses.clear();
             int numPoses = optimized_estimate.size();
             pose_mtx.lock();
             for (int i = 0; i < numPoses; ++i)
@@ -286,6 +292,7 @@ public:
     gtsam::noiseModel::Diagonal::shared_ptr prior_noise;
     gtsam::noiseModel::Diagonal::shared_ptr odometry_noise;
     gtsam::noiseModel::Diagonal::shared_ptr ground_constraint_noise;
+    gtsam::noiseModel::Diagonal::shared_ptr ground_constraint_noise2;
     Eigen::MatrixXd pose_covariance;
 
     // key frame param

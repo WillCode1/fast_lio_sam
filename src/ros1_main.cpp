@@ -90,10 +90,8 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
 {
     slam.frontend->cache_imu_data(msg->header.stamp.toSec(),
                                   V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
-                                  V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z));
-#ifdef Optimize_Use_Imu_Orientation
-    slam.frontend->imu->imu_orientation = QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z);
-#endif
+                                  V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
+                                  QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
     if (slam.frontend->loger.runtime_log)
     {
         static bool flag = false;

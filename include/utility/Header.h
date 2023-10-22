@@ -142,5 +142,4 @@ inline bool check_for_not_converged(const double &timestamp, int step)
 }
 
 // #define DEDUB_MODE
-// #define Not_Optimize_Z_Axis
-// #define Optimize_Use_Imu_Orientation
+#define Ground_Constraint

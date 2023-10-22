@@ -39,9 +39,6 @@ public:
 
   V3D mean_acc;
   V3D mean_gyr;
-#ifdef Optimize_Use_Imu_Orientation
-  QD imu_orientation;
-#endif
 
 private:
   void IMU_init(const MeasureCollection &meas, int &N);

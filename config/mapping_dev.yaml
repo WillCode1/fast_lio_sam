@@ -19,7 +19,7 @@ mapping:
     frontend_type: 0                    # frontend type
 
     # fastlio
-    point_skip_num: 1            # for mapping, Increase accuracy 4 -> 1
+    point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
     space_down_sample: true
     # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
@@ -40,12 +40,13 @@ mapping:
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1
 
+    loop_closure_interval: 300
     loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 10
     loop_closure_search_time_interval: 30
     keyframe_search_num: 20
-    loop_closure_fitness_score_thld: 0.1
+    loop_closure_fitness_score_thld: 0.3
     icp_downsamp_size: 0.1
     manually_loop_vaild_period: [0, 1]
     odom_loop_vaild_period: []
