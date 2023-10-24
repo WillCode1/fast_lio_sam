@@ -23,8 +23,9 @@ public:
         keyframe_pose6d_unoptimized.reset(new pcl::PointCloud<PointXYZIRPYT>());
         keyframe_pose6d_optimized.reset(new pcl::PointCloud<PointXYZIRPYT>());
         keyframe_scan.reset(new deque<PointCloudType::Ptr>());
+        keyframe_downsample.reset(new deque<PointCloudType::Ptr>());
 
-        backend = std::make_shared<FactorGraphOptimization>(keyframe_pose6d_optimized, keyframe_scan, gnss);
+        backend = std::make_shared<FactorGraphOptimization>(keyframe_pose6d_optimized, keyframe_downsample, gnss);
         relocalization = make_shared<Relocalization>();
         loopClosure = make_shared<LoopClosure>(relocalization->sc_manager);
 
@@ -143,6 +144,8 @@ public:
             PointCloudType::Ptr this_keyframe(new PointCloudType());
             pcl::copyPointCloud(*feats_undistort, *this_keyframe);
             keyframe_scan->push_back(this_keyframe);
+            pcl::copyPointCloud(*frontend->feats_down_lidar, *this_keyframe);
+            keyframe_downsample->push_back(this_keyframe);
             relocalization->add_scancontext_descriptor(this_keyframe, scd_path);
 
             if (save_keyframe_en)
@@ -152,7 +155,7 @@ public:
             if (loop_closure_enable_flag && test_mode)
             {
                 backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-                loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
+                loopClosure->run(frontend->lidar_end_time, *keyframe_downsample);
             }
 
             loopClosure->get_loop_constraint(loop_constraint);
@@ -261,7 +264,7 @@ public:
             if (pointDistance(globalMapKeyPosesDS->points[i], keyframe_pose->back()) > globalMapVisualizationSearchRadius)
                 continue;
             int thisKeyInd = (int)globalMapKeyPosesDS->points[i].intensity;
-            *globalMapKeyFrames += *pointcloudKeyframeToWorld((*keyframe_scan)[thisKeyInd], keyframe_pose->points[thisKeyInd]);
+            *globalMapKeyFrames += *pointcloudKeyframeToWorld((*keyframe_downsample)[thisKeyInd], keyframe_pose->points[thisKeyInd]);
         }
         // downsample key frames
         pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames;
@@ -293,7 +296,7 @@ private:
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(loop_closure_interval));
             backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-            loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
+            loopClosure->run(frontend->lidar_end_time, *keyframe_downsample);
         }
     }
 
@@ -322,6 +325,7 @@ public:
     bool save_keyframe_en = false;
     PointCloudType::Ptr feats_undistort;
     shared_ptr<deque<PointCloudType::Ptr>> keyframe_scan;
+    shared_ptr<deque<PointCloudType::Ptr>> keyframe_downsample;
 
     /*** trajectory by lidar pose in camera_init frame(imu pose + extrinsic) ***/
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_unoptimized;
