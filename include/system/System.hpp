@@ -124,7 +124,8 @@ public:
         }
 
         /*** frontend ***/
-        if (!frontend->run(map_update_mode, feats_undistort))
+        bool can_add_ground_constraint = false;
+        if (!frontend->run(map_update_mode, feats_undistort, can_add_ground_constraint))
         {
             system_state_vaild = false;
             return system_state_vaild;
@@ -156,13 +157,13 @@ public:
             }
 
             loopClosure->get_loop_constraint(loop_constraint);
-            if (false)
+            if (can_add_ground_constraint)
             {
-                backend->run(loop_constraint, cur_state, frontend->ikdtree, 0);
+                backend->run(loop_constraint, cur_state, frontend->ikdtree, 3);
             }
             else
             {
-                backend->run(loop_constraint, cur_state, frontend->ikdtree, 3);
+                backend->run(loop_constraint, cur_state, frontend->ikdtree, 0);
             }
             frontend->set_pose(cur_state);
             return system_state_vaild;

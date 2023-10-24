@@ -38,12 +38,7 @@ public:
         prior_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12).finished());
         // outdoor: 1e-2, 1e-2, M_PI*M_PI, 1e8, 1e8, 1e8
         // prior_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
-#ifdef Ground_Constraint
-        // odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
-        odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-6, 1e-6, 1e-4, 1e-4, 3e-5).finished());
-#else
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
-#endif
     }
 
     template <typename ikfom_state>
@@ -110,6 +105,15 @@ private:
         {
             gtsam::Pose3 poseFrom = pclPointTogtsamPose3(keyframe_pose6d_optimized->points.back());
             gtsam::Pose3 poseTo = pclPointTogtsamPose3(this_pose6d);
+
+            if (ground_constraint_type)
+            {
+                odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+            }
+            else
+            {
+                odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+            }
             gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(poseTo), odometry_noise));
 
             if (ground_constraint_type)
@@ -127,7 +131,6 @@ private:
                 else
                     ground_constraint_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e6, 1e6, 1e6, 1e6, 1e6, 1e-12).finished());
                 gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(ground_constraint), ground_constraint_noise));
-                // gtsam_graph.add(LocalGroundConstraintFactor2(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(poseTo), ground_constraint_noise));
                 loop_is_closed = true;
             }
 
@@ -292,7 +295,6 @@ public:
     gtsam::noiseModel::Diagonal::shared_ptr prior_noise;
     gtsam::noiseModel::Diagonal::shared_ptr odometry_noise;
     gtsam::noiseModel::Diagonal::shared_ptr ground_constraint_noise;
-    gtsam::noiseModel::Diagonal::shared_ptr ground_constraint_noise2;
     Eigen::MatrixXd pose_covariance;
 
     // key frame param

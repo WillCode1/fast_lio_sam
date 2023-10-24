@@ -193,8 +193,8 @@ public:
         if (!runtime_log)
             return;
 
-        V3D rot_ang = EigenMath::RotationMatrix2RPY2(state.rot.toRotationMatrix());
-        V3D ext_rot_LI = EigenMath::RotationMatrix2RPY2(state.offset_R_L_I.toRotationMatrix());
+        V3D rot_ang = EigenMath::Quaternion2RPY(state.rot);
+        V3D ext_rot_LI = EigenMath::Quaternion2RPY(state.offset_R_L_I);
         fprintf(fp, "%lf ", delta_time);
         fprintf(fp, "%lf %lf %lf ", rot_ang(0), rot_ang(1), rot_ang(2));                                  // Angle
         fprintf(fp, "%lf %lf %lf ", state.pos(0), state.pos(1), state.pos(2));                            // Pos
@@ -215,8 +215,8 @@ public:
         if (!runtime_log)
             return;
 
-        V3D rot_ang = EigenMath::RotationMatrix2RPY2(state.rot.toRotationMatrix());
-        V3D ext_rot_LI = EigenMath::RotationMatrix2RPY2(state.offset_R_L_I.toRotationMatrix());
+        V3D rot_ang = EigenMath::Quaternion2RPY(state.rot);
+        V3D ext_rot_LI = EigenMath::Quaternion2RPY(state.offset_R_L_I);
         fprintf(fp, "%lf ", delta_time);
         fprintf(fp, "%lf %lf %lf ", rot_ang(0), rot_ang(1), rot_ang(2));                                  // Angle
         fprintf(fp, "%lf %lf %lf ", state.pos(0), state.pos(1), state.pos(2));                            // Pos
@@ -237,8 +237,8 @@ public:
         if (!runtime_log)
             return;
 
-        V3D rot_ang = EigenMath::RotationMatrix2RPY2(state.rot.toRotationMatrix());
-        V3D ext_rot_LI = EigenMath::RotationMatrix2RPY2(state.offset_R_L_I.toRotationMatrix());
+        V3D rot_ang = EigenMath::Quaternion2RPY(state.rot);
+        V3D ext_rot_LI = EigenMath::Quaternion2RPY(state.offset_R_L_I);
         fprintf(fp, "%lf ", delta_time);
         fprintf(fp, "%lf %lf %lf ", rot_ang(0), rot_ang(1), rot_ang(2));                                  // Angle
         fprintf(fp, "%lf %lf %lf ", state.pos(0), state.pos(1), state.pos(2));                            // Pos
@@ -284,7 +284,6 @@ public:
         kdtree_search_time = 0;
         match_time = 0;
         cal_H_time = 0;
-        iterate_ekf_time = 0;
         meas_update_time = 0;
 
         kdtree_incremental_time = 0;
@@ -365,7 +364,7 @@ public:
     Timer timer;
 
     long unsigned int frame_num;
-    double preprocess_time, imu_process_time, downsample_time, kdtree_search_time, match_time, cal_H_time, iterate_ekf_time;
+    double preprocess_time, imu_process_time, downsample_time, kdtree_search_time, match_time, cal_H_time;
     double meas_update_time, kdtree_incremental_time, kdtree_delete_time, map_incre_time, map_remove_time, total_time;
 
     double preprocess_avetime, imu_process_avetime, downsample_avetime, kdtree_search_avetime, match_avetime, cal_H_avetime;
