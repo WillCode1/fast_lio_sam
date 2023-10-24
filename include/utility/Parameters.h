@@ -148,7 +148,9 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
 
     slam.frontend->timedelay_lidar2imu = config["common"]["timedelay_lidar2imu"].IsDefined() ? config["common"]["timedelay_lidar2imu"].as<double>() : 0;
     slam.frontend->map_rotate = config["mapping"]["map_rotate"].IsDefined() ? config["mapping"]["map_rotate"].as<bool>() : true;
-    slam.frontend->eular_init = config["mapping"]["eular_init"].IsDefined() ? config["mapping"]["eular_init"].as<vector<double>>() : vector<double>();
+    auto eular_init = config["mapping"]["eular_init"].IsDefined() ? config["mapping"]["eular_init"].as<vector<double>>() : vector<double>();
+    slam.frontend->rpy_init << VEC_FROM_ARRAY(eular_init);
+    slam.frontend->rpy_init *= M_PI / 180;
 
     slam.frontend->num_max_iterations = config["mapping"]["max_iteration"].IsDefined() ? config["mapping"]["max_iteration"].as<int>() : 4;
     slam.frontend->surf_frame_ds_res = config["mapping"]["surf_frame_ds_res"].IsDefined() ? config["mapping"]["surf_frame_ds_res"].as<double>() : 0.5;

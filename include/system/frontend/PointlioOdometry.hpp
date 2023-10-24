@@ -64,9 +64,6 @@ public:
          * 1. initializing the gravity, gyro bias, acc and gyro covariance
          * 2. normalize the acceleration measurenments to unit gravity
          */
-        V3D rpy_init;
-        rpy_init << MAT_FROM_ARRAY(eular_init);
-        rpy_init *= M_PI / 180;
         if (imu_en)
         {
             while (measures->lidar_beg_time > imu_next.timestamp)

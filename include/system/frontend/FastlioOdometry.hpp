@@ -75,9 +75,6 @@ public:
         std::cout << state.grav << std::endl;
         if (map_rotate)
         {
-            V3D rpy_init;
-            rpy_init << MAT_FROM_ARRAY(eular_init);
-            rpy_init *= M_PI / 180;
             state.rot = EigenMath::RPY2Quaternion(rpy_init);
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
             state.rot.normalize();
@@ -193,6 +190,7 @@ public:
         while ((!imu_buffer.empty()) && (imu_time <= lidar_end_time))
         {
             measures->imu.push_back(imu_buffer.front());
+            imu_orientation = imu_buffer.front()->orientation;
             imu_buffer.pop_front();
             imu_time = imu_buffer.front()->timestamp;
         }
@@ -203,7 +201,7 @@ public:
         return true;
     }
 
-    virtual bool run(bool map_update_mode, PointCloudType::Ptr &feats_undistort)
+    virtual bool run(bool map_update_mode, PointCloudType::Ptr &feats_undistort, bool &can_add_ground_constraint)
     {
         if (loger.runtime_log && !loger.inited_first_lidar_beg_time)
         {
@@ -263,8 +261,8 @@ public:
         normvec->resize(feats_down_size);
 
         kf.update_iterated_fastlio2();
-        loger.meas_update_time = loger.timer.elapsedLast();
         state = kf.get_x();
+        loger.meas_update_time = loger.timer.elapsedLast();
         loger.dump_state_to_log(loger.fout_update, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
 
         /*** map update ***/
@@ -605,7 +603,7 @@ public:
     bool extrinsic_est_en = false;
     /*** for gravity align ***/
     bool map_rotate = true;
-    std::vector<double> eular_init;
+    V3D rpy_init;
 
     /*** backup for relocalization reset ***/
     V3D offset_Tli;
@@ -651,6 +649,8 @@ public:
     BoxPointType local_map_bbox;
     double ikdtree_resolution;
     KD_TREE<PointType> ikdtree;
+
+    QD imu_orientation;
 
 private:
     esekfom::esekf<state_ikfom, 12, input_ikfom> kf;
