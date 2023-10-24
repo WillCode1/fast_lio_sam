@@ -142,3 +142,4 @@ inline bool check_for_not_converged(const double &timestamp, int step)
 }
 
 // #define DEDUB_MODE
+// #define Ground_Constraint

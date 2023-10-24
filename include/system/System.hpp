@@ -124,8 +124,7 @@ public:
         }
 
         /*** frontend ***/
-        bool can_add_ground_constraint = false;
-        if (!frontend->run(map_update_mode, feats_undistort, can_add_ground_constraint))
+        if (!frontend->run(map_update_mode, feats_undistort))
         {
             system_state_vaild = false;
             return system_state_vaild;
@@ -157,14 +156,11 @@ public:
             }
 
             loopClosure->get_loop_constraint(loop_constraint);
-            if (can_add_ground_constraint)
-            {
-                backend->run(loop_constraint, cur_state, frontend->ikdtree, 3);
-            }
-            else
-            {
-                backend->run(loop_constraint, cur_state, frontend->ikdtree, 0);
-            }
+#ifdef Ground_Constraint
+            backend->add_ground_constraint = frontend->add_ground_constraint;
+            backend->keyframe_rot = frontend->lidar_rot_meas;
+#endif
+            backend->run(loop_constraint, cur_state, frontend->ikdtree);
             frontend->set_pose(cur_state);
             return system_state_vaild;
         }
