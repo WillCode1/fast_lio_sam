@@ -169,7 +169,7 @@ private:
             gtsam::Vector Vector3(3);
             Vector3 << max(thisGPS.covariance(0), 1.0), max(thisGPS.covariance(1), 1.0), max(thisGPS.covariance(2), 1.0);
             gtsam::noiseModel::Diagonal::shared_ptr gnss_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
-            gtsam::GPSFactor gps_factor(keyframe_pose6d_optimized->size(), gtsam::Point3(thisGPS.gnss_position_trans2imu(0), thisGPS.gnss_position_trans2imu(1), thisGPS.gnss_position_trans2imu(2)), gnss_noise);
+            gtsam::GPSFactor gps_factor(keyframe_pose6d_optimized->size(), gtsam::Point3(thisGPS.lidar_pos_fix(0), thisGPS.lidar_pos_fix(1), thisGPS.lidar_pos_fix(2)), gnss_noise);
             gtsam_graph.add(gps_factor);
             loop_is_closed = true;
             LOG_WARN("GPS Factor Added, current_gnss_interval = %.3f sec, noise = (%.3f, %.3f, %.3f).", thisGPS.current_gnss_interval, Vector3(0), Vector3(1), Vector3(2));

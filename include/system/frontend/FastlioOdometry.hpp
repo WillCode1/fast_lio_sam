@@ -54,6 +54,7 @@ public:
 
     virtual void set_extrinsic(const V3D &transl, const M3D &rot)
     {
+        // imu = R * lidar + t
         state = kf.get_x();
         state.offset_T_L_I = transl;
         state.offset_R_L_I = rot;
@@ -240,20 +241,6 @@ public:
             last_imu_orientation = EigenMath::RPY2Quaternion(rpy_init) * imu_orientation;
         }
 #endif
-
-        /*** initialize the map kdtree ***/
-        if (!map_update_mode && ikdtree.Root_Node == nullptr)
-        {
-            if (feats_undistort->size() > 5)
-            {
-                pointcloudLidarToWorld(feats_undistort, feats_down_world, state);
-                init_global_map(feats_down_world);
-            }
-            return false;
-        }
-        loger.kdtree_size = ikdtree.size();
-        loger.dump_state_to_log(loger.fout_predict, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
-
         /*** interval sample and downsample the feature points in a scan ***/
         feats_down_lidar->clear();
         for (int i = 0; i < feats_undistort->size(); i++)
@@ -270,6 +257,26 @@ public:
         feats_down_size = feats_down_lidar->points.size();
         loger.feats_down_size = feats_down_size;
         loger.downsample_time = loger.timer.elapsedLast();
+
+        /*** initialize the map kdtree ***/
+        if (!map_update_mode && ikdtree.Root_Node == nullptr)
+        {
+            if (feats_down_lidar->size() > 5)
+            {
+                pointcloudLidarToWorld(feats_down_lidar, feats_down_world, state);
+                init_global_map(feats_down_world);
+            }
+            return false;
+        }
+        loger.kdtree_size = ikdtree.size();
+
+        if (feats_down_size < 5)
+        {
+            LOG_WARN("No point, skip this scan!");
+            return true;
+        }
+
+        loger.dump_state_to_log(loger.fout_predict, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
 
         /*** iterated state estimation ***/
         feats_down_world->resize(feats_down_size);

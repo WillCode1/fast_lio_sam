@@ -8,6 +8,7 @@
 #include <pcl/point_types.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/NavSatFix.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
 #include <livox_ros_driver/CustomMsg.h>
@@ -104,6 +105,11 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
         auto rpy = EigenMath::Quaternion2RPY(QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
         fprintf(imu_quat_eular, "%0.4lf %0.4f %0.4f %0.4f %0.4f %0.4f %0.4f\n", msg->header.stamp.toSec() - start_time, 0., 0., 0., rpy.x(), rpy.y(), rpy.z());
     }
+}
+
+void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
+{
+    slam.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude)));
 }
 
 void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, const double& lidar_end_time, const std::string& frame_id)
@@ -312,17 +318,18 @@ int main(int argc, char **argv)
     bool map_update_mode = false;
     bool save_globalmap_en = false, path_en = true;
     bool scan_pub_en = false, dense_pub_en = false;
-    string lidar_topic, imu_topic, config_file;
+    string lidar_topic, imu_topic, gnss_topic, config_file;
 
     ros::param::param("map_update_mode", map_update_mode, false);
     ros::param::param("config_file", config_file, std::string(""));
 
-    load_ros_parameters(string(ROOT_DIR) + config_file, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, map_frame, body_frame);
+    load_ros_parameters(string(ROOT_DIR) + config_file, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame);
     load_parameters(slam, string(ROOT_DIR) + config_file, map_update_mode, save_globalmap_en, lidar_type);
 
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lidar_topic, 200000, livox_pcl_cbk) : nh.subscribe(lidar_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
+    ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, gnss_cbk);
     // 发布当前正在扫描的点云，topic名字为/cloud_registered
     ros::Publisher pubLaserCloudFull = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered", 100000);
     // not used

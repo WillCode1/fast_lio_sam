@@ -1,6 +1,7 @@
 common:
     lidar_topic:  "/livox/lidar"
     imu_topic:  "/livox/imu"
+    gnss_topic:  "/gps/fix"
     map_frame:  "map"
     body_frame:  "body"
     timedelay_lidar2imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
@@ -53,11 +54,17 @@ mapping:
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
+    # lidar -> imu
     # extrinsic_T: [ 0.04165, 0.02326, -0.0284 ]  # avia
     extrinsic_T: [ -0.011, -0.02329, 0.04412 ]  # mid360
     extrinsic_R: [ 1, 0, 0,
                    0, 1, 0,
-                   0, 0, 1]
+                   0, 0, 1 ]
+    # lidar -> gnss
+    extrinsic_gnss_T: [ 0, 0, 0 ]
+    extrinsic_gnss_R: [ 1, 0, 0, 
+                        0, 1, 0, 
+                        0, 0, 1 ]
 
 scan_context:
     lidar_height: 2

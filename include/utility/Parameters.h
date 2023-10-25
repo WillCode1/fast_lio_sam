@@ -2,7 +2,7 @@
 #include "system/System.hpp"
 
 inline void load_ros_parameters(const std::string &config_path, bool &path_en, bool &scan_pub_en, bool &dense_pub_en,
-                                std::string &lidar_topic, std::string &imu_topic, std::string &map_frame, std::string &body_frame)
+                                std::string &lidar_topic, std::string &imu_topic, std::string &gnss_topic, std::string &map_frame, std::string &body_frame)
 {
     YAML::Node config = YAML::LoadFile(config_path);
     path_en = config["publish"]["path_en"].IsDefined() ? config["publish"]["path_en"].as<bool>() : false;
@@ -11,6 +11,7 @@ inline void load_ros_parameters(const std::string &config_path, bool &path_en, b
 
     lidar_topic = config["common"]["lidar_topic"].IsDefined() ? config["common"]["lidar_topic"].as<string>() : std::string("/livox/lidar");
     imu_topic = config["common"]["imu_topic"].IsDefined() ? config["common"]["imu_topic"].as<string>() : std::string("/livox/imu");
+    gnss_topic = config["common"]["gnss_topic"].IsDefined() ? config["common"]["gnss_topic"].as<string>() : std::string("/gps/fix");
     map_frame = config["common"]["map_frame"].IsDefined() ? config["common"]["map_frame"].as<string>() : std::string("camera_init");
     body_frame = config["common"]["body_frame"].IsDefined() ? config["common"]["body_frame"].as<string>() : std::string("body");
 }
@@ -23,6 +24,8 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     int n_scans, scan_rate, time_unit;
     vector<double> extrinT;
     vector<double> extrinR;
+    V3D extrinT_eigen;
+    M3D extrinR_eigen;
     double gyr_cov, acc_cov, b_gyr_cov, b_acc_cov;
 
     slam.backend->keyframe_add_dist_threshold = config["mapping"]["keyframe_add_dist_threshold"].IsDefined() ? config["mapping"]["keyframe_add_dist_threshold"].as<float>() : 1;
@@ -31,6 +34,13 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     slam.gnss->gnssValidInterval = config["mapping"]["gnssValidInterval"].IsDefined() ? config["mapping"]["gnssValidInterval"].as<float>() : 0.2;
     slam.gnss->gpsCovThreshold = config["mapping"]["gpsCovThreshold"].IsDefined() ? config["mapping"]["gpsCovThreshold"].as<float>() : 2;
     slam.gnss->useGpsElevation = config["mapping"]["useGpsElevation"].IsDefined() ? config["mapping"]["useGpsElevation"].as<bool>() : false;
+
+    extrinT = config["mapping"]["extrinsic_gnss_T"].IsDefined() ? config["mapping"]["extrinsic_gnss_T"].as<vector<double>>() : vector<double>();
+    extrinR = config["mapping"]["extrinsic_gnss_R"].IsDefined() ? config["mapping"]["extrinsic_gnss_R"].as<vector<double>>() : vector<double>();
+    extrinT_eigen << VEC_FROM_ARRAY(extrinT);
+    extrinR_eigen << MAT_FROM_ARRAY(extrinR);
+    slam.gnss->set_extrinsic(extrinT_eigen, extrinR_eigen);
+
     slam.backend->recontruct_kdtree = config["mapping"]["recontruct_kdtree"].IsDefined() ? config["mapping"]["recontruct_kdtree"].as<bool>() : true;
     slam.backend->ikdtree_reconstruct_keyframe_num = config["mapping"]["ikdtree_reconstruct_keyframe_num"].IsDefined() ? config["mapping"]["ikdtree_reconstruct_keyframe_num"].as<int>() : 10;
     slam.backend->ikdtree_reconstruct_downsamp_size = config["mapping"]["ikdtree_reconstruct_downsamp_size"].IsDefined() ? config["mapping"]["ikdtree_reconstruct_downsamp_size"].as<float>() : 0.1;
@@ -165,12 +175,9 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
 
     extrinT = config["mapping"]["extrinsic_T"].IsDefined() ? config["mapping"]["extrinsic_T"].as<vector<double>>() : vector<double>();
     extrinR = config["mapping"]["extrinsic_R"].IsDefined() ? config["mapping"]["extrinsic_R"].as<vector<double>>() : vector<double>();
-    // imu = R * lidar + t
-    V3D Lidar_T_wrt_IMU;
-    M3D Lidar_R_wrt_IMU;
-    Lidar_T_wrt_IMU << VEC_FROM_ARRAY(extrinT);
-    Lidar_R_wrt_IMU << MAT_FROM_ARRAY(extrinR);
-    slam.frontend->set_extrinsic(Lidar_T_wrt_IMU, Lidar_R_wrt_IMU);
+    extrinT_eigen << VEC_FROM_ARRAY(extrinT);
+    extrinR_eigen << MAT_FROM_ARRAY(extrinR);
+    slam.frontend->set_extrinsic(extrinT_eigen, extrinR_eigen);
 
     slam.init_system_mode(map_update_mode);
 }
