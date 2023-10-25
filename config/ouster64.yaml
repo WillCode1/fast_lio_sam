@@ -1,7 +1,7 @@
 common:
     lidar_topic:  "/os_cloud_node/points"
     imu_topic:  "/os_cloud_node/imu"
-    map_frame:  "camera_init"
+    map_frame:  "map"
     body_frame:  "body"
     timedelay_lidar2imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
 
@@ -14,7 +14,7 @@ preprocess:
 
 mapping:
     map_rotate: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
-    eular_init: [180, 0, 0]
+    eular_init: [0, 0, 0]
     frontend_type: 0                    # frontend type
 
     # fastlio
@@ -43,7 +43,7 @@ mapping:
     loop_closure_search_radius: 3
     loop_closure_search_time_interval: 30
     keyframe_search_num: 20
-    loop_closure_fitness_score_thld: 0.05
+    loop_closure_fitness_score_thld: 0.2
     icp_downsamp_size: 0.1
     manually_loop_vaild_period: [0, 1]
     odom_loop_vaild_period: []
@@ -61,7 +61,7 @@ mapping:
 
 scan_context:
     lidar_height: 2
-    sc_dist_thres: 0.5
+    sc_dist_thres: 0.13
 
 publish:
     path_en:  true

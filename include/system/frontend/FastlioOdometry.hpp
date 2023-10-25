@@ -11,6 +11,7 @@
 #include "LidarProcessor.hpp"
 #include "utility/Header.h"
 
+// #define Z_Constraint
 
 class FastlioOdometry
 {
@@ -208,7 +209,7 @@ public:
             loger.first_lidar_beg_time = measures->lidar_beg_time;
             loger.inited_first_lidar_beg_time = true;
         }
-#if 1
+#ifdef Z_Constraint
         auto last_state = state;
 #endif
         loger.resetTimer();
@@ -227,7 +228,7 @@ public:
         loger.imu_process_time = loger.timer.elapsedLast();
         loger.feats_undistort_size = feats_undistort->points.size();
 
-#if 1
+#ifdef Z_Constraint
         lidar_rot_meas = EigenMath::Quaternion2RPY(EigenMath::RPY2Quaternion(rpy_init) * imu_orientation * state.offset_R_L_I);
         add_ground_constraint = RAD2DEG(lidar_rot_meas(0)) < 1 && RAD2DEG(lidar_rot_meas(1)) < 1;
 
@@ -281,7 +282,7 @@ public:
         loger.meas_update_time = loger.timer.elapsedLast();
         loger.dump_state_to_log(loger.fout_update, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
 
-#if 1
+#ifdef Z_Constraint
 #if 1
         // auto lidar_rot_iekf = EigenMath::Quaternion2RPY(state.rot * state.offset_R_L_I);
         // printf("rpy_meas = (%.5f, %.5f), rpy_iekf = (%.3f, %.3f)\n", RAD2DEG(lidar_rot_meas(0)), RAD2DEG(lidar_rot_meas(1)), RAD2DEG(lidar_rot_iekf(0)), RAD2DEG(lidar_rot_iekf(1)));
