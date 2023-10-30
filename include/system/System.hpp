@@ -282,7 +282,7 @@ private:
         std::string keyframe_idx = out.str();
         string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
         pcl::PCDWriter pcd_writer;
-        cout << "current scan saved to " << keyframe_file << endl;
+        // cout << "current scan saved to " << keyframe_file << endl;
         pcd_writer.writeBinary(keyframe_file, *feats_undistort);
     }
 
