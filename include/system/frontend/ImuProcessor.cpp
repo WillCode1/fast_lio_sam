@@ -129,12 +129,8 @@ void ImuProcessor::UndistortPcl(const MeasureCollection &meas, esekfom::esekf<st
 
     /* save the poses at each IMU measurements */
     imu_state = kf_state.get_x();
-    angvel_last = angvel_avr - imu_state.bg;               // 角速度 - 预测的角速度bias
-    acc_s_last = imu_state.rot * (acc_avr - imu_state.ba); // 加速度 - 预测的加速度bias,并转到世界坐标系下
-    for (int i = 0; i < 3; i++)
-    {
-      acc_s_last[i] += imu_state.grav[i]; // 加上重力得到世界坐标系的加速度: f_k = a^w - g
-    }
+    angvel_last = angvel_avr - imu_state.bg;                                    // 角速度 - 预测的角速度bias
+    acc_s_last = imu_state.rot * (acc_avr - imu_state.ba) + imu_state.grav.vec; // 加速度 - 预测的加速度bias,并转到世界坐标系下
     double &&offs_t = tail->timestamp - pcl_beg_time; // 后一个IMU时刻距离此次雷达开始的时间间隔
     imu_states.emplace_back(offs_t, acc_s_last, angvel_last, imu_state.vel, imu_state.pos, imu_state.rot.toRotationMatrix());
   }
