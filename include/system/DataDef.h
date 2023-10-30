@@ -52,7 +52,7 @@ struct MeasureCollection
     MeasureCollection()
     {
         lidar_beg_time = 0.0;
-        this->lidar.reset(new PointCloudType());
+        lidar.reset(new PointCloudType());
     }
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -336,13 +336,13 @@ public:
 #endif
     }
 
-    static void save_gps_pose(FILE *fp, const Eigen::Vector3d &pos, const Eigen::Vector3d &eular, const double &time)
+    static void save_gps_pose(FILE *fp, const V3D &pos, const V3D &eular, const double &time)
     {
         fprintf(fp, "%0.4lf %0.4f %0.4f %0.4f %0.4f %0.4f %0.4f\n", time, pos.x(), pos.y(), pos.z(), eular.x(), eular.y(), eular.z());
     }
 
     // 0 : not, 1 : TUM
-    static void save_trajectory(FILE *fp, const Eigen::Vector3d &pos, const Eigen::Quaterniond &quat, const double &time, int save_traj_fmt = 1)
+    static void save_trajectory(FILE *fp, const V3D &pos, const Quaterniond &quat, const double &time, int save_traj_fmt = 1)
     {
         if (save_traj_fmt == 1)
         {

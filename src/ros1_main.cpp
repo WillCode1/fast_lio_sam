@@ -110,6 +110,7 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
 void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
 {
     slam.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude)));
+    slam.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude));
 }
 
 void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, const double& lidar_end_time, const std::string& frame_id)
