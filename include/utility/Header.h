@@ -15,7 +15,7 @@
 #include "Timer.h"
 #include "FileOperation.h"
 #include "EigenMath.h"
-#include "SO3_Math.h"
+#include "MathTools.h"
 
 using namespace std;
 using namespace Eigen;

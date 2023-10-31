@@ -283,7 +283,7 @@ public:
                 pointLidarToWorld(point_this, point_this, kf_input.x_);
             else
                 pointLidarToWorld(point_this, point_this, kf_output.x_);
-            crossmat_list[i] = SO3Math::get_skew_symmetric(point_this);
+            crossmat_list[i] = hat(point_this);
         }
 
         if (use_imu_as_input)
@@ -635,9 +635,9 @@ private:
                 {
                     V3D p_body = V3D(feats_down_lidar->points[idx + j + 1].x, feats_down_lidar->points[idx + j + 1].y, feats_down_lidar->points[idx + j + 1].z);
                     M3D p_crossmat, p_imu_crossmat;
-                    p_crossmat = SO3Math::get_skew_symmetric(p_body);
+                    p_crossmat = hat(p_body);
                     V3D point_imu = state.offset_R_L_I.normalized() * p_body + state.offset_T_L_I;
-                    p_imu_crossmat = SO3Math::get_skew_symmetric(point_imu);
+                    p_imu_crossmat = hat(point_imu);
                     V3D C(state.rot.conjugate().normalized() * norm_vec);
                     V3D A(p_imu_crossmat * C);
                     V3D B(p_crossmat * state.offset_R_L_I.conjugate().normalized() * C);
@@ -721,9 +721,9 @@ private:
                 {
                     V3D p_body = V3D(feats_down_lidar->points[idx + j + 1].x, feats_down_lidar->points[idx + j + 1].y, feats_down_lidar->points[idx + j + 1].z);
                     M3D p_crossmat, p_imu_crossmat;
-                    p_crossmat = SO3Math::get_skew_symmetric(p_body);
+                    p_crossmat = hat(p_body);
                     V3D point_imu = state.offset_R_L_I.normalized() * p_body + state.offset_T_L_I;
-                    p_imu_crossmat = SO3Math::get_skew_symmetric(point_imu);
+                    p_imu_crossmat = hat(point_imu);
                     V3D C(state.rot.conjugate().normalized() * norm_vec);
                     V3D A(p_imu_crossmat * C);
                     V3D B(p_crossmat * state.offset_R_L_I.conjugate().normalized() * C);

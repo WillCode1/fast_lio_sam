@@ -173,7 +173,7 @@ void ImuProcessor::UndistortPcl(const MeasureCollection &meas, esekfom::esekf<st
        * 注意: 补偿方向与帧的移动方向相反
        * 所以如果我们想补偿时间戳i到帧e的一个点
        * P_compensate = R_imu_e ^ T * (R_i * P_i + T_ei)  其中T_ei在全局框架中表示 */
-      M3D R_i(R_imu * SO3Math::Exp(angvel_avr * dt)); // 当前点时刻的imu在世界坐标系下姿态
+      M3D R_i(R_imu * Exp(angvel_avr, dt));                                       // 当前点时刻的imu在世界坐标系下姿态
       V3D P_i(it_pcl->x, it_pcl->y, it_pcl->z);                                   // 当前点位置(雷达坐标系下)
       V3D T_ei(pos_imu + vel_imu * dt + 0.5 * acc_imu * dt * dt - imu_state.pos); // 当前点的时刻imu在世界坐标系下位置 - end时刻IMU在世界坐标系下的位置
       // 原理: 对应fastlio公式(10)，通过世界坐标系过度，将当前时刻IMU坐标系下坐标转换到end时刻IMU坐标系下
@@ -271,35 +271,5 @@ void ImuProcessor::Process(const MeasureCollection &meas, PointCloudType::Ptr cu
       return;
     }
     *cur_pcl_un_ = *(meas.lidar);
-  }
-}
-
-/**
- * @brief 将预设重力方向和测量到的重力方向对比，将imu初始姿态对齐到地图
- * @param preset_gravity 预设重力方向，也就是map方向
- * @param meas_gravity 测量到的重力
- * @param rot_init 返回的imu初始姿态
- */
-void ImuProcessor::get_imu_init_rot(const V3D &preset_gravity, const V3D &meas_gravity, M3D &rot_init)
-{
-  M3D hat_grav = SO3Math::get_skew_symmetric(-preset_gravity);
-  // sin(theta) = a^b/(|a|*|b|) = |axb|/(|a|*|b|)
-  double align_sin = (hat_grav * meas_gravity).norm() / meas_gravity.norm() / preset_gravity.norm();
-  // cos(theta) = a*b/(|a|*|b|)
-  double align_cos = preset_gravity.transpose() * meas_gravity;
-  align_cos = align_cos / preset_gravity.norm() / meas_gravity.norm();
-
-  if (align_sin < 1e-6)
-  {
-    if (align_cos > 1e-6)
-      rot_init = EYE3D;
-    else
-      rot_init = -EYE3D;
-  }
-  else
-  {
-    // 沿着axb方向旋转对应夹角，得到imu初始姿态
-    V3D align_angle = hat_grav * meas_gravity / (hat_grav * meas_gravity).norm() * acos(align_cos);
-    rot_init = SO3Math::Exp(align_angle);
   }
 }
