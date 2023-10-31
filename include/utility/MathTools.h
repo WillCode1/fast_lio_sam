@@ -5,6 +5,7 @@
 #define SKEW_SYM_MATRX(v) 0.0, -v[2], v[1], v[2], 0.0, -v[0], -v[1], v[0], 0.0
 
 /****** SO3 math ******/
+// Hat (skew) operator
 template <typename T>
 Eigen::Matrix<T, 3, 3> hat(const Eigen::Matrix<T, 3, 1> &v)
 {
@@ -13,11 +14,14 @@ Eigen::Matrix<T, 3, 3> hat(const Eigen::Matrix<T, 3, 1> &v)
     return skew_sym_mat;
 }
 
-// Hat (skew) operator
-template <typename T>
-inline Eigen::Matrix<T, 3, 3> skew_sym_mat(const Eigen::Matrix<T, 3, 1> &vec)
+template <typename Derived>
+Eigen::Matrix<typename Derived::Scalar, 3, 3> hat(const Eigen::MatrixBase<Derived> &q)
 {
-    return hat(vec);
+    Eigen::Matrix<typename Derived::Scalar, 3, 3> ans;
+    ans << typename Derived::Scalar(0), -q(2), q(1),
+        q(2), typename Derived::Scalar(0), -q(0),
+        -q(1), q(0), typename Derived::Scalar(0);
+    return ans;
 }
 
 template <typename T>
@@ -158,7 +162,7 @@ static Eigen::Matrix<typename Derived::Scalar, 4, 4> Qleft(const Eigen::Quaterni
     ans(0, 0) = q.w();
     ans.template block<1, 3>(0, 1) = -q.vec().transpose();
     ans.template block<3, 1>(1, 0) = q.vec();
-    ans.template block<3, 3>(1, 1) = q.w() * Eigen::Matrix<typename Derived::Scalar, 3, 3>::Identity() + skewSymmetric(q.vec());
+    ans.template block<3, 3>(1, 1) = q.w() * Eigen::Matrix<typename Derived::Scalar, 3, 3>::Identity() + hat(q.vec());
     return ans;
 }
 
@@ -169,7 +173,7 @@ static Eigen::Matrix<typename Derived::Scalar, 4, 4> Qright(const Eigen::Quatern
     ans(0, 0) = p.w();
     ans.template block<1, 3>(0, 1) = -p.vec().transpose();
     ans.template block<3, 1>(1, 0) = p.vec();
-    ans.template block<3, 3>(1, 1) = p.w() * Eigen::Matrix<typename Derived::Scalar, 3, 3>::Identity() - skewSymmetric(p.vec());
+    ans.template block<3, 3>(1, 1) = p.w() * Eigen::Matrix<typename Derived::Scalar, 3, 3>::Identity() - hat(p.vec());
     return ans;
 }
 
