@@ -41,6 +41,7 @@ mapping:
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1
 
+    loop_closure_interval: 300
     loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 10
@@ -57,8 +58,8 @@ mapping:
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-    extrinsic_T: [ -0.00665, 0, -1.51277 ]
     # lidar -> imu
+    extrinsic_T: [ -0.00665, 0, -1.51277 ]
     extrinsic_R: [ 1, 0, 0, 
                    0, -1, 0, 
                    0, 0, -1 ]
