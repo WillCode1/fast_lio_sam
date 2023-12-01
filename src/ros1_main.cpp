@@ -365,6 +365,20 @@ int main(int argc, char **argv)
         if (!slam.frontend->sync_sensor_data())
             continue;
 
+        if (slam.map_update_mode && !slam.system_state_vaild)
+        {
+            if (!slam.run_relocalization_thread)
+            {
+                if (slam.relocalization_thread.joinable())
+                    slam.relocalization_thread.join();
+
+                PointCloudType::Ptr cur_scan(new PointCloudType);
+                *cur_scan = *slam.frontend->measures->lidar;
+                slam.relocalization_thread = std::thread(&System::run_relocalization, &slam, cur_scan);
+            }
+            continue;
+        }
+
         if (slam.run())
         {
             const auto &state = slam.frontend->get_state();

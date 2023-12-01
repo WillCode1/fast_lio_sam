@@ -8,7 +8,6 @@
 #include "utility/manually_correct_loop_closure.h"
 #include "global_localization/scancontext/Scancontext.h"
 
-
 class LoopClosure
 {
 public:
@@ -133,8 +132,8 @@ public:
 
     void detect_loop_by_distance(const deque<PointCloudType::Ptr> &keyframe_scan, const double &lidar_end_time)
     {
-        int latest_id = copy_keyframe_pose6d->size() - 1;   // 当前关键帧索引
-        int closest_id = -1;                                // 最近关键帧索引
+        int latest_id = copy_keyframe_pose6d->size() - 1; // 当前关键帧索引
+        int closest_id = -1;                              // 最近关键帧索引
 
         // 当前帧已经添加过闭环对应关系，不再继续添加
         auto it = loop_constraint_records.find(latest_id);
@@ -170,7 +169,7 @@ public:
         float sc_yaw_rad = detectResult.second; // sc2右移 <=> lidar左转 <=> 左+sc_yaw_rad
 
         if (loop_key_ref == -1)
-          return;
+            return;
 
         const auto &pose_ref = copy_keyframe_pose6d->points[loop_key_ref];
         Eigen::Matrix4f pose_ref_mat = EigenMath::CreateAffineMatrix(V3D(pose_ref.x, pose_ref.y, pose_ref.z), V3D(pose_ref.roll, pose_ref.pitch, pose_ref.yaw + sc_yaw_rad)).cast<float>();

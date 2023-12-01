@@ -7,9 +7,9 @@
 #include "frontend/FastlioOdometry.hpp"
 #include "frontend/PointlioOdometry.hpp"
 #include "FactorGraphOptimization.hpp"
-#include "LoopClosure.hpp"
-#include "Relocalization.hpp"
 #include "utility/Header.h"
+#include "Relocalization.hpp"
+#include "LoopClosure.hpp"
 
 class System
 {
@@ -108,22 +108,6 @@ public:
 
     bool run()
     {
-        /*** relocalization for localization mode ***/
-        if (map_update_mode && !system_state_vaild)
-        {
-            Eigen::Matrix4d imu_pose;
-            if (relocalization->run(frontend->measures->lidar, imu_pose))
-            {
-                frontend->reset_state(imu_pose);
-                system_state_vaild = true;
-            }
-            else
-            {
-                system_state_vaild = false;
-                return system_state_vaild;
-            }
-        }
-
         /*** frontend ***/
         if (!frontend->run(map_update_mode, feats_undistort))
         {
@@ -146,7 +130,7 @@ public:
             keyframe_scan->push_back(this_keyframe);
             pcl::copyPointCloud(*frontend->feats_down_lidar, *this_keyframe);
             keyframe_downsample->push_back(this_keyframe);
-            relocalization->add_scancontext_descriptor(this_keyframe, scd_path);
+            relocalization->add_keyframe_descriptor(this_keyframe, scd_path);
 
             if (save_keyframe_en)
                 save_keyframe(keyframe_scan->size());
@@ -274,6 +258,27 @@ public:
         return globalMapKeyFramesDS;
     }
 
+    bool run_relocalization(PointCloudType::Ptr scan)
+    {
+        run_relocalization_thread = true;
+        if (map_update_mode && !system_state_vaild)
+        {
+            Eigen::Matrix4d imu_pose;
+            if (relocalization->run(scan, imu_pose))
+            {
+                frontend->reset_state(imu_pose);
+                system_state_vaild = true;
+            }
+            else
+            {
+                system_state_vaild = false;
+                return system_state_vaild;
+            }
+        }
+        run_relocalization_thread = false;
+        return system_state_vaild;
+    }
+
 private:
     void save_keyframe(int keyframe_cnt, int num_digits = 6)
     {
@@ -304,6 +309,8 @@ public:
     bool system_state_vaild = false; // true: system ok
     bool map_update_mode = false;  // true: localization, false: slam
     bool loop_closure_enable_flag = false;
+    bool run_relocalization_thread = false;
+    std::thread relocalization_thread;
 
     /*** sensor data processor ***/
     shared_ptr<GnssProcessor> gnss;
