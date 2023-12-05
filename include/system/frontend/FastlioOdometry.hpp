@@ -11,7 +11,7 @@
 #include "LidarProcessor.hpp"
 #include "utility/Header.h"
 
-// #define Z_Constraint
+#define Z_Constraint
 
 class FastlioOdometry
 {
