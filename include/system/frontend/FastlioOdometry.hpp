@@ -80,7 +80,7 @@ public:
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
 
             auto tmp = EigenMath::Quaternion2RPY(rpy_init);
-            LOG_WARN("gravity_align: align rpy = (%f, %f, %f), the final gravity = (%f, %f, %f)!",
+            LOG_WARN("gravity_align: align rpy = (%.3f, %.3f, %.3f), the final gravity = (%.3f, %.3f, %.3f)!",
                      RAD2DEG(tmp.x()), RAD2DEG(tmp.y()), RAD2DEG(tmp.z()), state.grav.vec.x(), state.grav.vec.y(), state.grav.vec.z());
 
             state.rot.normalize();
