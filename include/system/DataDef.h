@@ -6,7 +6,6 @@
 #include "utility/Header.h"
 #include "frontend/use-ikfom.hpp"
 
-
 struct ImuState
 {
     ImuState(const double &time = 0, const V3D &a = ZERO3D, const V3D &g = ZERO3D,
@@ -176,7 +175,7 @@ public:
     {
         const auto &xyz = state.pos;
         const auto &rpy = EigenMath::Quaternion2RPY(state.rot);
-        LOG_INFO("%s, xyz, rpy: (%.5f, %.5f, %.5f, %.5f, %.5f, %.5f)", print.c_str(), xyz(0), xyz(1), xyz(2), RAD2DEG(rpy(0)), RAD2DEG(rpy(1)), RAD2DEG(rpy(2)));
+        LOG_INFO("%s (xyz, rpy): (%.5f, %.5f, %.5f, %.5f, %.5f, %.5f)", print.c_str(), xyz(0), xyz(1), xyz(2), RAD2DEG(rpy(0)), RAD2DEG(rpy(1)), RAD2DEG(rpy(2)));
     }
 
     template <typename ikfom_state>
@@ -273,9 +272,6 @@ public:
 
     void resetTimer()
     {
-        if (!runtime_log)
-            return;
-
         timer.restart();
 
         imu_process_time = 0;
@@ -342,7 +338,7 @@ public:
     }
 
     // 0 : not, 1 : TUM
-    static void save_trajectory(FILE *fp, const V3D &pos, const Quaterniond &quat, const double &time, int save_traj_fmt = 1)
+    static void save_trajectory(FILE *fp, const V3D &pos, const QD &quat, const double &time, int save_traj_fmt = 1)
     {
         if (save_traj_fmt == 1)
         {

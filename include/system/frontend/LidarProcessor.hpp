@@ -85,10 +85,11 @@ public:
   void oust64_handler(const pcl::PointCloud<ouster_ros::Point> &pl_orig, PointCloudType::Ptr &pcl_out);
   void velodyne_handler(const pcl::PointCloud<velodyne_ros::Point> &pl_orig, PointCloudType::Ptr &pcl_out);
 
+  int scan_rate;
   double blind, detect_range;
 
 private:
-  int n_scans, scan_rate, time_unit;
+  int n_scans, time_unit;
 
   bool given_offset_time;
   float time_unit_scale;

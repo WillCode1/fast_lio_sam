@@ -1,6 +1,5 @@
 #include "ImuProcessor.h"
 
-
 ImuProcessor::ImuProcessor()
     : b_first_frame_(true), imu_need_init_(true)
 {
@@ -71,12 +70,12 @@ void ImuProcessor::IMU_init(const MeasureCollection &meas, int &N)
 void ImuProcessor::UndistortPcl(const MeasureCollection &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudType &pcl_out)
 {
   /*** add the imu of the last frame-tail to the of current frame-head ***/
-  auto v_imu = meas.imu;                                            // 拿到当前的imu数据
-  v_imu.push_front(last_imu_);                                      // 将上一帧最后尾部的imu添加到当前帧头部的imu
-  const double &imu_beg_time = v_imu.front()->timestamp;            // 拿到当前帧头部的imu的时间（也就是上一帧尾部的imu时间戳）
-  const double &imu_end_time = v_imu.back()->timestamp;             // 拿到当前帧尾部的imu的时间
-  const double &pcl_beg_time = meas.lidar_beg_time;                 // 当前帧pcl的开始时间
-  const double &pcl_end_time = meas.lidar_end_time;                 // 当前帧pcl的结束时间
+  auto v_imu = meas.imu;                                 // 拿到当前的imu数据
+  v_imu.push_front(last_imu_);                           // 将上一帧最后尾部的imu添加到当前帧头部的imu
+  const double &imu_beg_time = v_imu.front()->timestamp; // 拿到当前帧头部的imu的时间（也就是上一帧尾部的imu时间戳）
+  const double &imu_end_time = v_imu.back()->timestamp;  // 拿到当前帧尾部的imu的时间
+  const double &pcl_beg_time = meas.lidar_beg_time;      // 当前帧pcl的开始时间
+  const double &pcl_end_time = meas.lidar_end_time;      // 当前帧pcl的结束时间
 
   /*** sort point clouds by offset time ***/
   pcl_out = *(meas.lidar);
@@ -131,7 +130,7 @@ void ImuProcessor::UndistortPcl(const MeasureCollection &meas, esekfom::esekf<st
     imu_state = kf_state.get_x();
     angvel_last = angvel_avr - imu_state.bg;                                    // 角速度 - 预测的角速度bias
     acc_s_last = imu_state.rot * (acc_avr - imu_state.ba) + imu_state.grav.vec; // 加速度 - 预测的加速度bias,并转到世界坐标系下
-    double &&offs_t = tail->timestamp - pcl_beg_time; // 后一个IMU时刻距离此次雷达开始的时间间隔
+    double &&offs_t = tail->timestamp - pcl_beg_time;                           // 后一个IMU时刻距离此次雷达开始的时间间隔
     imu_states.emplace_back(offs_t, acc_s_last, angvel_last, imu_state.vel, imu_state.pos, imu_state.rot.toRotationMatrix());
   }
 

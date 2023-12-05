@@ -272,7 +272,6 @@ public:
             else
             {
                 system_state_vaild = false;
-                return system_state_vaild;
             }
         }
         run_relocalization_thread = false;
