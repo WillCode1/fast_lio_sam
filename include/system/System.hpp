@@ -269,10 +269,6 @@ public:
                 frontend->reset_state(imu_pose);
                 system_state_vaild = true;
             }
-            else
-            {
-                system_state_vaild = false;
-            }
         }
         run_relocalization_thread = false;
         return system_state_vaild;
