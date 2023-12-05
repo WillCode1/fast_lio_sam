@@ -11,7 +11,7 @@
 #include "LidarProcessor.hpp"
 #include "utility/Header.h"
 
-// #define Z_Constraint
+#define Z_Constraint
 
 class FastlioOdometry
 {
@@ -79,8 +79,9 @@ public:
             state.rot = rpy_init;
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
 
-            std::cout << EigenMath::Quaternion2RPY(rpy_init).transpose() << std::endl;
-            std::cout << state.grav << std::endl;
+            auto tmp = EigenMath::Quaternion2RPY(rpy_init);
+            LOG_WARN("gravity_align: align rpy = (%f, %f, %f), the final gravity = (%f, %f, %f)!",
+                     tmp.x(), tmp.y(), tmp.z(), state.grav.vec.x(), state.grav.vec.y(), state.grav.vec.z());
 
             state.rot.normalize();
         }
