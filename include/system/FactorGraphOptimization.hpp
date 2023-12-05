@@ -48,7 +48,7 @@ public:
         M3D lidar_rot = cur_state.rot.toRotationMatrix() * cur_state.offset_R_L_I;
         V3D lidar_pos = cur_state.rot * cur_state.offset_T_L_I + cur_state.pos;
 
-        Eigen::Vector3d eulerAngle = EigenMath::RotationMatrix2RPY2(lidar_rot);
+        Eigen::Vector3d eulerAngle = EigenMath::RotationMatrix2RPY(lidar_rot);
         this_pose6d.x = lidar_pos(0); // x
         this_pose6d.y = lidar_pos(1); // y
         this_pose6d.z = lidar_pos(2); // z
