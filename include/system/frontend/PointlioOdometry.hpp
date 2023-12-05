@@ -78,9 +78,10 @@ public:
             LOG_WARN_COND(std::abs(mean_acc.x()) > 0.1 || std::abs(mean_acc.y()) > 0.1,
                           "The direction of gravity is not vertical (%f, %f, %f), and the map coordinate system is tilted.", -mean_acc.x(), -mean_acc.y(), -mean_acc.z());
             std::cout << state_in.gravity << std::endl;
-            if (map_rotate)
+            if (gravity_align)
             {
-                state_in.rot = EigenMath::RPY2Quaternion(rpy_init);
+                imu->get_imu_init_rot(preset_gravity, state_in.gravity, rpy_init);
+                state_in.rot = rpy_init;
                 state_in.gravity = state_in.rot * state_in.gravity;
                 state_in.rot.normalize();
                 gravity_init = state_out.gravity = state_in.gravity;
@@ -92,8 +93,7 @@ public:
         }
         else
         {
-            state_in.gravity = EigenMath::RPY2Quaternion(rpy_init) * state_in.gravity;
-            state_out.gravity = state_in.gravity;
+            state_out.gravity = state_in.gravity = -G_m_s2 * V3D::UnitZ();
             state_out.acc = -state_out.gravity;
         }
 

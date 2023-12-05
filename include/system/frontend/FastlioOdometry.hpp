@@ -72,13 +72,16 @@ public:
          */
         const auto &mean_acc = imu->mean_acc;
         state.grav = S2(-mean_acc / mean_acc.norm() * G_m_s2);
-        LOG_WARN_COND(std::abs(mean_acc.x()) > 0.1 || std::abs(mean_acc.y()) > 0.1,
-                      "The direction of gravity is not vertical (%f, %f, %f), and the map coordinate system is tilted.", -mean_acc.x(), -mean_acc.y(), -mean_acc.z());
-        std::cout << state.grav << std::endl;
-        if (map_rotate)
+
+        if (gravity_align)
         {
-            state.rot = EigenMath::RPY2Quaternion(rpy_init);
+            imu->get_imu_init_rot(preset_gravity, state.grav.vec, rpy_init);
+            state.rot = rpy_init;
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
+
+            std::cout << EigenMath::Quaternion2RPY(rpy_init).transpose() << std::endl;
+            std::cout << state.grav << std::endl;
+
             state.rot.normalize();
         }
 
@@ -230,7 +233,7 @@ public:
         loger.feats_undistort_size = feats_undistort->points.size();
 
 #ifdef Z_Constraint
-        lidar_rot_meas = EigenMath::Quaternion2RPY(EigenMath::RPY2Quaternion(rpy_init) * imu_orientation * state.offset_R_L_I);
+        lidar_rot_meas = EigenMath::Quaternion2RPY(rpy_init * imu_orientation * state.offset_R_L_I);
         add_ground_constraint = RAD2DEG(lidar_rot_meas(0)) < 1 && RAD2DEG(lidar_rot_meas(1)) < 1;
 
         static bool imu_orientation_init = false;
@@ -238,7 +241,7 @@ public:
         if (!imu_orientation_init)
         {
             imu_orientation_init = true;
-            last_imu_orientation = EigenMath::RPY2Quaternion(rpy_init) * imu_orientation;
+            last_imu_orientation = rpy_init * imu_orientation;
         }
 #endif
         /*** interval sample and downsample the feature points in a scan ***/
@@ -289,14 +292,15 @@ public:
         loger.meas_update_time = loger.timer.elapsedLast();
         loger.dump_state_to_log(loger.fout_update, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
 
+        // TODO: use ekf
 #ifdef Z_Constraint
 #if 1
         // auto lidar_rot_iekf = EigenMath::Quaternion2RPY(state.rot * state.offset_R_L_I);
         // printf("rpy_meas = (%.5f, %.5f), rpy_iekf = (%.3f, %.3f)\n", RAD2DEG(lidar_rot_meas(0)), RAD2DEG(lidar_rot_meas(1)), RAD2DEG(lidar_rot_iekf(0)), RAD2DEG(lidar_rot_iekf(1)));
 
         // 1.约束delta_z = 0
-        auto imu_orientation_incre = last_imu_orientation.inverse() * EigenMath::RPY2Quaternion(rpy_init) * imu_orientation;
-        last_imu_orientation = EigenMath::RPY2Quaternion(rpy_init) * imu_orientation;
+        auto imu_orientation_incre = last_imu_orientation.inverse() * rpy_init * imu_orientation;
+        last_imu_orientation = rpy_init * imu_orientation;
 
         auto rpy_imu_fixed = EigenMath::Quaternion2RPY(last_state.rot * imu_orientation_incre);
         auto imu_state = EigenMath::Quaternion2RPY(state.rot);
@@ -653,8 +657,9 @@ protected:
 public:
     bool extrinsic_est_en = false;
     /*** for gravity align ***/
-    bool map_rotate = true;
-    V3D rpy_init;
+    bool gravity_align = true;
+    QD rpy_init;
+    V3D preset_gravity;
 
     /*** backup for relocalization reset ***/
     V3D offset_Tli;
