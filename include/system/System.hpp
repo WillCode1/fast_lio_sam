@@ -248,10 +248,7 @@ public:
             *globalMapKeyFrames += *pointcloudKeyframeToWorld((*keyframe_downsample)[thisKeyInd], keyframe_pose->points[thisKeyInd]);
         }
         // downsample key frames
-        pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames;
-        downSizeFilterGlobalMapKeyFrames.setLeafSize(globalMapVisualizationLeafSize, globalMapVisualizationLeafSize, globalMapVisualizationLeafSize);
-        downSizeFilterGlobalMapKeyFrames.setInputCloud(globalMapKeyFrames);
-        downSizeFilterGlobalMapKeyFrames.filter(*globalMapKeyFramesDS);
+        octreeDownsampling(globalMapKeyFrames, globalMapKeyFramesDS, globalMapVisualizationLeafSize);
         return globalMapKeyFramesDS;
     }
 
