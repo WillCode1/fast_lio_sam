@@ -45,9 +45,7 @@ public:
         if (near_keyframes->empty())
             return;
 
-        icp_downsamp_filter.setLeafSize(icp_downsamp_size, icp_downsamp_size, icp_downsamp_size);
-        icp_downsamp_filter.setInputCloud(near_keyframes);
-        icp_downsamp_filter.filter(*near_keyframes);
+        octreeDownsampling(near_keyframes, near_keyframes, icp_downsamp_size);
     }
 
     void perform_loop_closure(const deque<PointCloudType::Ptr> &keyframe_scan, int loop_key_cur, int loop_key_ref,
@@ -242,7 +240,6 @@ public:
     int keyframe_search_num = 20;
     float loop_closure_fitness_score_thld = 0.05;
     float icp_downsamp_size = 0.1;
-    pcl::VoxelGrid<PointType> icp_downsamp_filter;
 
     pcl::PointCloud<PointXYZIRPYT>::Ptr copy_keyframe_pose6d;
     pcl::KdTreeFLANN<PointXYZIRPYT>::Ptr kdtree_history_keyframe_pose;

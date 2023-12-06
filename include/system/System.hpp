@@ -168,10 +168,7 @@ public:
         else
             LOG_ERROR("no keyframe_num matched, when save global map!");
 
-        pcl::VoxelGrid<pcl::PointXYZINormal> filter;
-        filter.setLeafSize(save_resolution, save_resolution, save_resolution);
-        filter.setInputCloud(pcl_map_full);
-        filter.filter(*pcl_map_full);
+        octreeDownsampling(pcl_map_full, pcl_map_full, save_resolution);
 
         pcl::PCDWriter pcd_writer;
         pcd_writer.writeBinary(globalmap_path, *pcl_map_full);

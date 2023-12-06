@@ -250,16 +250,13 @@ private:
         {
             PointCloudType::Ptr submap_keyframes(new PointCloudType());
             PointCloudType::Ptr submap_keyframesDS(new PointCloudType());
-            pcl::VoxelGrid<PointType> downsize_filter_submap;
 
             int key_poses_num = keyframe_pose6d_optimized->size();
             for (int i = std::max(0, key_poses_num - ikdtree_reconstruct_keyframe_num); i < key_poses_num; ++i)
             {
                 *submap_keyframes += *pointcloudKeyframeToWorld((*keyframe_scan)[i], keyframe_pose6d_optimized->points[i]);
             }
-            downsize_filter_submap.setLeafSize(ikdtree_reconstruct_downsamp_size, ikdtree_reconstruct_downsamp_size, ikdtree_reconstruct_downsamp_size);
-            downsize_filter_submap.setInputCloud(submap_keyframes);
-            downsize_filter_submap.filter(*submap_keyframesDS);
+            octreeDownsampling(submap_keyframes, submap_keyframesDS, ikdtree_reconstruct_downsamp_size);
 
             ikdtree.reconstruct(submap_keyframesDS->points);
         }

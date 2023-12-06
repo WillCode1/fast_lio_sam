@@ -8,6 +8,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/common/distances.h>
 #include <pcl/common/eigen.h>
+#include <pcl/octree/octree_pointcloud_voxelcentroid.h>
 #include <gtsam/geometry/Pose3.h>
 #include "ikd-Tree/ikd_Tree.h"
 
@@ -111,6 +112,20 @@ inline gtsam::Pose3 pclPointTogtsamPose3(const PointXYZIRPYT &thisPoint)
 inline Eigen::Affine3f pclPointToAffine3f(const PointXYZIRPYT &thisPoint)
 {
     return pcl::getTransformation(thisPoint.x, thisPoint.y, thisPoint.z, thisPoint.roll, thisPoint.pitch, thisPoint.yaw);
+}
+
+inline void octreeDownsampling(const pcl::PointCloud<PointType>::Ptr &src, pcl::PointCloud<PointType>::Ptr &map_ds, const double &save_resolution)
+{
+    pcl::octree::OctreePointCloudVoxelCentroid<PointType> octree(save_resolution);
+    octree.setInputCloud(src);
+    octree.defineBoundingBox();
+    octree.addPointsFromInputCloud();
+    pcl::octree::OctreePointCloudVoxelCentroid<PointType>::AlignedPointTVector centroids;
+    octree.getVoxelCentroids(centroids);
+
+    map_ds->points.assign(centroids.begin(), centroids.end());
+    map_ds->width = 1;
+    map_ds->height = map_ds->points.size();
 }
 
 inline const bool compare_timestamp(PointType &x, PointType &y) { return (x.curvature < y.curvature); };
