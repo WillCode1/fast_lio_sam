@@ -78,8 +78,7 @@ public:
 
             if (gravity_align)
             {
-                imu->get_imu_init_rot(preset_gravity, state_in.gravity, rpy_init);
-                state_in.rot = rpy_init;
+                imu->get_imu_init_rot(preset_gravity, state_in.gravity, state_in.rot);
                 state_in.rot.normalize();
                 state_in.gravity = state_in.rot * state_in.gravity;
                 gravity_init = state_out.gravity = state_in.gravity;

@@ -160,6 +160,11 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     slam.frontend->gravity_align = config["mapping"]["gravity_align"].IsDefined() ? config["mapping"]["gravity_align"].as<bool>() : true;
     auto gravity_init = config["mapping"]["gravity_init"].IsDefined() ? config["mapping"]["gravity_init"].as<vector<double>>() : vector<double>();
     slam.frontend->preset_gravity << VEC_FROM_ARRAY(gravity_init);
+    auto eular_init = config["mapping"]["eular_init"].IsDefined() ? config["mapping"]["eular_init"].as<vector<double>>() : vector<double>();
+    V3D rpy_init;
+    rpy_init << VEC_FROM_ARRAY(eular_init);
+    rpy_init *= M_PI / 180;
+    slam.frontend->imu_init_rot = EigenMath::RPY2Quaternion(rpy_init);
 
     slam.frontend->num_max_iterations = config["mapping"]["max_iteration"].IsDefined() ? config["mapping"]["max_iteration"].as<int>() : 4;
     slam.frontend->surf_frame_ds_res = config["mapping"]["surf_frame_ds_res"].IsDefined() ? config["mapping"]["surf_frame_ds_res"].as<double>() : 0.5;

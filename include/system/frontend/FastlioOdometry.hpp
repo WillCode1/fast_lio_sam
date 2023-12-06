@@ -75,11 +75,10 @@ public:
 
         if (gravity_align)
         {
-            imu->get_imu_init_rot(preset_gravity, state.grav.vec, rpy_init);
-            state.rot = rpy_init;
+            imu->get_imu_init_rot(preset_gravity, state.grav.vec, state.rot);
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
 
-            auto tmp = EigenMath::Quaternion2RPY(rpy_init);
+            auto tmp = EigenMath::Quaternion2RPY(state.rot);
             LOG_WARN("gravity_align: align rpy = (%.3f, %.3f, %.3f), the final gravity = (%.3f, %.3f, %.3f)!",
                      RAD2DEG(tmp.x()), RAD2DEG(tmp.y()), RAD2DEG(tmp.z()), state.grav.vec.x(), state.grav.vec.y(), state.grav.vec.z());
 
@@ -234,7 +233,9 @@ public:
         loger.feats_undistort_size = feats_undistort->points.size();
 
 #ifdef Z_Constraint
-        lidar_rot_meas = EigenMath::Quaternion2RPY(rpy_init * imu_orientation * state.offset_R_L_I);
+        // 1.假定雷达位置相对地面是平行的，当雷达水平时，添加地面约束
+        // 2.依靠imu的测量角(经过重力矫正，并且加上imu_init_rot的姿态翻转)的增量，约束真实的角度增量
+        lidar_rot_meas = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation * state.offset_R_L_I);
         add_ground_constraint = RAD2DEG(lidar_rot_meas(0)) < 1 && RAD2DEG(lidar_rot_meas(1)) < 1;
 
         static bool imu_orientation_init = false;
@@ -242,7 +243,7 @@ public:
         if (!imu_orientation_init)
         {
             imu_orientation_init = true;
-            last_imu_orientation = rpy_init * imu_orientation;
+            last_imu_orientation = imu_init_rot * imu_orientation;
         }
 #endif
         /*** interval sample and downsample the feature points in a scan ***/
@@ -300,8 +301,8 @@ public:
         // printf("rpy_meas = (%.5f, %.5f), rpy_iekf = (%.3f, %.3f)\n", RAD2DEG(lidar_rot_meas(0)), RAD2DEG(lidar_rot_meas(1)), RAD2DEG(lidar_rot_iekf(0)), RAD2DEG(lidar_rot_iekf(1)));
 
         // 1.约束delta_z = 0
-        auto imu_orientation_incre = last_imu_orientation.inverse() * rpy_init * imu_orientation;
-        last_imu_orientation = rpy_init * imu_orientation;
+        auto imu_orientation_incre = last_imu_orientation.inverse() * imu_init_rot * imu_orientation;
+        last_imu_orientation = imu_init_rot * imu_orientation;
 
         auto rpy_imu_fixed = EigenMath::Quaternion2RPY(last_state.rot * imu_orientation_incre);
         auto imu_state = EigenMath::Quaternion2RPY(state.rot);
@@ -659,8 +660,8 @@ public:
     bool extrinsic_est_en = false;
     /*** for gravity align ***/
     bool gravity_align = true;
-    QD rpy_init;
     V3D preset_gravity;
+    QD imu_init_rot;
 
     /*** backup for relocalization reset ***/
     V3D offset_Tli;
