@@ -76,13 +76,12 @@ public:
         if (gravity_align)
         {
             imu->get_imu_init_rot(preset_gravity, state.grav.vec, state.rot);
+            state.rot.normalize();
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
 
             auto tmp = EigenMath::Quaternion2RPY(state.rot);
             LOG_WARN("gravity_align: align rpy = (%.3f, %.3f, %.3f), the final gravity = (%.3f, %.3f, %.3f)!",
                      RAD2DEG(tmp.x()), RAD2DEG(tmp.y()), RAD2DEG(tmp.z()), state.grav.vec.x(), state.grav.vec.y(), state.grav.vec.z());
-
-            state.rot.normalize();
         }
 
         state.bg = imu->mean_gyr; // 静止初始化, 使用角速度测量作为陀螺仪偏差
