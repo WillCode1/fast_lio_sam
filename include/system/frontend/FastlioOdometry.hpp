@@ -11,7 +11,7 @@
 #include "LidarProcessor.hpp"
 #include "utility/Header.h"
 
-// #define Z_Constraint
+#define Z_Constraint
 
 class FastlioOdometry
 {
@@ -235,7 +235,7 @@ public:
         // 1.假定雷达位置相对地面是平行的，当雷达水平时，添加地面约束
         // 2.依靠imu的测量角(经过重力矫正，并且加上imu_init_rot的姿态翻转)的增量，约束真实的角度增量
         lidar_rot_meas = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation * state.offset_R_L_I);
-        add_ground_constraint = RAD2DEG(lidar_rot_meas(0)) < 1 && RAD2DEG(lidar_rot_meas(1)) < 1;
+        add_ground_constraint = RAD2DEG(std::abs(lidar_rot_meas(0))) < 1 && RAD2DEG(std::abs(lidar_rot_meas(1))) < 1;
 
         static bool imu_orientation_init = false;
         static QD last_imu_orientation = QD::Identity();
