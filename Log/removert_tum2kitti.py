@@ -2,7 +2,7 @@ import numpy as np
 from transforms3d.quaternions import quat2mat
 
 input_file = "Log/keyframe_pose_optimized.txt"
-output_file = "Log/keyframe_pose_removert.txt"
+output_file = "PCD/keyframe_pose_removert.txt"
 
 
 def pose7d_to_matrix(x, y, z, qw, qx, qy, qz):

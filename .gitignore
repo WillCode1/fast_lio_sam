@@ -7,3 +7,4 @@ Log/*.pdf
 .vscode/settings.json
 *.pcd
 *.scd
+PCD/*.txt
