@@ -293,6 +293,7 @@ public:
         if (ground_constraint_enable)
         {
 #if 1
+            // convert to imu frame
             auto rpy_imu_fixed = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation);
             auto imu_state = EigenMath::Quaternion2RPY(state.rot);
             state.rot = EigenMath::RPY2Quaternion(V3D(rpy_imu_fixed(0), rpy_imu_fixed(1), imu_state(2)));
