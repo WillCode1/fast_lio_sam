@@ -232,7 +232,6 @@ public:
         loger.feats_undistort_size = feats_undistort->points.size();
 
 #ifdef Z_Constraint
-        static QD last_imu_orientation = QD::Identity();
         V3D lidar_rot_meas;
         if (ground_constraint_enable)
         {
@@ -240,13 +239,6 @@ public:
             // 2.依靠imu的测量角(经过重力矫正，并且加上imu_init_rot的姿态翻转)的增量，约束真实的角度增量
             lidar_rot_meas = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation * state.offset_R_L_I);
             add_ground_constraint = RAD2DEG(std::abs(lidar_rot_meas(0))) < 1 && RAD2DEG(std::abs(lidar_rot_meas(1))) < 1;
-
-            static bool imu_orientation_init = false;
-            if (!imu_orientation_init)
-            {
-                imu_orientation_init = true;
-                last_imu_orientation = imu_init_rot * imu_orientation;
-            }
         }
 #endif
         /*** interval sample and downsample the feature points in a scan ***/
@@ -298,33 +290,26 @@ public:
         loger.dump_state_to_log(loger.fout_update, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
 
 #ifdef Z_Constraint
-#if 1
         // TODO: use ekf
         if (ground_constraint_enable)
         {
-            // auto lidar_rot_iekf = EigenMath::Quaternion2RPY(state.rot * state.offset_R_L_I);
-            // printf("rpy_meas = (%.5f, %.5f), rpy_iekf = (%.3f, %.3f)\n", RAD2DEG(lidar_rot_meas(0)), RAD2DEG(lidar_rot_meas(1)), RAD2DEG(lidar_rot_iekf(0)), RAD2DEG(lidar_rot_iekf(1)));
-
-            // 1.约束delta_z = 0
-            auto imu_orientation_incre = last_imu_orientation.inverse() * imu_init_rot * imu_orientation;
-            last_imu_orientation = imu_init_rot * imu_orientation;
-
-            auto rpy_imu_fixed = EigenMath::Quaternion2RPY(last_state.rot * imu_orientation_incre);
+#if 1
+            auto rpy_imu_fixed = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation);
             auto imu_state = EigenMath::Quaternion2RPY(state.rot);
             state.rot = EigenMath::RPY2Quaternion(V3D(rpy_imu_fixed(0), rpy_imu_fixed(1), imu_state(2)));
             if (add_ground_constraint)
             {
+                // 1.约束delta_z = 0
                 state.pos.z() = last_state.pos.z();
                 // state.rot = EigenMath::RPY2Quaternion(V3D(0, 0, imu_state(2)));
-            }
-            kf.change_x(state);
 #else
-            // 2.约束delta_z和pitch = 0
-            state.pos.z() = 0;
-            auto rpy = EigenMath::Quaternion2RPY(state.rot);
-            state.rot = EigenMath::RPY2Quaternion(V3D(rpy(0), 0, rpy(2)));
-            kf.change_x(state);
+                // 2.约束delta_z和pitch = 0
+                state.pos.z() = 0;
+                auto rpy = EigenMath::Quaternion2RPY(state.rot);
+                state.rot = EigenMath::RPY2Quaternion(V3D(rpy(0), 0, rpy(2)));
 #endif
+                kf.change_x(state);
+            }
         }
 #endif
 
