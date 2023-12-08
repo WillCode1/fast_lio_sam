@@ -20,6 +20,9 @@
 #include "system/System.hpp"
 
 
+double globalMapVisualizationSearchRadius = 1000;
+double globalMapVisualizationPoseDensity = 10;
+double globalMapVisualizationLeafSize = 1;
 int lidar_type;
 System slam;
 std::string map_frame;
@@ -287,7 +290,7 @@ void visualize_globalmap_thread(const ros::Publisher &pubGlobalmap)
     while (!flg_exit)
     {
         this_thread::sleep_for(std::chrono::seconds(1));
-        auto submap_visual = slam.get_submap_visual(500, 3, 0.2);
+        auto submap_visual = slam.get_submap_visual(globalMapVisualizationSearchRadius, globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize);
         if (submap_visual == nullptr)
             continue;
         publish_cloud(pubGlobalmap, submap_visual, slam.frontend->lidar_end_time, map_frame);
@@ -321,6 +324,9 @@ int main(int argc, char **argv)
     bool scan_pub_en = false, dense_pub_en = false;
     string lidar_topic, imu_topic, gnss_topic, config_file;
 
+    ros::param::param("globalMapVisualizationSearchRadius", globalMapVisualizationSearchRadius, 1000.);
+    ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
+    ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
     ros::param::param("map_update_mode", map_update_mode, false);
     ros::param::param("config_file", config_file, std::string(""));
 

@@ -15,6 +15,9 @@
 	<!-- <param name="config_file" type="string" value="/config/mapping_imu_backshaft.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/mapping_pointlio.yaml" /> -->
 
+	<param name="globalMapVisualizationSearchRadius" type="double" value="1000" />
+	<param name="globalMapVisualizationPoseDensity" type="double" value="10" />
+	<param name="globalMapVisualizationLeafSize" type="double" value="1" />
 	<param name="map_update_mode" type="bool" value="false" />
     <node pkg="fast_lio_sam" type="fastlio_sam_ros1" name="system" output="screen" /> 
 

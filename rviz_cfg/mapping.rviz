@@ -28,7 +28,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: current_scan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -61,6 +61,10 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        body:
+          Value: true
+        map:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -68,7 +72,9 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          body:
+            {}
       Update Interval: 0
       Value: true
     - Class: rviz/Group
@@ -132,8 +138,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 14.36199951171875
-            Min Value: -31.4199275970459
+            Max Value: 27.549829483032227
+            Min Value: -3.396885395050049
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -149,7 +155,7 @@ Visualization Manager:
           Position Transformer: XYZ
           Queue Size: 1
           Selectable: true
-          Size (Pixels): 1
+          Size (Pixels): 3
           Size (m): 0.009999999776482582
           Style: Points
           Topic: /map_global
@@ -309,7 +315,8 @@ Visualization Manager:
       Marker Topic: /loop_closure_constraints
       Name: MarkerArray
       Namespaces:
-        {}
+        loop_edges: true
+        loop_nodes: true
       Queue Size: 1
       Value: true
     - Alpha: 1
