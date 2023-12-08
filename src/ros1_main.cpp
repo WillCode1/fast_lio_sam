@@ -332,6 +332,7 @@ int main(int argc, char **argv)
 
     load_ros_parameters(string(ROOT_DIR) + config_file, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame);
     load_parameters(slam, string(ROOT_DIR) + config_file, map_update_mode, save_globalmap_en, lidar_type);
+    ros::param::param("ground_constraint_enable", slam.frontend->ground_constraint_enable, false);
 
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lidar_topic, 200000, livox_pcl_cbk) : nh.subscribe(lidar_topic, 200000, standard_pcl_cbk);
