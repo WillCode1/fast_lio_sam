@@ -79,7 +79,6 @@ void ImuProcessor::UndistortPcl(const MeasureCollection &meas, esekfom::esekf<st
 
   /*** sort point clouds by offset time ***/
   pcl_out = *(meas.lidar);
-  sort(pcl_out.points.begin(), pcl_out.points.end(), compare_timestamp);
 
   /*** Initialize IMU pose ***/
   state_ikfom imu_state = kf_state.get_x(); // 获取上一次KF估计的后验状态作为本次IMU预测的初始状态
