@@ -4,6 +4,7 @@
 	<arg name="rviz" default="true" />
 
 	<!-- <param name="config_file" type="string" value="/config/avia.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/mid360.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/horizon.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/velodyne.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/ouster64.yaml" /> -->
