@@ -129,7 +129,7 @@ public:
 
         if (scan->points.size() <= 1)
         {
-            LOG_WARN("Too few input point cloud! size = %ld, droped!", scan->points.size());
+            LOG_WARN("Too few input point cloud! size = %ld, scan droped!", scan->points.size());
             return;
         }
 
