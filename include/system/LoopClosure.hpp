@@ -146,7 +146,7 @@ public:
         for (int i = 0; i < (int)indices.size(); ++i)
         {
             int id = indices[i];
-            if (abs(copy_keyframe_pose6d->points[id].time - lidar_end_time) > loop_closure_search_time_interval)
+            if (abs(id - latest_id) > loop_closure_keyframe_interval)
             {
                 closest_id = id;
                 break;
@@ -236,7 +236,7 @@ public:
     std::mutex loop_mtx;
     int loop_keyframe_num_thld = 50;
     float loop_closure_search_radius = 10;
-    float loop_closure_search_time_interval = 30;
+    int loop_closure_keyframe_interval = 30;
     int keyframe_search_num = 20;
     float loop_closure_fitness_score_thld = 0.05;
     float icp_downsamp_size = 0.1;

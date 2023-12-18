@@ -49,7 +49,7 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     slam.loop_closure_interval = config["mapping"]["loop_closure_interval"].IsDefined() ? config["mapping"]["loop_closure_interval"].as<int>() : 1000;
     slam.loopClosure->loop_keyframe_num_thld = config["mapping"]["loop_keyframe_num_thld"].IsDefined() ? config["mapping"]["loop_keyframe_num_thld"].as<int>() : 50;
     slam.loopClosure->loop_closure_search_radius = config["mapping"]["loop_closure_search_radius"].IsDefined() ? config["mapping"]["loop_closure_search_radius"].as<float>() : 10;
-    slam.loopClosure->loop_closure_search_time_interval = config["mapping"]["loop_closure_search_time_interval"].IsDefined() ? config["mapping"]["loop_closure_search_time_interval"].as<float>() : 30;
+    slam.loopClosure->loop_closure_keyframe_interval = config["mapping"]["loop_closure_keyframe_interval"].IsDefined() ? config["mapping"]["loop_closure_keyframe_interval"].as<int>() : 30;
     slam.loopClosure->keyframe_search_num = config["mapping"]["keyframe_search_num"].IsDefined() ? config["mapping"]["keyframe_search_num"].as<int>() : 20;
     slam.loopClosure->loop_closure_fitness_score_thld = config["mapping"]["loop_closure_fitness_score_thld"].IsDefined() ? config["mapping"]["loop_closure_fitness_score_thld"].as<float>() : 0.05;
     slam.loopClosure->icp_downsamp_size = config["mapping"]["icp_downsamp_size"].IsDefined() ? config["mapping"]["icp_downsamp_size"].as<float>() : 0.1;
