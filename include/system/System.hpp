@@ -7,7 +7,7 @@
 #include "frontend/FastlioOdometry.hpp"
 #include "frontend/PointlioOdometry.hpp"
 #include "FactorGraphOptimization.hpp"
-#include "utility/Header.h"
+#include "system/Header.h"
 #include "Relocalization.hpp"
 #include "LoopClosure.hpp"
 

@@ -10,7 +10,7 @@
 #include "livox_ros_driver/CustomMsg.h"
 #include "system/System.hpp"
 #include "utility/ProgressBar.h"
-#include "utility/Parameters.h"
+#include "system/Parameters.h"
 using namespace std;
 
 bool save_globalmap_en;
