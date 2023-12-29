@@ -30,7 +30,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: current_scan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -63,10 +63,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        body:
-          Value: true
-        map:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -74,9 +70,7 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          body:
-            {}
+        {}
       Update Interval: 0
       Value: true
     - Class: rviz/Group
@@ -375,26 +369,20 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/Orbit
-      Distance: 100
+      Angle: 0
+      Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Field of View: 0.7853981852531433
-      Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
-      Focal Shape Fixed Size: false
-      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7853981852531433
+      Scale: 5
       Target Frame: map
-      Yaw: 0.7853981852531433
+      X: 0
+      Y: 0
     Saved:
       - Angle: 0
         Class: rviz/TopDownOrtho
