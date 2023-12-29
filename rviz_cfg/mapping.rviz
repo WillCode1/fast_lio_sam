@@ -6,8 +6,6 @@ Panels:
       Expanded:
         - /TF1
         - /TF1/Frames1
-        - /TF1/Frames1/body1
-        - /TF1/Frames1/body1/Position1
         - /mapping1
         - /mapping1/total_scan1/Autocompute Value Bounds1
         - /Odometry1
@@ -142,8 +140,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 23.911996841430664
-            Min Value: -2.238842487335205
+            Max Value: 30.610549926757812
+            Min Value: -44.45088577270508
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -319,7 +317,8 @@ Visualization Manager:
       Marker Topic: /loop_closure_constraints
       Name: MarkerArray
       Namespaces:
-        {}
+        loop_edges: true
+        loop_nodes: true
       Queue Size: 1
       Value: true
     - Alpha: 1
@@ -387,11 +386,45 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 4
+      Scale: 5
       Target Frame: map
       X: 0
       Y: 0
-    Saved: ~
+    Saved:
+      - Angle: 0
+        Class: rviz/TopDownOrtho
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Invert Z Axis: false
+        Name: TopDownOrtho
+        Near Clip Distance: 0.009999999776482582
+        Scale: 5
+        Target Frame: map
+        X: 0
+        Y: 0
+      - Class: rviz/Orbit
+        Distance: 100
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 0
+          Y: 0
+          Z: 0
+        Focal Shape Fixed Size: false
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Orbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.7853981852531433
+        Target Frame: body
+        Yaw: 0.7853981852531433
 Window Geometry:
   Displays:
     collapsed: false
