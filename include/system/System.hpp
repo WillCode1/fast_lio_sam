@@ -2,7 +2,6 @@
 #include <omp.h>
 #include <math.h>
 #include <thread>
-#include <pcl/io/pcd_io.h>
 #include "ikd-Tree/ikd_Tree.h"
 #include "frontend/FastlioOdometry.hpp"
 #include "frontend/PointlioOdometry.hpp"
@@ -169,9 +168,7 @@ public:
             LOG_ERROR("no keyframe_num matched, when save global map!");
 
         octreeDownsampling(pcl_map_full, pcl_map_full, save_resolution);
-
-        pcl::PCDWriter pcd_writer;
-        pcd_writer.writeBinary(globalmap_path, *pcl_map_full);
+        savePCDFile(globalmap_path, *pcl_map_full);
         LOG_WARN("Success save global map to %s.", globalmap_path.c_str());
     }
 
@@ -275,9 +272,7 @@ private:
         out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt - 1;
         std::string keyframe_idx = out.str();
         string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
-        pcl::PCDWriter pcd_writer;
-        // cout << "current scan saved to " << keyframe_file << endl;
-        pcd_writer.writeBinary(keyframe_file, *feats_undistort);
+        savePCDFile(keyframe_file, *feats_undistort);
     }
 
     void loopClosureThread()
