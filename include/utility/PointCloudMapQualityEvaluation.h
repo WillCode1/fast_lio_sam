@@ -35,7 +35,7 @@ public:
         *map_cloud = map;
     }
 
-    double CalculateMeanMapEntropyMetrics(const double &searchRadius, int num = 20)
+    double CalculateMeanMapEntropyMetrics(const double &searchRadius, int threads_num = 20)
     {
         kdtree->setInputCloud(map_cloud);
         double mme = 0;
@@ -43,7 +43,7 @@ public:
         Eigen::Vector4d centroid;
         double e = 2.718281828459045;
 
-#pragma omp parallel for num_threads(num)
+#pragma omp parallel for num_threads(threads_num)
         for (auto &point : map_cloud->points)
         {
             std::vector<int> pointSearchInd;
