@@ -55,7 +55,7 @@ public:
 
             pcl::computeMeanAndCovarianceMatrix(*map_cloud, pointSearchInd, covariance, centroid);
             covariance *= 2 * M_PI * e;
-            auto tmp = std::log(covariance.determinant()); // log = ln
+            auto tmp = 0.5 * std::log(covariance.determinant()); // log = ln
 
             if (!isfinite(tmp))
             {
