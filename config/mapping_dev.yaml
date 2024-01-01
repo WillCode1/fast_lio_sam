@@ -83,3 +83,4 @@ official:
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: true
+    save_path: "/home/will/data/test_mapping/mapping1"

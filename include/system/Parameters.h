@@ -70,6 +70,14 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     save_globalmap_en = config["official"]["save_globalmap_en"].IsDefined() ? config["official"]["save_globalmap_en"].as<bool>() : true;
     slam.save_keyframe_en = config["official"]["save_keyframe_en"].IsDefined() ? config["official"]["save_keyframe_en"].as<bool>() : true;
     slam.save_resolution = config["official"]["save_resolution"].IsDefined() ? config["official"]["save_resolution"].as<float>() : 0.1;
+    std::string save_path = config["official"]["save_path"].IsDefined() ? config["official"]["save_path"].as<string>() : std::string("");
+    if (save_path.compare("") != 0)
+    {
+        slam.globalmap_path = save_path + "/globalmap.pcd";
+        slam.trajectory_path = save_path + "/trajectory.pcd";
+        slam.keyframe_path = save_path + "/keyframe/";
+        slam.scd_path = save_path + "/scancontext/";
+    }
 
     slam.relocalization->sc_manager->LIDAR_HEIGHT = config["scan_context"]["lidar_height"].IsDefined() ? config["scan_context"]["lidar_height"].as<double>() : 2.0;
     slam.relocalization->sc_manager->SC_DIST_THRES = config["scan_context"]["sc_dist_thres"].IsDefined() ? config["scan_context"]["sc_dist_thres"].as<double>() : 0.5;
