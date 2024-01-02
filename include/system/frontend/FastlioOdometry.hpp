@@ -292,8 +292,8 @@ public:
                 auto rpy = EigenMath::Quaternion2RPY(state.rot);
                 state.rot = EigenMath::RPY2Quaternion(V3D(rpy(0), 0, rpy(2)));
 #endif
-                kf.change_x(state);
             }
+            kf.change_x(state);
         }
 #endif
 
