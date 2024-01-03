@@ -10,6 +10,7 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/nonlinear/ISAM2.h>
+#include <gtsam/slam/dataset.h>
 
 #include "DataDef.h"
 #include "ikd-Tree/ikd_Tree.h"

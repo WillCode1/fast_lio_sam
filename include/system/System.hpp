@@ -193,11 +193,14 @@ public:
             LogAnalysis::save_trajectory(file_pose_optimized, state_pos, state_rot, pose.time);
         }
         LOG_WARN("Success save global optimized poses to file ...");
-        fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), save_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
 
         pcl::PCDWriter pcd_writer;
         pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
         LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
+
+#if 1
+        fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), save_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
+#endif
     }
 
     PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize)
