@@ -211,6 +211,7 @@ public:
 
     void load_posegraph_fromg2o()
     {
+        // https://blog.csdn.net/weixin_45572737/article/details/128920683
         gtsam::NonlinearFactorGraph::shared_ptr graph;
         gtsam::Values::shared_ptr initial;
         boost::tie(graph, initial) = gtsam::readG2o(map_path + "/graph2g2o.g2o", true);
