@@ -420,6 +420,7 @@ int main(int argc, char **argv)
     }
 
     slam.save_trajectory();
+    slam.save_posegraph2g2o();
 
     if (save_globalmap_en)
         slam.save_globalmap();

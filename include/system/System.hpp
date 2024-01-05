@@ -200,9 +200,22 @@ public:
 
 #if 1
         fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), map_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
+#endif
+    }
+
+    void save_posegraph2g2o()
+    {
         backend->isam->saveGraph(map_path + "/gtsam_opt.dot");
         gtsam::writeG2o(backend->isam->getFactorsUnsafe(), backend->optimized_estimate, map_path + "/graph2g2o.g2o");
-#endif
+    }
+
+    void load_posegraph_fromg2o()
+    {
+        gtsam::NonlinearFactorGraph::shared_ptr graph;
+        gtsam::Values::shared_ptr initial;
+        boost::tie(graph, initial) = gtsam::readG2o(map_path + "/graph2g2o.g2o", true);
+        backend->gtsam_graph = *graph;
+        backend->init_estimate = *initial;
     }
 
     PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize)
