@@ -70,13 +70,13 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     save_globalmap_en = config["official"]["save_globalmap_en"].IsDefined() ? config["official"]["save_globalmap_en"].as<bool>() : true;
     slam.save_keyframe_en = config["official"]["save_keyframe_en"].IsDefined() ? config["official"]["save_keyframe_en"].as<bool>() : true;
     slam.save_resolution = config["official"]["save_resolution"].IsDefined() ? config["official"]["save_resolution"].as<float>() : 0.1;
-    slam.save_path = config["official"]["save_path"].IsDefined() ? config["official"]["save_path"].as<string>() : std::string("");
-    if (slam.save_path.compare("") != 0)
+    slam.map_path = config["official"]["map_path"].IsDefined() ? config["official"]["map_path"].as<string>() : std::string("");
+    if (slam.map_path.compare("") != 0)
     {
-        slam.globalmap_path = slam.save_path + "/globalmap.pcd";
-        slam.trajectory_path = slam.save_path + "/trajectory.pcd";
-        slam.keyframe_path = slam.save_path + "/keyframe/";
-        slam.scd_path = slam.save_path + "/scancontext/";
+        slam.globalmap_path = slam.map_path + "/globalmap.pcd";
+        slam.trajectory_path = slam.map_path + "/trajectory.pcd";
+        slam.keyframe_path = slam.map_path + "/keyframe/";
+        slam.scd_path = slam.map_path + "/scancontext/";
     }
 
     slam.relocalization->sc_manager->LIDAR_HEIGHT = config["scan_context"]["lidar_height"].IsDefined() ? config["scan_context"]["lidar_height"].as<double>() : 2.0;

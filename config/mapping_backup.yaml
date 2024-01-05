@@ -83,4 +83,4 @@ official:
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: false
-    save_path: "/home/will/data2/dynamic_filter/PCD"
+    map_path: "/home/will/data2/dynamic_filter/PCD"

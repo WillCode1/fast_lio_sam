@@ -73,7 +73,12 @@ publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
     dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
-    save_path: "/home/will/data2/dynamic_filter/PCD"
+
+official:
+    save_globalmap_en: false
+    save_resolution: 0.2
+    save_keyframe_en: false
+    map_path: "/home/will/data2/dynamic_filter/PCD"
 
 # ============relocalization_cfg============
 relocalization_cfg:

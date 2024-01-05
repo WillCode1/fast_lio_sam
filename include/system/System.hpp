@@ -199,7 +199,9 @@ public:
         LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
 
 #if 1
-        fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), save_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
+        fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), map_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
+        backend->isam->saveGraph(map_path + "/gtsam_opt.dot");
+        gtsam::writeG2o(backend->isam->getFactorsUnsafe(), backend->optimized_estimate, map_path + "/graph2g2o.g2o");
 #endif
     }
 
@@ -328,7 +330,7 @@ public:
 
     /*** global map maintain ***/
     float save_resolution;
-    string save_path;
+    string map_path;
     string globalmap_path = PCD_FILE_DIR("globalmap.pcd");
     string trajectory_path = PCD_FILE_DIR("trajectory.pcd");
     string keyframe_path = PCD_FILE_DIR("keyframe/");
