@@ -198,9 +198,7 @@ public:
         pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
         LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
 
-#if 1
         fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), map_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
-#endif
     }
 
     void save_posegraph2g2o()
