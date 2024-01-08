@@ -1,6 +1,7 @@
 common:
-    lidar_topic:  "/rslidar_points"
-    imu_topic:  "/imu_raw"
+    lidar_topic:  "/os_cloud_node/points"
+    # lidar_topic:  "/livox/lidar"
+    imu_topic:  "/alphasense/imu"
     gnss_topic:  "/gps/fix"
     map_frame:  "map"
     body_frame:  "body"
@@ -60,10 +61,16 @@ mapping:
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
     # lidar -> imu
-    extrinsic_T: [ 0, 0, -0.0762 ]
-    extrinsic_R: [ 0, 1, 0, 
-                   -1, 0, 0, 
-                   0, 0, 1 ]
+    # /os_cloud_node/points
+    extrinsic_T: [ 0.01001966915517371, -0.006645473484212856, 0.09473042428051345 ]
+    extrinsic_R: [ 0.9999757, 0.0024556, -0.0065197,
+                   0.0024579, -0.9999969, 0.0003309,
+                   -0.0065188, -0.0003470, -0.9999787 ]
+    # /livox/lidar
+    # extrinsic_T: [ -0.003050707070885951, -0.021993853931529066, 0.15076415229379997 ]
+    # extrinsic_R: [ 0.9998300, 0.0170232, -0.0070793,
+    #                0.0171417, -0.9997082, 0.0170198,
+    #                -0.0067875, -0.0171382, -0.9998301 ]
     # lidar -> gnss
     extrinsic_gnss_T: [ 0, 0, 0 ]
     extrinsic_gnss_R: [ 1, 0, 0, 
