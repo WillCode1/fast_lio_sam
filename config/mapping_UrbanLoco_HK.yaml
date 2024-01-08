@@ -1,6 +1,6 @@
 common:
-    lidar_topic:  "/drivers/top_lidar_origin"
-    imu_topic:  "/drivers/imu_data"
+    lidar_topic:  "/velodyne_points_0"
+    imu_topic:  "/imu/data"
     gnss_topic:  "/gps/fix"
     map_frame:  "map"
     body_frame:  "body"
@@ -8,9 +8,9 @@ common:
 
 preprocess:
     lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
-    scan_line: 16
+    scan_line: 32
     scan_rate: 10                # only need to be set for velodyne, unit: Hz,
-    timestamp_unit: 0            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
+    timestamp_unit: 2            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
     blind: 2
     det_range: 100.0
 
@@ -45,10 +45,10 @@ mapping:
     loop_closure_interval: 300
     loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
-    loop_closure_search_radius: 10
+    loop_closure_search_radius: 15
     loop_closure_keyframe_interval: 30
     keyframe_search_num: 20
-    loop_closure_fitness_score_thld: 0.1
+    loop_closure_fitness_score_thld: 0.2
     icp_downsamp_size: 0.1
     manually_loop_vaild_period: [0, 1]
     odom_loop_vaild_period: []
@@ -60,10 +60,10 @@ mapping:
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
     # lidar -> imu
-    extrinsic_T: [ -0.00665, 0, -1.51277 ]
-    extrinsic_R: [ 1, 0, 0, 
-                   0, -1, 0, 
-                   0, 0, -1 ]
+    extrinsic_T: [ 0, 0, 0.28 ]
+    extrinsic_R: [ 2.67949e-08, 1, 0, 
+                   -1, -2.67949e-08, 0, 
+                   0, 0, 1 ]
     # lidar -> gnss
     extrinsic_gnss_T: [ 0, 0, 0 ]
     extrinsic_gnss_R: [ 1, 0, 0, 
@@ -77,10 +77,10 @@ scan_context:
 publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
-    dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
+    dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
 
 official:
     save_globalmap_en: false
     save_resolution: 0.2
-    save_keyframe_en: false
-    map_path: "/home/will/data/test_mapping/mapping1"
+    save_keyframe_en: true
+    map_path: "/home/will/data/test_mapping/mapping3"

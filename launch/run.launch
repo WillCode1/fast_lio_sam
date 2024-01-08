@@ -15,6 +15,7 @@
 	<param name="config_file" type="string" value="/config/mapping_dev.yaml" />
 	<!-- <param name="config_file" type="string" value="/config/mapping_imu_backshaft.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/mapping_pointlio.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/mapping_UrbanLoco_HK.yaml" /> -->
 
 	<param name="globalMapVisualizationSearchRadius" type="double" value="1000" />
 	<param name="globalMapVisualizationPoseDensity" type="double" value="3" />
