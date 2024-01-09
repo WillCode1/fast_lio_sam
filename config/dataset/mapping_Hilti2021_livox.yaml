@@ -2,6 +2,16 @@
 # https://blog.csdn.net/heroacool/article/details/104843549
 # rosbag decompress Campus_2.bag
 
+# passed:
+    # Basement_1.bag
+    # Campus_2.bag
+    # Construction_Site_2.bag
+    # uzh_tracking_area_run2.bag
+# failed:
+    # Basement_4.bag
+    # IC_Office_1.bag
+    # LAB_Survey_2.bag
+
 common:
     lidar_topic:  "/livox/lidar"
     imu_topic:  "/alphasense/imu"
@@ -15,7 +25,7 @@ preprocess:
     scan_line: 6
     scan_rate: 10                # only need to be set for velodyne, unit: Hz,
     timestamp_unit: 2            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
-    blind: 1
+    blind: 2
     det_range: 300.0
 
 mapping:
