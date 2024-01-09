@@ -17,7 +17,7 @@ preprocess:
 mapping:
     gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
     gravity_init: [0, 0, -9.81]         # gravity to be aligned
-    eular_init: [180, 0, 0]             # imu init rotation, for fix imu measure
+    eular_init: [0, 0, 0]             # imu init rotation, for fix imu measure
     frontend_type: 0                    # frontend type
 
     # fastlio
