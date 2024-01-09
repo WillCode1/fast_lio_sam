@@ -1,5 +1,6 @@
+# Important: the rosbag files are compressed. Use rosbag decompress *.bag to speed up playback.
 # https://blog.csdn.net/heroacool/article/details/104843549
-# rosbag compress --lz4 Campus_2.bag
+# rosbag decompress Campus_2.bag
 
 common:
     lidar_topic:  "/os_cloud_node/points"
