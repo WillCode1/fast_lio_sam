@@ -349,7 +349,7 @@ private:
         effect_features.clear();
 
         double search_start = omp_get_wtime();
-        M3D lidar_rot = state.rot.toRotationMatrix() * state.offset_R_L_I;
+        QD lidar_rot = state.rot * state.offset_R_L_I;
         V3D lidar_pos = state.rot * state.offset_T_L_I + state.pos;
         /** closest surface search and residual computation **/
 #ifdef MP_EN
@@ -535,7 +535,7 @@ protected:
         PointToAdd.reserve(feats_down_size);
         PointNoNeedDownsample.reserve(feats_down_size);
 
-        M3D lidar_rot = state.rot.toRotationMatrix() * state.offset_R_L_I;
+        QD lidar_rot = state.rot * state.offset_R_L_I;
         V3D lidar_pos = state.rot * state.offset_T_L_I + state.pos;
         for (int i = 0; i < feats_down_size; i++)
         {
