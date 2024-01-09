@@ -129,7 +129,11 @@ public:
             keyframe_scan->push_back(this_keyframe);
             pcl::copyPointCloud(*frontend->feats_down_lidar, *this_keyframe);
             keyframe_downsample->push_back(this_keyframe);
-            relocalization->add_keyframe_descriptor(this_keyframe, scd_path);
+
+            if (save_keyframe_descriptor_en)
+                relocalization->add_keyframe_descriptor(this_keyframe, scd_path);
+            else
+                relocalization->add_keyframe_descriptor(this_keyframe, "");
 
             if (save_keyframe_en)
                 save_keyframe(keyframe_scan->size());
@@ -332,6 +336,7 @@ public:
     FILE *file_pose_unoptimized;
     FILE *file_pose_optimized;
     bool save_keyframe_en = false;
+    bool save_keyframe_descriptor_en = false;
     PointCloudType::Ptr feats_undistort;
     shared_ptr<deque<PointCloudType::Ptr>> keyframe_scan;
     shared_ptr<deque<PointCloudType::Ptr>> keyframe_downsample;

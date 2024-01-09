@@ -69,6 +69,7 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     scan_rate = config["preprocess"]["scan_rate"].IsDefined() ? config["preprocess"]["scan_rate"].as<int>() : 10;
     save_globalmap_en = config["official"]["save_globalmap_en"].IsDefined() ? config["official"]["save_globalmap_en"].as<bool>() : true;
     slam.save_keyframe_en = config["official"]["save_keyframe_en"].IsDefined() ? config["official"]["save_keyframe_en"].as<bool>() : true;
+    slam.save_keyframe_descriptor_en = config["official"]["save_keyframe_descriptor_en"].IsDefined() ? config["official"]["save_keyframe_descriptor_en"].as<bool>() : true;
     slam.save_resolution = config["official"]["save_resolution"].IsDefined() ? config["official"]["save_resolution"].as<float>() : 0.1;
     slam.map_path = config["official"]["map_path"].IsDefined() ? config["official"]["map_path"].as<string>() : std::string("");
     if (slam.map_path.compare("") != 0)

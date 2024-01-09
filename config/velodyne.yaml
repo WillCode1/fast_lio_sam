@@ -82,3 +82,4 @@ official:
     save_globalmap_en: false
     save_resolution: 0.1
     save_keyframe_en: false
+    save_keyframe_descriptor_en: false
