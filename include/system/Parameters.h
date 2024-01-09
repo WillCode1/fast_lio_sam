@@ -191,5 +191,6 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     extrinR_eigen << MAT_FROM_ARRAY(extrinR);
     slam.frontend->set_extrinsic(extrinT_eigen, extrinR_eigen);
 
+    slam.frontend->ground_constraint_enable = config["official"]["ground_constraint_enable"].IsDefined() ? config["official"]["ground_constraint_enable"].as<bool>() : false;
     slam.init_system_mode(map_update_mode);
 }

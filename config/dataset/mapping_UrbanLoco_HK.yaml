@@ -1,6 +1,6 @@
 common:
-    lidar_topic:  "/rslidar_points"
-    imu_topic:  "/imu_raw"
+    lidar_topic:  "/velodyne_points_0"
+    imu_topic:  "/imu/data"
     gnss_topic:  "/gps/fix"
     map_frame:  "map"
     body_frame:  "body"
@@ -60,9 +60,9 @@ mapping:
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
     # lidar -> imu
-    extrinsic_T: [ 0, 0, -0.0762 ]
-    extrinsic_R: [ 0, 1, 0, 
-                   -1, 0, 0, 
+    extrinsic_T: [ 0, 0, 0.28 ]
+    extrinsic_R: [ 2.67949e-08, 1, 0, 
+                   -1, -2.67949e-08, 0, 
                    0, 0, 1 ]
     # lidar -> gnss
     extrinsic_gnss_T: [ 0, 0, 0 ]
@@ -80,7 +80,7 @@ publish:
     dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
 
 official:
+    ground_constraint_enable: false
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: false
-    map_path: "/home/will/data/test_mapping/mapping3"

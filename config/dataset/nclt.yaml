@@ -1,6 +1,6 @@
 common:
-    lidar_topic:  "/velodyne_points_0"
-    imu_topic:  "/imu/data"
+    lidar_topic:  "/points_raw"
+    imu_topic:  "/imu_raw"
     gnss_topic:  "/gps/fix"
     map_frame:  "map"
     body_frame:  "body"
@@ -17,13 +17,12 @@ preprocess:
 mapping:
     gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
     gravity_init: [0, 0, -9.81]         # gravity to be aligned
-    eular_init: [0, 0, 0]             # imu init rotation, for fix imu measure
+    eular_init: [180, 0, 0]             # imu init rotation, for fix imu measure
     frontend_type: 0                    # frontend type
 
     # fastlio
     point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
     space_down_sample: true
-    # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
     ikdtree_resolution: 0.5      # In unstructured scenarios, smaller is more likely to degenerate
@@ -42,28 +41,27 @@ mapping:
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1
 
-    loop_closure_interval: 300
     loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
-    loop_closure_search_radius: 15
+    loop_closure_search_radius: 10
     loop_closure_keyframe_interval: 30
     keyframe_search_num: 20
-    loop_closure_fitness_score_thld: 0.2
+    loop_closure_fitness_score_thld: 0.1
     icp_downsamp_size: 0.1
     manually_loop_vaild_period: [0, 1]
     odom_loop_vaild_period: []
     scancontext_loop_vaild_period: []
 
-    acc_cov: 0.1
-    gyr_cov: 0.1
-    b_acc_cov: 0.0001
-    b_gyr_cov: 0.0001
+    acc_cov: 0.02
+    gyr_cov: 0.01
+    b_acc_cov: 1.e-6
+    b_gyr_cov: 1.e-5
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
     # lidar -> imu
-    extrinsic_T: [ 0, 0, 0.28 ]
-    extrinsic_R: [ 2.67949e-08, 1, 0, 
-                   -1, -2.67949e-08, 0, 
-                   0, 0, 1 ]
+    extrinsic_T: [ 0.112, 0.176, -0.247]
+    extrinsic_R: [ -0.01226931,  0.99982505, -0.01411883, 
+                   -0.99992053, -0.01230894, -0.00272393, 
+                   -0.00289724,  0.01408428,  0.99989661 ]
     # lidar -> gnss
     extrinsic_gnss_T: [ 0, 0, 0 ]
     extrinsic_gnss_R: [ 1, 0, 0, 
@@ -80,7 +78,7 @@ publish:
     dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
 
 official:
+    ground_constraint_enable: false
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: false
-    map_path: "/home/will/data/test_mapping/mapping3"

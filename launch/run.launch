@@ -9,22 +9,20 @@
 	<!-- <param name="config_file" type="string" value="/config/velodyne.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/ouster64.yaml" /> -->
 
-	<!-- <param name="config_file" type="string" value="/config/nclt.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/dataset/nclt.yaml" /> -->
 
 	<!-- <param name="config_file" type="string" value="/config/mapping_backup.yaml" /> -->
 	<param name="config_file" type="string" value="/config/mapping_dev.yaml" />
 	<!-- <param name="config_file" type="string" value="/config/mapping_imu_backshaft.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/mapping_pointlio.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/mapping_Hilti.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/mapping_UrbanLoco_HK.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/mapping_UrbanLoco_CA.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_Hilti.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_Hilti2.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_UrbanLoco_HK.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_UrbanLoco_CA.yaml" /> -->
 
 	<param name="globalMapVisualizationSearchRadius" type="double" value="1000" />
 	<param name="globalMapVisualizationPoseDensity" type="double" value="3" />
 	<param name="globalMapVisualizationLeafSize" type="double" value="0.2" />
-
-	<param name="ground_constraint_enable" type="bool" value="true" />
-	<!-- <param name="ground_constraint_enable" type="bool" value="false" /> -->
 
 	<param name="map_update_mode" type="bool" value="false" />
     <node pkg="fast_lio_sam" type="fastlio_sam_ros1" name="system" output="screen" /> 
