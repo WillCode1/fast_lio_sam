@@ -2,9 +2,17 @@
 # https://blog.csdn.net/heroacool/article/details/104843549
 # rosbag decompress Campus_2.bag
 
+# passed:
+    # Basement_1.bag
+    # Basement_4.bag
+    # Campus_2.bag
+    # Construction_Site_2.bag
+    # LAB_Survey_2.bag
+    # IC_Office_1.bag
+    # uzh_tracking_area_run2.bag
+
 common:
     lidar_topic:  "/os_cloud_node/points"
-    # lidar_topic:  "/livox/lidar"
     imu_topic:  "/alphasense/imu"
     gnss_topic:  "/gps/fix"
     map_frame:  "map"
@@ -12,12 +20,12 @@ common:
     timedelay_lidar2imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
 
 preprocess:
-    lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
-    scan_line: 32
+    lidar_type: 3                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
+    scan_line: 64
     scan_rate: 10                # only need to be set for velodyne, unit: Hz,
-    timestamp_unit: 2            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
-    blind: 2
-    det_range: 100.0
+    timestamp_unit: 3            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
+    blind: 1
+    det_range: 200.0
 
 mapping:
     gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
@@ -48,7 +56,7 @@ mapping:
     ikdtree_reconstruct_downsamp_size: 0.1
 
     loop_closure_interval: 300
-    loop_closure_enable_flag: true
+    loop_closure_enable_flag: false
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 15
     loop_closure_keyframe_interval: 30
@@ -65,16 +73,10 @@ mapping:
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
     # lidar -> imu
-    # /os_cloud_node/points
     extrinsic_T: [ 0.01001966915517371, -0.006645473484212856, 0.09473042428051345 ]
     extrinsic_R: [ 0.9999757, 0.0024556, -0.0065197,
                    0.0024579, -0.9999969, 0.0003309,
                    -0.0065188, -0.0003470, -0.9999787 ]
-    # /livox/lidar
-    # extrinsic_T: [ -0.003050707070885951, -0.021993853931529066, 0.15076415229379997 ]
-    # extrinsic_R: [ 0.9998300, 0.0170232, -0.0070793,
-    #                0.0171417, -0.9997082, 0.0170198,
-    #                -0.0067875, -0.0171382, -0.9998301 ]
     # lidar -> gnss
     extrinsic_gnss_T: [ 0, 0, 0 ]
     extrinsic_gnss_R: [ 1, 0, 0, 
@@ -88,7 +90,7 @@ scan_context:
 publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
-    dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
+    dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
 
 official:
     ground_constraint_enable: false

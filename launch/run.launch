@@ -15,7 +15,8 @@
 	<param name="config_file" type="string" value="/config/mapping_dev.yaml" />
 	<!-- <param name="config_file" type="string" value="/config/mapping_imu_backshaft.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/mapping_pointlio.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_Hilti2021.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_Hilti2021_ouster.yaml" /> -->
+	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_Hilti2021_livox.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_Hilti2022.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_UrbanLoco_HK.yaml" /> -->
 	<!-- <param name="config_file" type="string" value="/config/dataset/mapping_UrbanLoco_CA.yaml" /> -->
