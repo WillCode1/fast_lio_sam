@@ -18,6 +18,8 @@
 #include "system/Header.h"
 #include "system/Parameters.h"
 #include "system/System.hpp"
+#include "utility/evo_tool.h"
+#define EVO
 
 
 double globalMapVisualizationSearchRadius = 1000;
@@ -333,6 +335,10 @@ int main(int argc, char **argv)
     load_ros_parameters(string(ROOT_DIR) + config_file, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame);
     load_parameters(slam, string(ROOT_DIR) + config_file, map_update_mode, save_globalmap_en, lidar_type);
 
+#ifdef EVO
+    evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));
+#endif
+
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lidar_topic, 200000, livox_pcl_cbk) : nh.subscribe(lidar_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
@@ -388,6 +394,9 @@ int main(int argc, char **argv)
         if (slam.run())
         {
             const auto &state = slam.frontend->get_state();
+#ifdef EVO
+            et.save_trajectory(state.pos, state.rot, slam.frontend->lidar_end_time);
+#endif
 
             /******* Publish odometry *******/
             publish_odometry(pubOdomAftMapped, state, slam.frontend->lidar_end_time);
