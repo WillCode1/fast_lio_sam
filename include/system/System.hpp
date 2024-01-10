@@ -32,9 +32,13 @@ public:
 
         file_pose_unoptimized = fopen(DEBUG_FILE_DIR("keyframe_pose.txt").c_str(), "w");
         file_pose_optimized = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized.txt").c_str(), "w");
+        file_pose_unoptimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_imu.txt").c_str(), "w");
+        file_pose_optimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized_imu.txt").c_str(), "w");
 
         fprintf(file_pose_unoptimized, "# keyframe trajectory unoptimized\n# timestamp tx ty tz qx qy qz qw\n");
         fprintf(file_pose_optimized, "# keyframe trajectory optimized\n# timestamp tx ty tz qx qy qz qw\n");
+        fprintf(file_pose_unoptimized_imu, "# keyframe trajectory unoptimized in imu frame\n# timestamp tx ty tz qx qy qz qw\n");
+        fprintf(file_pose_optimized_imu, "# keyframe trajectory optimized in imu frame\n# timestamp tx ty tz qx qy qz qw\n");
     }
 
     ~System()
@@ -44,6 +48,8 @@ public:
 
         fclose(file_pose_unoptimized);
         fclose(file_pose_optimized);
+        fclose(file_pose_unoptimized_imu);
+        fclose(file_pose_optimized_imu);
     }
 
     void init_system_mode(bool _map_update_mode)
@@ -182,37 +188,80 @@ public:
         for (auto i = 0; i < pose_num; ++i)
         {
             const auto &pose = keyframe_pose6d_unoptimized->points[i];
-            const auto &state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
-            const auto &state_pos = V3D(pose.x, pose.y, pose.z);
-            LogAnalysis::save_trajectory(file_pose_unoptimized, state_pos, state_rot, pose.time);
+            const auto &lidar_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
+            const auto &lidar_pos = V3D(pose.x, pose.y, pose.z);
+            LogAnalysis::save_trajectory(file_pose_unoptimized, lidar_pos, lidar_rot, pose.time);
         }
-        LOG_WARN("Success save global unoptimized poses to file ...");
+        LOG_WARN("Success save global unoptimized lidar poses to file ...");
 
         pose_num = keyframe_pose6d_optimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
         {
             const auto &pose = keyframe_pose6d_optimized->points[i];
-            const auto &state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
-            const auto &state_pos = V3D(pose.x, pose.y, pose.z);
-            LogAnalysis::save_trajectory(file_pose_optimized, state_pos, state_rot, pose.time);
+            const auto &lidar_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
+            const auto &lidar_pos = V3D(pose.x, pose.y, pose.z);
+            LogAnalysis::save_trajectory(file_pose_optimized, lidar_pos, lidar_rot, pose.time);
         }
-        LOG_WARN("Success save global optimized poses to file ...");
+        LOG_WARN("Success save global optimized lidar poses to file ...");
 
         pcl::PCDWriter pcd_writer;
         pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
         LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
 
-        fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), map_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
+        if (map_path.compare("") != 0)
+            fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), map_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
     }
+
+#if 1
+    // for ape
+    void save_trajectory_in_imu_frame()
+    {
+        const auto &state = frontend->get_state();
+        int pose_num = keyframe_pose6d_unoptimized->points.size();
+        for (auto i = 0; i < pose_num; ++i)
+        {
+            const auto &pose = keyframe_pose6d_unoptimized->points[i];
+            const auto &lidar_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
+            const auto &lidar_pos = V3D(pose.x, pose.y, pose.z);
+            QD imu_rot;
+            V3D imu_pos;
+            poseTransformFrame2(lidar_rot, lidar_pos, state.offset_R_L_I, state.offset_T_L_I, imu_rot, imu_pos);
+            LogAnalysis::save_trajectory(file_pose_unoptimized_imu, imu_pos, imu_rot, pose.time);
+        }
+        LOG_WARN("Success save global unoptimized imu poses to file ...");
+
+        pose_num = keyframe_pose6d_optimized->points.size();
+        for (auto i = 0; i < pose_num; ++i)
+        {
+            const auto &pose = keyframe_pose6d_optimized->points[i];
+            const auto &lidar_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw));
+            const auto &lidar_pos = V3D(pose.x, pose.y, pose.z);
+            QD imu_rot;
+            V3D imu_pos;
+            poseTransformFrame2(lidar_rot, lidar_pos, state.offset_R_L_I, state.offset_T_L_I, imu_rot, imu_pos);
+            LogAnalysis::save_trajectory(file_pose_optimized_imu, imu_pos, imu_rot, pose.time);
+        }
+        LOG_WARN("Success save global optimized imu poses to file ...");
+    }
+#endif
 
     void save_posegraph2g2o()
     {
-        backend->isam->saveGraph(map_path + "/gtsam_opt.dot");
-        gtsam::writeG2o(backend->isam->getFactorsUnsafe(), backend->optimized_estimate, map_path + "/graph2g2o.g2o");
+        if (map_path.compare("") != 0)
+        {
+            backend->isam->saveGraph(map_path + "/gtsam_opt.dot");
+            gtsam::writeG2o(backend->isam->getFactorsUnsafe(), backend->optimized_estimate, map_path + "/graph2g2o.g2o");
+        }
     }
 
     void load_posegraph_fromg2o()
     {
+        if (map_path.compare("") == 0)
+        {
+            LOG_WARN("please set map_path!");
+            return;
+        }
+
         // https://blog.csdn.net/weixin_45572737/article/details/128920683
         gtsam::NonlinearFactorGraph::shared_ptr graph;
         gtsam::Values::shared_ptr initial;
@@ -335,6 +384,8 @@ public:
     /*** keyframe config ***/
     FILE *file_pose_unoptimized;
     FILE *file_pose_optimized;
+    FILE *file_pose_unoptimized_imu;
+    FILE *file_pose_optimized_imu;
     bool save_keyframe_en = false;
     bool save_keyframe_descriptor_en = false;
     PointCloudType::Ptr feats_undistort;

@@ -76,28 +76,6 @@ struct LoopConstraint
     vector<gtsam::noiseModel::Diagonal::shared_ptr> loop_noise;
 };
 
-/**
- * @brief transform frame_a to frame_b
- * @param extR rot from frame_b to frame_a
- * @param extP pos from frame_b to frame_a
- */
-void poseTransformFrame(const QD &rot_from, const V3D &pos_from, const QD &extR, const V3D &extP, QD &rot_to, V3D &pos_to)
-{
-    rot_to = rot_from * extR;
-    pos_to = rot_from * extP + pos_from;
-}
-
-/**
- * @brief transform frame_a to frame_b
- * @param extR rot from frame_a to frame_b
- * @param extP pos from frame_a to frame_b
- */
-void poseTransformFrame2(const QD &rot_from, const V3D &pos_from, const QD &extR, const V3D &extP, QD &rot_to, V3D &pos_to)
-{
-    rot_to = rot_from * extR.conjugate();
-    pos_to = pos_from - rot_to * extP;
-}
-
 template <typename ikfom_state>
 void pointLidarToWorld(V3D const &p_lidar, V3D &p_imu, const ikfom_state &state)
 {
