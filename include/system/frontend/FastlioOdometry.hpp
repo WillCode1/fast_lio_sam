@@ -10,6 +10,9 @@
 #include "ImuProcessor.h"
 #include "LidarProcessor.hpp"
 #include "system/Header.h"
+// #define SBLE    // sort before lidar_end_time
+#define SALE    // sort after lidar_end_time
+// #define SAPLE   // sort after predict lidar_end_time
 
 #define Z_Constraint
 
@@ -149,6 +152,10 @@ public:
     virtual bool sync_sensor_data()
     {
         static bool lidar_pushed = false;
+#ifdef SAPLE
+        static double lidar_mean_scantime = 0.0;
+        static int scan_num = 0;
+#endif
 
         std::lock_guard<std::mutex> lock(mtx_buffer);
         if (lidar_buffer.empty() || imu_buffer.empty())
@@ -161,8 +168,35 @@ public:
         {
             measures->lidar = lidar_buffer.front();
             measures->lidar_beg_time = time_buffer.front();
+#ifdef SAPLE
+            auto last_point_timestamp = measures->lidar->points.back().curvature;
+            if (last_point_timestamp < 0.5 * lidar_mean_scantime)
+            {
+                lidar_end_time = measures->lidar_beg_time + lidar_mean_scantime / double(1000);
+            }
+            else
+            {
+                lidar_end_time = measures->lidar_beg_time + last_point_timestamp / double(1000);
+                if (scan_num < INT_MAX)
+                {
+                    scan_num++;
+                    lidar_mean_scantime += (last_point_timestamp - lidar_mean_scantime) / scan_num;
+                }
+            }
+            sort(measures->lidar->points.begin(), measures->lidar->points.end(), compare_timestamp);
+#endif
+
+#ifdef SBLE
             sort(measures->lidar->points.begin(), measures->lidar->points.end(), compare_timestamp);
             lidar_end_time = measures->lidar_beg_time + measures->lidar->points.back().curvature / double(1000);
+            // sort(measures->lidar->points.begin(), measures->lidar->points.end(), compare_timestamp);
+#endif
+
+#ifdef SALE
+            // sort(measures->lidar->points.begin(), measures->lidar->points.end(), compare_timestamp);
+            lidar_end_time = measures->lidar_beg_time + measures->lidar->points.back().curvature / double(1000);
+            sort(measures->lidar->points.begin(), measures->lidar->points.end(), compare_timestamp);
+#endif
             measures->lidar_end_time = lidar_end_time;
             lidar_pushed = true;
         }

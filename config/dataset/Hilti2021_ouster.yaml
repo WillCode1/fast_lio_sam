@@ -2,14 +2,17 @@
 # https://blog.csdn.net/heroacool/article/details/104843549
 # rosbag decompress Campus_2.bag
 
-# passed:
+# SBLE: sort before lidar_end_time
+# SALE: sort after lidar_end_time
+# SAPLE: sort after predict lidar_end_time
+# passed:                           fastlio2    SBLE        SALE        SAPLE
     # Basement_1.bag
-    # Basement_4.bag                0.042008
-    # Campus_2.bag              
-    # Construction_Site_2.bag       0.044583    0.091193
-    # LAB_Survey_2.bag              0.018801    0.022910
+    # Basement_4.bag                0.042008    0.064920    0.033673    0.033296
+    # Campus_2.bag
+    # Construction_Site_2.bag       0.044583    0.091193    0.051925    0.051848
     # IC_Office_1.bag
-    # uzh_tracking_area_run2.bag    0.182291
+    # LAB_Survey_2.bag              0.020362    0.022910    0.022774    0.024052
+    # uzh_tracking_area_run2.bag    0.182291    0.181985    0.181515    0.180335
 
 common:
     lidar_topic:  "/os_cloud_node/points"
