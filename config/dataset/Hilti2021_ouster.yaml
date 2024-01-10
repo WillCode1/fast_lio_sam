@@ -4,12 +4,12 @@
 
 # passed:
     # Basement_1.bag
-    # Basement_4.bag
-    # Campus_2.bag
-    # Construction_Site_2.bag
-    # LAB_Survey_2.bag
+    # Basement_4.bag                0.042008
+    # Campus_2.bag              
+    # Construction_Site_2.bag       0.044583
+    # LAB_Survey_2.bag              0.018801
     # IC_Office_1.bag
-    # uzh_tracking_area_run2.bag
+    # uzh_tracking_area_run2.bag    0.182291
 
 common:
     lidar_topic:  "/os_cloud_node/points"
