@@ -247,11 +247,14 @@ public:
 
     void save_posegraph2g2o()
     {
-        if (map_path.compare("") != 0)
+        if (map_path.compare("") == 0)
         {
-            backend->isam->saveGraph(map_path + "/gtsam_opt.dot");
-            gtsam::writeG2o(backend->isam->getFactorsUnsafe(), backend->optimized_estimate, map_path + "/graph2g2o.g2o");
+            LOG_WARN("please set map_path!");
+            return;
         }
+
+        backend->isam->saveGraph(map_path + "/gtsam_opt.dot");
+        gtsam::writeG2o(backend->isam->getFactorsUnsafe(), backend->optimized_estimate, map_path + "/graph2g2o.g2o");
     }
 
     void load_posegraph_fromg2o()
