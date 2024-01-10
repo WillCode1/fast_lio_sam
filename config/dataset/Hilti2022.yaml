@@ -1,14 +1,14 @@
 # SBLE: sort before lidar_end_time
 # SALE: sort after lidar_end_time
 # SAPLE: sort after predict lidar_end_time
-# passed:                           fastlio2    SBLE        SALE        SAPLE
-    # Basement_1.bag
-    # Basement_4.bag                0.042008    0.064920    0.033673    0.033296
-    # Campus_2.bag
-    # Construction_Site_2.bag       0.044583    0.091193    0.051925    0.051848
-    # IC_Office_1.bag
-    # LAB_Survey_2.bag              0.020362    0.022910    0.022774    0.024052
-    # uzh_tracking_area_run2.bag    0.182291    0.181985    0.181515    0.180335
+# passed:           fastlio2        SBLE        SALE        SAPLE
+    # exp04.bag     0.110478        0.128522    0.130859
+    # exp05.bag     0.087333        0.082937    0.081931
+    # exp06.bag     failed          failed      failed
+    # exp10.bag     failed          failed      failed
+    # exp14.bag  0.710640(0.112210) 0.169183    0.177185
+    # exp16.bag     failed          failed      failed
+    # exp18.bag     failed          failed      failed
 
 common:
     lidar_topic:  "/hesai/pandar"
@@ -23,7 +23,7 @@ preprocess:
     scan_line: 32
     scan_rate: 10                # only need to be set for velodyne, unit: Hz,
     timestamp_unit: 2            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
-    blind: 2
+    blind: 1
     det_range: 100.0
 
 mapping:
@@ -36,9 +36,9 @@ mapping:
     point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
     space_down_sample: true
     # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
-    surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
+    surf_frame_ds_res: 0.1       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
-    ikdtree_resolution: 0.5      # In unstructured scenarios, smaller is more likely to degenerate
+    ikdtree_resolution: 0.1      # In unstructured scenarios, smaller is more likely to degenerate
     lidar_model_search_range: 5
     lidar_meas_cov: 0.001
     cube_side_length: 1000
