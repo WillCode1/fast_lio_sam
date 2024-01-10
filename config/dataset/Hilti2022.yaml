@@ -1,3 +1,15 @@
+# SBLE: sort before lidar_end_time
+# SALE: sort after lidar_end_time
+# SAPLE: sort after predict lidar_end_time
+# passed:                           fastlio2    SBLE        SALE        SAPLE
+    # Basement_1.bag
+    # Basement_4.bag                0.042008    0.064920    0.033673    0.033296
+    # Campus_2.bag
+    # Construction_Site_2.bag       0.044583    0.091193    0.051925    0.051848
+    # IC_Office_1.bag
+    # LAB_Survey_2.bag              0.020362    0.022910    0.022774    0.024052
+    # uzh_tracking_area_run2.bag    0.182291    0.181985    0.181515    0.180335
+
 common:
     lidar_topic:  "/hesai/pandar"
     imu_topic:  "/alphasense/imu"
@@ -43,7 +55,7 @@ mapping:
     ikdtree_reconstruct_downsamp_size: 0.1
 
     loop_closure_interval: 300
-    loop_closure_enable_flag: true
+    loop_closure_enable_flag: false
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 15
     loop_closure_keyframe_interval: 30
