@@ -1,14 +1,16 @@
 # SBLE: sort before lidar_end_time
 # SALE: sort after lidar_end_time
-# SAPLE: sort after predict lidar_end_time
-# passed:           fastlio2        SBLE        SALE        SAPLE
-    # exp04.bag     0.112063        0.150446    0.130859
-    # exp05.bag     0.087333        0.070379    0.081931
-    # exp06.bag     failed          failed      failed
-    # exp10.bag     failed          failed      failed
-    # exp14.bag  0.710640(0.112210) 0.118556    0.177185
-    # exp16.bag     failed          failed      failed
-    # exp18.bag     failed          failed      failed
+# not_ds: space_down_sample: false
+# imu_input: pointlio_imu_input
+# imu_output: pointlio_imu_output
+# passed:           fastlio2    imu_input   imu_output      SBLE        SALE        SBLE + not_ds   SBLE + not_ds + skip_20
+    # exp04.bag     0.112063    0.081325    0.090882        0.150446    0.130859    0.142663        0.090912
+    # exp05.bag     0.087333    0.066602    0.077651        0.070379    0.081931    0.066350        0.049819
+    # exp06.bag     failed      1.053664    0.287212        failed      failed      0.591598        0.479300
+    # exp10.bag     failed      failed      failed          failed      failed      failed          failed
+    # exp14.bag     0.157663    0.130953    0.148705        0.131552    0.177185    0.091084        0.100196
+    # exp16.bag     failed      failed      failed          failed      failed      failed          failed
+    # exp18.bag     failed      0.455458    0.633325        failed      failed      failed          failed
 
 common:
     lidar_topic:  "/hesai/pandar"
@@ -33,8 +35,8 @@ mapping:
     frontend_type: 0                    # frontend type
 
     # fastlio
-    point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
-    space_down_sample: true
+    point_skip_num: 20            # for mapping, Increase accuracy 4 -> 1
+    space_down_sample: false
     # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
     surf_frame_ds_res: 0.1       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
@@ -42,7 +44,7 @@ mapping:
     lidar_model_search_range: 5
     lidar_meas_cov: 0.001
     cube_side_length: 1000
-    runtime_log_enable: 0
+    runtime_log_enable: 1
 
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2

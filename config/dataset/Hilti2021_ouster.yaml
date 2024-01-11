@@ -5,14 +5,17 @@
 # SBLE: sort before lidar_end_time
 # SALE: sort after lidar_end_time
 # SAPLE: sort after predict lidar_end_time
-# passed:                           fastlio2    SBLE        SALE        SAPLE
+# not_ds: space_down_sample: false
+# imu_input: pointlio_imu_input
+# imu_output: pointlio_imu_output
+# passed:                           fastlio2    imu_input   imu_output      SBLE        SALE        SAPLE       SBLE + not_ds   SBLE + not_ds + skip_40
     # Basement_1.bag
-    # Basement_4.bag                0.042008    0.064920    0.033673    0.033296
+    # Basement_4.bag                0.042008    0.054021    0.054683        0.064920    0.033673    0.033296    0.085761        0.096233
     # Campus_2.bag
-    # Construction_Site_2.bag       0.044583    0.091193    0.051925    0.051848
+    # Construction_Site_2.bag       0.044583    0.098154    0.093047        0.091193    0.051925    0.051848    0.169761        0.176222
     # IC_Office_1.bag
-    # LAB_Survey_2.bag              0.020362    0.022910    0.022774    0.024052
-    # uzh_tracking_area_run2.bag    0.182291    0.181985    0.181515    0.180335
+    # LAB_Survey_2.bag              0.020362    0.016840    0.018099        0.022910    0.022774    0.024052    0.046522        0.036090
+    # uzh_tracking_area_run2.bag    0.182291    0.178297    0.174724        0.181985    0.181515    0.180335    0.176749        0.183374
 
 common:
     lidar_topic:  "/os_cloud_node/points"
@@ -37,8 +40,8 @@ mapping:
     frontend_type: 0                    # frontend type
 
     # fastlio
-    point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
-    space_down_sample: true
+    point_skip_num: 40            # for mapping, Increase accuracy 4 -> 1
+    space_down_sample: false
     # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
@@ -46,7 +49,7 @@ mapping:
     lidar_model_search_range: 5
     lidar_meas_cov: 0.001
     cube_side_length: 1000
-    runtime_log_enable: 0
+    runtime_log_enable: 1
 
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2
