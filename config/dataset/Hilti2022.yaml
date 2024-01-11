@@ -2,7 +2,7 @@
 # SALE: sort after lidar_end_time
 # SAPLE: sort after predict lidar_end_time
 # passed:           fastlio2        SBLE        SALE        SAPLE
-    # exp04.bag     0.110478        0.150446    0.130859
+    # exp04.bag     0.112063        0.150446    0.130859
     # exp05.bag     0.087333        0.070379    0.081931
     # exp06.bag     failed          failed      failed
     # exp10.bag     failed          failed      failed

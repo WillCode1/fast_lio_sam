@@ -10,8 +10,8 @@
 #include "ImuProcessor.h"
 #include "LidarProcessor.hpp"
 #include "system/Header.h"
-// #define SBLE    // sort before lidar_end_time
-#define SALE    // sort after lidar_end_time
+#define SBLE    // sort before lidar_end_time
+// #define SALE    // sort after lidar_end_time
 // #define SAPLE   // sort after predict lidar_end_time
 
 #define Z_Constraint
