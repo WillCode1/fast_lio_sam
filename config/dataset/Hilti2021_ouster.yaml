@@ -1,22 +1,6 @@
 # Important: the rosbag files are compressed. Use rosbag decompress *.bag to speed up playback.
 # https://blog.csdn.net/heroacool/article/details/104843549
 # rosbag decompress Campus_2.bag
-
-# SBLE: sort before lidar_end_time
-# SALE: sort after lidar_end_time
-# SAPLE: sort after predict lidar_end_time
-# not_ds: space_down_sample: false
-# imu_input: pointlio_imu_input
-# imu_output: pointlio_imu_output
-# passed:                           fastlio2    imu_input   imu_output      SBLE        SALE        SAPLE       SBLE + not_ds   SBLE + not_ds + skip_40
-    # Basement_1.bag
-    # Basement_4.bag                0.042008    0.054021    0.054683        0.064920    0.033673    0.033296    0.085761        0.096233
-    # Campus_2.bag
-    # Construction_Site_2.bag       0.044583    0.098154    0.093047        0.091193    0.051925    0.051848    0.169761        0.176222
-    # IC_Office_1.bag
-    # LAB_Survey_2.bag              0.020362    0.016840    0.018099        0.022910    0.022774    0.024052    0.046522        0.036090
-    # uzh_tracking_area_run2.bag    0.182291    0.178297    0.174724        0.181985    0.181515    0.180335    0.176749        0.183374
-
 common:
     lidar_topic:  "/os_cloud_node/points"
     imu_topic:  "/alphasense/imu"
