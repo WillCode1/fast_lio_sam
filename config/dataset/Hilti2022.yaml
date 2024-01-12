@@ -21,8 +21,8 @@ mapping:
     frontend_type: 0                    # frontend type
 
     # fastlio
-    point_skip_num: 20            # for mapping, Increase accuracy 4 -> 1
-    space_down_sample: false
+    point_skip_num: 4            # for mapping, Increase accuracy 4 -> 1
+    space_down_sample: true
     # surf_frame_ds_res: 0.1       # for indoor, when the ceiling features are more than the floor features after downsampling
     surf_frame_ds_res: 0.5       # In unstructured scenarios, smaller is more likely to degenerate
     max_iteration: 3
@@ -30,7 +30,7 @@ mapping:
     lidar_model_search_range: 5
     lidar_meas_cov: 0.001
     cube_side_length: 1000
-    runtime_log_enable: 1
+    runtime_log_enable: 0
 
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2
