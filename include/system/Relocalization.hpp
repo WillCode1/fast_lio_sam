@@ -101,7 +101,9 @@ bool Relocalization::run_gnss_relocalization(Eigen::Matrix4d &result)
     }
 
     gnss_pose.gnss_position = V3D(utm.east - utm_origin.east, utm.north - utm_origin.north, utm.up - utm_origin.north);
-    result = EigenMath::CreateAffineMatrix(gnss_pose.gnss_position, gnss_pose.gnss_rpy);
+    result = Eigen::Matrix4d::Identity();
+    result.topLeftCorner(3, 3) = gnss_pose.gnss_quat.toRotationMatrix();
+    result.topRightCorner(3, 1) = gnss_pose.gnss_position;
     result *= extrinsic_imu2gnss;
     return true;
 }

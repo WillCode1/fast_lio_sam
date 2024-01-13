@@ -56,7 +56,6 @@ public:
     {
         map_update_mode = _map_update_mode;
         frontend->detect_range = frontend->lidar->detect_range;
-        gnss->need_record_gnss = frontend->loger.runtime_log;
         frontend->init_estimator();
         loopthread = std::thread(&System::loopClosureThread, this);
 

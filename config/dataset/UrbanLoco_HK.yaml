@@ -1,7 +1,7 @@
 common:
     lidar_topic:  "/velodyne_points_0"
     imu_topic:  "/imu/data"
-    gnss_topic:  "/gps/fix"
+    gnss_topic:  "/navsat/odom"
     map_frame:  "map"
     body_frame:  "body"
     timedelay_lidar2imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
@@ -37,7 +37,7 @@ mapping:
     pose_cov_threshold: 25      # for add GNSS factor
     gnssValidInterval: 0.1
     gpsCovThreshold: 2
-    useGpsElevation: false
+    useGpsElevation: true
     recontruct_kdtree: true
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1

@@ -3,16 +3,17 @@
 #include "global_localization/UtmCoordinate.h"
 #include "DataDef.h"
 #include "system/Header.h"
+#define novatel
 
 struct GnssPose
 {
-  GnssPose(const double &time = 0, const V3D &pos = ZERO3D, const V3D &rpy = ZERO3D, const V3D &cov = ZERO3D)
-      : timestamp(time), gnss_position(pos), gnss_rpy(rpy), covariance(cov) {}
+  GnssPose(const double &time = 0, const V3D &pos = ZERO3D, const QD &rot = EYEQD, const V3D &cov = ZERO3D)
+      : timestamp(time), gnss_position(pos), gnss_quat(rot.normalized()), covariance(cov) {}
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   double timestamp;
   V3D gnss_position;
-  V3D gnss_rpy;
+  QD gnss_quat;
   V3D covariance;
 
   float current_gnss_interval;
@@ -42,11 +43,14 @@ public:
   void gnss_handler(const GnssPose &gnss_raw);
   bool get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_time, const double &odom_z);
 
+#ifdef novatel
+  void novatel_utm_handler(const GnssPose &gnss_raw);
+#endif
+
   float gnssValidInterval = 0.2;
   float gpsCovThreshold = 2;
   bool useGpsElevation = false; // 是否使用gps高程优化
   deque<GnssPose> gnss_buffer;
-  bool need_record_gnss = false;
 
 private:
   bool check_mean_and_variance(const std::vector<V3D> &start_point, utm_coordinate::utm_point &utm_origin, const double &variance_thold);
@@ -132,10 +136,9 @@ void GnssProcessor::gnss_handler(const GnssPose &gnss_raw)
   }
 
   GnssPose utm_pose = gnss_raw;
-  utm_pose.gnss_position = V3D(utm.east - utm_origin.east, utm.north - utm_origin.north, utm.up - utm_origin.north);
+  utm_pose.gnss_position = V3D(utm.east - utm_origin.east, utm.north - utm_origin.north, utm.up - utm_origin.up);
   gnss_buffer.push_back(utm_pose);
-  if (need_record_gnss)
-    LogAnalysis::save_gps_pose(file_pose_gnss, utm_pose.gnss_position, gnss_raw.gnss_rpy, gnss_raw.timestamp);
+  LogAnalysis::save_trajectory(file_pose_gnss, utm_pose.gnss_position, utm_pose.gnss_quat, utm_pose.timestamp);
 }
 
 bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_time, const double &odom_z)
@@ -197,7 +200,9 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
       else
         lastGPSPoint = curGPSPoint;
 
-      Eigen::Matrix4d gnss_pose = EigenMath::CreateAffineMatrix(thisGPS.gnss_position, thisGPS.gnss_rpy);
+      Eigen::Matrix4d gnss_pose = Eigen::Matrix4d::Identity();
+      gnss_pose.topLeftCorner(3, 3) = thisGPS.gnss_quat.toRotationMatrix();
+      gnss_pose.topRightCorner(3, 1) = thisGPS.gnss_position;
       gnss_pose *= extrinsic_lidar2gnss;
       thisGPS.lidar_pos_fix = gnss_pose.topRightCorner(3, 1);
       return true;
@@ -205,3 +210,11 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
   }
   return false;
 }
+
+#ifdef novatel
+void GnssProcessor::novatel_utm_handler(const GnssPose &gnss_raw)
+{
+  gnss_buffer.push_back(gnss_raw);
+  LogAnalysis::save_trajectory(file_pose_gnss, gnss_raw.gnss_position, gnss_raw.gnss_quat, gnss_raw.timestamp);
+}
+#endif

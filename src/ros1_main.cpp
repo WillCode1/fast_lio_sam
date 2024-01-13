@@ -118,6 +118,16 @@ void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
     slam.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude));
 }
 
+#ifdef novatel
+void novatel_cbk(const nav_msgs::OdometryConstPtr &msg)
+{
+    slam.gnss->novatel_utm_handler(GnssPose(msg->header.stamp.toSec(),
+                                            V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                            QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
+                                            V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
+}
+#endif
+
 void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, const double& lidar_end_time, const std::string& frame_id)
 {
     sensor_msgs::PointCloud2 cloud_msg;
@@ -342,7 +352,11 @@ int main(int argc, char **argv)
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lidar_topic, 200000, livox_pcl_cbk) : nh.subscribe(lidar_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
+#ifdef novatel
+    ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, novatel_cbk);
+#else
     ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, gnss_cbk);
+#endif
     // 发布当前正在扫描的点云，topic名字为/cloud_registered
     ros::Publisher pubLaserCloudFull = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered", 100000);
     // not used

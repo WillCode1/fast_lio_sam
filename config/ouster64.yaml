@@ -35,7 +35,7 @@ mapping:
     pose_cov_threshold: 25      # for add GNSS factor
     gnssValidInterval: 0.2
     gpsCovThreshold: 2
-    useGpsElevation: false
+    useGpsElevation: true
     recontruct_kdtree: true
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1

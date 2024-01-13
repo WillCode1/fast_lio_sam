@@ -332,11 +332,6 @@ public:
 #endif
     }
 
-    static void save_gps_pose(FILE *fp, const V3D &pos, const V3D &eular, const double &time)
-    {
-        fprintf(fp, "%0.4lf %0.4f %0.4f %0.4f %0.4f %0.4f %0.4f\n", time, pos.x(), pos.y(), pos.z(), eular.x(), eular.y(), eular.z());
-    }
-
     // 0 : not, 1 : TUM
     static void save_trajectory(FILE *fp, const V3D &pos, const QD &quat, const double &time, int save_traj_fmt = 1)
     {
