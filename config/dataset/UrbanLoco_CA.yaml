@@ -66,10 +66,10 @@ mapping:
                    -1, 0, 0, 
                    0, 0, 1 ]
     # lidar -> gnss
-    extrinsic_gnss_T: [ 0, 0, 0 ]
-    extrinsic_gnss_R: [ 1, 0, 0, 
-                        0, 1, 0, 
-                        0, 0, 1 ]
+    extrinsic_gnss_T: [ 1.06045, -0.5245, 0.798576 ]
+    extrinsic_gnss_R: [ 0, -1, 0, 
+                        -1, 0, 0, 
+                        0, 0, -1 ]
 
 scan_context:
     lidar_height: 2.183
