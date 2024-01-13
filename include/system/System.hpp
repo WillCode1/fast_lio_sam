@@ -151,10 +151,6 @@ public:
             }
 
             loopClosure->get_loop_constraint(loop_constraint);
-#ifdef Ground_Constraint
-            backend->add_ground_constraint = frontend->add_ground_constraint;
-            backend->keyframe_rot = frontend->lidar_rot_meas;
-#endif
             backend->run(loop_constraint, cur_state, frontend->ikdtree);
             frontend->set_pose(cur_state);
             return system_state_vaild;

@@ -28,6 +28,7 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     M3D extrinR_eigen;
     double gyr_cov, acc_cov, b_gyr_cov, b_acc_cov;
 
+    slam.backend->gnss_factor_enable = config["mapping"]["gnss_factor_enable"].IsDefined() ? config["mapping"]["gnss_factor_enable"].as<bool>() : false;
     slam.backend->keyframe_add_dist_threshold = config["mapping"]["keyframe_add_dist_threshold"].IsDefined() ? config["mapping"]["keyframe_add_dist_threshold"].as<float>() : 1;
     slam.backend->keyframe_add_angle_threshold = config["mapping"]["keyframe_add_angle_threshold"].IsDefined() ? config["mapping"]["keyframe_add_angle_threshold"].as<float>() : 0.2;
     slam.backend->pose_cov_threshold = config["mapping"]["pose_cov_threshold"].IsDefined() ? config["mapping"]["pose_cov_threshold"].as<float>() : 25;

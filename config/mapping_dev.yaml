@@ -32,6 +32,7 @@ mapping:
     cube_side_length: 1000
     runtime_log_enable: 0
 
+    gnss_factor_enable: false
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2
     pose_cov_threshold: 25      # for add GNSS factor
