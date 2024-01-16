@@ -78,7 +78,7 @@ public:
             // 2.gravity aligns the imu direction
             imu->get_imu_init_rot(preset_gravity, state.grav.vec, state.rot);
             state.rot.normalize();
-            // 3.set lidar_init pos = 0
+            // 3.set lidar_init pos to (0, 0, 0)
             state.pos = -(state.rot * state.offset_T_L_I);
             // 4.fix gravity vec
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
