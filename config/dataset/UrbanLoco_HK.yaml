@@ -35,7 +35,7 @@ mapping:
     gnss_factor_enable: true
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2
-    pose_cov_threshold: 25      # for add GNSS factor
+    pose_cov_threshold: 1      # for add GNSS factor
     gnssValidInterval: 0.1
     gpsCovThreshold: 2
     useGpsElevation: true

@@ -69,17 +69,18 @@ public:
 
     virtual void init_state(shared_ptr<ImuProcessor> &imu)
     {
-        /*
-         * 1. initializing the gravity, gyro bias, acc and gyro covariance
-         * 2. normalize the acceleration measurenments to unit gravity
-         */
+        // 1.normalize the acceleration measurenments to unit gravity
         const auto &mean_acc = imu->mean_acc;
         state.grav = S2(-mean_acc / mean_acc.norm() * G_m_s2);
 
         if (gravity_align)
         {
+            // 2.gravity aligns the imu direction
             imu->get_imu_init_rot(preset_gravity, state.grav.vec, state.rot);
             state.rot.normalize();
+            // 3.set lidar_init pos = 0
+            state.pos = -(state.rot * state.offset_T_L_I);
+            // 4.fix gravity vec
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
 
             auto tmp = EigenMath::Quaternion2RPY(state.rot);
@@ -87,7 +88,8 @@ public:
                      RAD2DEG(tmp.x()), RAD2DEG(tmp.y()), RAD2DEG(tmp.z()), state.grav.vec.x(), state.grav.vec.y(), state.grav.vec.z());
         }
 
-        state.bg = imu->mean_gyr; // 静止初始化, 使用角速度测量作为陀螺仪偏差
+        // 5.initializing the gyro bias by gyro measurenments
+        state.bg = imu->mean_gyr;
         kf.change_x(state);
     }
 
