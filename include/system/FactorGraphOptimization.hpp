@@ -35,8 +35,12 @@ public:
         isam = new gtsam::ISAM2(parameters);
 
         // rpy(rad*rad), xyz(meter*meter)
+        // 1.indoor_noise
         prior_noise_indoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12).finished());
-        prior_noise_outdoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
+        // 2.liosam_noise
+        // prior_noise_outdoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
+        // 3.fix liosam_noise(due to utm origin is not zero)
+        prior_noise_outdoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, 1e6, 1e-4, 1e-4, 1e-4).finished());
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
     }
 
@@ -44,10 +48,11 @@ public:
     void set_current_pose(const double &lidar_end_time, const ikfom_state &cur_state, uint32_t keyframe_index)
     {
         // imu pose -> lidar pose
-        M3D lidar_rot = cur_state.rot.toRotationMatrix() * cur_state.offset_R_L_I;
-        V3D lidar_pos = cur_state.rot * cur_state.offset_T_L_I + cur_state.pos;
+        QD lidar_rot;
+        V3D lidar_pos;
+        poseTransformFrame(cur_state.rot, cur_state.pos, cur_state.offset_R_L_I, cur_state.offset_T_L_I, lidar_rot, lidar_pos);
 
-        Eigen::Vector3d eulerAngle = EigenMath::RotationMatrix2RPY(lidar_rot);
+        Eigen::Vector3d eulerAngle = EigenMath::Quaternion2RPY(lidar_rot);
         this_pose6d.x = lidar_pos(0); // x
         this_pose6d.y = lidar_pos(1); // y
         this_pose6d.z = lidar_pos(2); // z
@@ -81,6 +86,7 @@ public:
     void run(LoopConstraint &loop_constraint, ikfom_state &state, KD_TREE<PointType> &ikdtree)
     {
         add_factor_and_optimize(loop_constraint, state);
+        LOG_DEBUG("run backend 5");
 
         correct_poses(ikdtree);
     }
@@ -97,7 +103,7 @@ private:
     {
         if (keyframe_pose6d_optimized->points.empty())
         {
-            if (gnss_factor_enable)
+            if (gnss->gnss_factor_enable)
                 gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_outdoor));
             else
                 gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_indoor));
@@ -120,19 +126,27 @@ private:
             return;
         else if (pointDistance(keyframe_pose6d_optimized->front(), keyframe_pose6d_optimized->back()) < 5.0)
             return;
-        // x,y 位姿协方差很小，没必要加入GPS数据进行校正
-        if (pose_covariance(3, 3) < pose_cov_threshold && pose_covariance(4, 4) < pose_cov_threshold)
+        if (std::hypot(pose_covariance(3, 3), pose_covariance(4, 4)) < pose_cov_threshold)
             return;
+        // LOG_INFO("try to add GPS Factor!");
         GnssPose thisGPS;
         if (gnss->get_gnss_factor(thisGPS, this_pose6d.time, this_pose6d.z))
         {
+#if 0
+            // The weight doubles every 0.1 second
+            auto gnss_time_interval_weight = 1.0 * (1 + thisGPS.current_gnss_interval * 10);
+#else
+            auto gnss_time_interval_weight = 1.0;
+#endif
             gtsam::Vector Vector3(3);
-            Vector3 << max(thisGPS.covariance(0), 1.0), max(thisGPS.covariance(1), 1.0), max(thisGPS.covariance(2), 1.0);
+            Vector3 << max(thisGPS.covariance(0), gnss_time_interval_weight), max(thisGPS.covariance(1), gnss_time_interval_weight), max(thisGPS.covariance(2), gnss_time_interval_weight);
             gtsam::noiseModel::Diagonal::shared_ptr gnss_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
             gtsam::GPSFactor gps_factor(keyframe_pose6d_optimized->size(), gtsam::Point3(thisGPS.lidar_pos_fix(0), thisGPS.lidar_pos_fix(1), thisGPS.lidar_pos_fix(2)), gnss_noise);
             gtsam_graph.add(gps_factor);
             loop_is_closed = true;
-            LOG_WARN("GPS Factor Added, current_gnss_interval = %.3f sec, noise = (%.3f, %.3f, %.3f).", thisGPS.current_gnss_interval, Vector3(0), Vector3(1), Vector3(2));
+            LOG_WARN("dartion_time = %.2f.GPS Factor Added, current_gnss_interval = %.3f sec, noise = (%.3f, %.3f, %.3f).",
+                     thisGPS.timestamp - keyframe_pose6d_optimized->front().time, thisGPS.current_gnss_interval, Vector3(0), Vector3(1), Vector3(2));
+            // LOG_INFO("fix_lidar_pos = (%.3f, %.3f, %.3f).", thisGPS.lidar_pos_fix(0), thisGPS.lidar_pos_fix(1), thisGPS.lidar_pos_fix(2));
         }
     }
 
@@ -197,10 +211,9 @@ private:
 
         if (loop_is_closed == true)
         {
-            Eigen::Vector3d lidar_pos(cur_estimate.translation().x(), cur_estimate.translation().y(), cur_estimate.translation().z());
-            Eigen::Vector3d lidar_rot(cur_estimate.rotation().roll(), cur_estimate.rotation().pitch(), cur_estimate.rotation().yaw());
-            state.rot = (EigenMath::RPY2Quaternion(lidar_rot) * state.offset_R_L_I).normalized();
-            state.pos = lidar_pos - state.rot.normalized() * state.offset_T_L_I;
+            Eigen::Vector3d lidar_pos(this_pose6d.x, this_pose6d.y, this_pose6d.z);
+            Eigen::Vector3d lidar_rot(this_pose6d.roll, this_pose6d.pitch, this_pose6d.yaw);
+            poseTransformFrame2(EigenMath::RPY2Quaternion(lidar_rot), lidar_pos, state.offset_R_L_I, state.offset_T_L_I, state.rot, state.pos);
         }
     }
 
@@ -239,6 +252,11 @@ private:
                 keyframe_pose6d_optimized->points[i].roll = optimized_estimate.at<gtsam::Pose3>(i).rotation().roll();
                 keyframe_pose6d_optimized->points[i].pitch = optimized_estimate.at<gtsam::Pose3>(i).rotation().pitch();
                 keyframe_pose6d_optimized->points[i].yaw = optimized_estimate.at<gtsam::Pose3>(i).rotation().yaw();
+#if 0
+                LOG_WARN("optimized_pose = (%f, %f, %f, %f, %f, %f)",
+                         keyframe_pose6d_optimized->points[i].x, keyframe_pose6d_optimized->points[i].y, keyframe_pose6d_optimized->points[i].z,
+                         keyframe_pose6d_optimized->points[i].roll, keyframe_pose6d_optimized->points[i].pitch, keyframe_pose6d_optimized->points[i].yaw);
+#endif
             }
             pose_mtx.unlock();
             reset_ikdtree(ikdtree);
@@ -267,8 +285,6 @@ public:
     gtsam::noiseModel::Diagonal::shared_ptr prior_noise_outdoor;
     gtsam::noiseModel::Diagonal::shared_ptr odometry_noise;
     Eigen::MatrixXd pose_covariance;
-
-    bool gnss_factor_enable = true;
 
     // key frame param
     float keyframe_add_dist_threshold = 1;      // m

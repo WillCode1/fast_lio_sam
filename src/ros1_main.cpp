@@ -29,6 +29,7 @@ int lidar_type;
 System slam;
 std::string map_frame;
 std::string body_frame;
+FILE *location_log = nullptr;
 FILE *imu_quat_eular = fopen(DEBUG_FILE_DIR("imu_quat_eular.txt").c_str(), "w");
 
 bool flg_exit = false;
@@ -118,13 +119,16 @@ void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
     slam.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude));
 }
 
-#ifdef novatel
-void novatel_cbk(const nav_msgs::OdometryConstPtr &msg)
+#ifdef UrbanLoco
+void UrbanLoco_cbk(const nav_msgs::OdometryConstPtr &msg)
 {
-    slam.gnss->novatel_utm_handler(GnssPose(msg->header.stamp.toSec(),
-                                            V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
-                                            QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
-                                            V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
+    slam.gnss->UrbanLoco_handler(GnssPose(msg->header.stamp.toSec(),
+                                          V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                          QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
+                                          V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
+    slam.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
+                                              V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                              QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z));
 }
 #endif
 
@@ -335,6 +339,7 @@ int main(int argc, char **argv)
     bool save_globalmap_en = false, path_en = true;
     bool scan_pub_en = false, dense_pub_en = false;
     string lidar_topic, imu_topic, gnss_topic, config_file;
+    // location_log = fopen(DEBUG_FILE_DIR("location.log").c_str(), "a");
 
     ros::param::param("globalMapVisualizationSearchRadius", globalMapVisualizationSearchRadius, 1000.);
     ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
@@ -352,8 +357,8 @@ int main(int argc, char **argv)
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lidar_topic, 200000, livox_pcl_cbk) : nh.subscribe(lidar_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
-#ifdef novatel
-    ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, novatel_cbk);
+#ifdef UrbanLoco
+    ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, UrbanLoco_cbk);
 #else
     ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, gnss_cbk);
 #endif
@@ -400,13 +405,15 @@ int main(int argc, char **argv)
 
                 PointCloudType::Ptr cur_scan(new PointCloudType);
                 *cur_scan = *slam.frontend->measures->lidar;
-                slam.relocalization_thread = std::thread(&System::run_relocalization, &slam, cur_scan);
+                slam.relocalization_thread = std::thread(&System::run_relocalization, &slam, cur_scan, slam.frontend->measures->lidar_beg_time);
             }
             continue;
         }
 
+        LOG_DEBUG("run fastlio");
         if (slam.run())
         {
+            LOG_DEBUG("publish 1");
             const auto &state = slam.frontend->get_state();
 #ifdef EVO
             et.save_trajectory(state.pos, state.rot, slam.frontend->lidar_end_time);
@@ -436,6 +443,7 @@ int main(int argc, char **argv)
                 slam.frontend->get_ikdtree_point(featsFromMap);
                 publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.frontend->lidar_end_time);
             }
+            LOG_DEBUG("publish 2");
         }
 
         rate.sleep();

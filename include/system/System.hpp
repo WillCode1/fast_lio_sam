@@ -121,9 +121,11 @@ public:
 
         system_state_vaild = true;
 
+        LOG_DEBUG("run backend 1");
         /*** backend ***/
         auto cur_state = frontend->get_state();
         backend->set_current_pose(frontend->lidar_end_time, cur_state, keyframe_pose6d_unoptimized->size());
+        LOG_DEBUG("run backend 2");
         if (backend->is_keykrame())
         {
             // save keyframe info
@@ -150,8 +152,11 @@ public:
                 loopClosure->run(frontend->lidar_end_time, *keyframe_downsample);
             }
 
+            LOG_DEBUG("run backend 3");
             loopClosure->get_loop_constraint(loop_constraint);
+            LOG_DEBUG("run backend 4");
             backend->run(loop_constraint, cur_state, frontend->ikdtree);
+            LOG_DEBUG("run backend 6");
             frontend->set_pose(cur_state);
             return system_state_vaild;
         }
@@ -318,13 +323,13 @@ public:
         return globalMapKeyFramesDS;
     }
 
-    bool run_relocalization(PointCloudType::Ptr scan)
+    bool run_relocalization(PointCloudType::Ptr scan, const double &lidar_beg_time)
     {
         run_relocalization_thread = true;
         if (map_update_mode && !system_state_vaild)
         {
             Eigen::Matrix4d imu_pose;
-            if (relocalization->run(scan, imu_pose))
+            if (relocalization->run(scan, imu_pose, lidar_beg_time))
             {
                 frontend->reset_state(imu_pose);
                 system_state_vaild = true;

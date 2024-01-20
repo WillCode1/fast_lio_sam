@@ -28,7 +28,6 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
     M3D extrinR_eigen;
     double gyr_cov, acc_cov, b_gyr_cov, b_acc_cov;
 
-    slam.backend->gnss_factor_enable = config["mapping"]["gnss_factor_enable"].IsDefined() ? config["mapping"]["gnss_factor_enable"].as<bool>() : false;
     slam.backend->keyframe_add_dist_threshold = config["mapping"]["keyframe_add_dist_threshold"].IsDefined() ? config["mapping"]["keyframe_add_dist_threshold"].as<float>() : 1;
     slam.backend->keyframe_add_angle_threshold = config["mapping"]["keyframe_add_angle_threshold"].IsDefined() ? config["mapping"]["keyframe_add_angle_threshold"].as<float>() : 0.2;
     slam.backend->pose_cov_threshold = config["mapping"]["pose_cov_threshold"].IsDefined() ? config["mapping"]["pose_cov_threshold"].as<float>() : 25;
@@ -86,6 +85,17 @@ inline void load_parameters(System &slam, const std::string &config_path, bool m
 
     if (map_update_mode)
     {
+        slam.relocalization->utm_origin.zone = config["utm_origin"]["zone"].IsDefined() ? config["utm_origin"]["zone"].as<string>() : std::string("51N");
+        slam.relocalization->utm_origin.east = config["utm_origin"]["east"].IsDefined() ? config["utm_origin"]["east"].as<double>() : 0;
+        slam.relocalization->utm_origin.north = config["utm_origin"]["north"].IsDefined() ? config["utm_origin"]["north"].as<double>() : 0;
+        slam.relocalization->utm_origin.up = config["utm_origin"]["up"].IsDefined() ? config["utm_origin"]["up"].as<double>() : 0;
+
+        extrinT = config["mapping"]["extrinsicT_imu2gnss"].IsDefined() ? config["mapping"]["extrinsicT_imu2gnss"].as<vector<double>>() : vector<double>();
+        extrinR = config["mapping"]["extrinsicR_imu2gnss"].IsDefined() ? config["mapping"]["extrinsicR_imu2gnss"].as<vector<double>>() : vector<double>();
+        extrinT_eigen << VEC_FROM_ARRAY(extrinT);
+        extrinR_eigen << MAT_FROM_ARRAY(extrinR);
+        slam.relocalization->set_extrinsic(extrinT_eigen, extrinR_eigen);
+
         slam.relocalization->algorithm_type = config["relocalization_cfg"]["algorithm_type"].IsDefined() ? config["relocalization_cfg"]["algorithm_type"].as<string>() : std::string("UNKONW");
 
         BnbOptions match_option;

@@ -32,16 +32,20 @@ mapping:
     cube_side_length: 200
     runtime_log_enable: 0
 
+    # for backend
     keyframe_add_dist_threshold: 1
     keyframe_add_angle_threshold: 0.2
-    pose_cov_threshold: 25      # for add GNSS factor
-    gnssValidInterval: 0.1
-    gpsCovThreshold: 2
-    useGpsElevation: true
     recontruct_kdtree: true
     ikdtree_reconstruct_keyframe_num: 10
     ikdtree_reconstruct_downsamp_size: 0.1
 
+    # for add GNSS factor
+    pose_cov_threshold: 25
+    gnssValidInterval: 0.1
+    gpsCovThreshold: 2
+    useGpsElevation: true
+
+    # for loop closure
     loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 10
@@ -68,6 +72,11 @@ mapping:
     extrinsic_gnss_R: [ 1, 0, 0, 
                         0, 1, 0, 
                         0, 0, 1 ]
+    # imu -> gnss
+    extrinsicT_imu2gnss: [ 0, 0, 0 ]
+    extrinsicR_imu2gnss: [ 1, 0, 0, 
+                           0, 1, 0, 
+                           0, 0, 1 ]
 
 publish:
     path_en:  true
@@ -79,7 +88,7 @@ official:
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: false
-    map_path: "/home/will/data2/dynamic_filter/PCD"
+    map_path: "/home/will/data/test_mapping/mapping1"
 
 # ============relocalization_cfg============
 relocalization_cfg:
@@ -93,6 +102,12 @@ relocalization_cfg:
     lidar_ext/roll: 180
     lidar_ext/pitch: 0
     lidar_ext/yaw: 0
+
+utm_origin:
+    zone: "51N"
+    east: 536808.26993
+    north: 4501498.61740
+    up: 44.21500
 
 scan_context:
     lidar_height: 2.183
@@ -120,7 +135,7 @@ ndt:
     resolution: 1
 
 gicp:
-    use_gicp: true
+    use_gicp: false
     filter_range: 80.0
     gicp_downsample: 0.1
     search_radius: 0.5

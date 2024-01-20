@@ -209,14 +209,14 @@ public:
         }
 
         /*** push imu data, and pop from imu buffer ***/
-        double imu_time = imu_buffer.front()->timestamp;
         measures->imu.clear();
-        while ((!imu_buffer.empty()) && (imu_time <= lidar_end_time))
+        while (!imu_buffer.empty())
         {
+            if (imu_buffer.front()->timestamp > lidar_end_time)
+                break;
             measures->imu.push_back(imu_buffer.front());
             imu_orientation = imu_buffer.front()->orientation;
             imu_buffer.pop_front();
-            imu_time = imu_buffer.front()->timestamp;
         }
 
         lidar_buffer.pop_front();
@@ -237,6 +237,7 @@ public:
 #endif
         loger.resetTimer();
         imu->Process(*measures, kf, feats_undistort);
+        LOG_DEBUG("run fastlio 1");
 
         if (feats_undistort->empty() || (feats_undistort == NULL))
         {
@@ -260,6 +261,7 @@ public:
             add_ground_constraint = RAD2DEG(std::abs(lidar_rot_meas(0))) < 1 && RAD2DEG(std::abs(lidar_rot_meas(1))) < 1;
         }
 #endif
+        LOG_DEBUG("run fastlio 2");
         /*** interval sample and downsample the feature points in a scan ***/
         feats_down_lidar->clear();
         for (int i = 0; i < feats_undistort->size(); i++)
@@ -303,6 +305,7 @@ public:
         nearest_points.resize(feats_down_size);
         normvec->resize(feats_down_size);
 
+        LOG_DEBUG("run fastlio 3");
         kf.update_iterated_fastlio2();
         state = kf.get_x();
         loger.meas_update_time = loger.timer.elapsedLast();
@@ -342,6 +345,7 @@ public:
         loger.kdtree_size_end = ikdtree.size();
         loger.print_fastlio_cost_time();
         loger.output_fastlio_log_to_csv(measures->lidar_beg_time);
+        LOG_DEBUG("run fastlio 4");
         return true;
     }
 
