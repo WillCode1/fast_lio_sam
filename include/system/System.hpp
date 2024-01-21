@@ -29,27 +29,12 @@ public:
         loopClosure = make_shared<LoopClosure>(relocalization->sc_manager);
 
         feats_undistort.reset(new PointCloudType());
-
-        file_pose_unoptimized = fopen(DEBUG_FILE_DIR("keyframe_pose.txt").c_str(), "w");
-        file_pose_optimized = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized.txt").c_str(), "w");
-        file_pose_unoptimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_imu.txt").c_str(), "w");
-        file_pose_optimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized_imu.txt").c_str(), "w");
-
-        fprintf(file_pose_unoptimized, "# keyframe trajectory unoptimized\n# timestamp tx ty tz qx qy qz qw\n");
-        fprintf(file_pose_optimized, "# keyframe trajectory optimized\n# timestamp tx ty tz qx qy qz qw\n");
-        fprintf(file_pose_unoptimized_imu, "# keyframe trajectory unoptimized in imu frame\n# timestamp tx ty tz qx qy qz qw\n");
-        fprintf(file_pose_optimized_imu, "# keyframe trajectory optimized in imu frame\n# timestamp tx ty tz qx qy qz qw\n");
     }
 
     ~System()
     {
         if (loopthread.joinable())
             loopthread.join();
-
-        fclose(file_pose_unoptimized);
-        fclose(file_pose_optimized);
-        fclose(file_pose_unoptimized_imu);
-        fclose(file_pose_optimized_imu);
     }
 
     void init_system_mode(bool _map_update_mode)
@@ -184,6 +169,8 @@ public:
 
     void save_trajectory()
     {
+        FILE *file_pose_unoptimized = fopen(DEBUG_FILE_DIR("keyframe_pose.txt").c_str(), "w");
+        fprintf(file_pose_unoptimized, "# keyframe trajectory unoptimized\n# timestamp tx ty tz qx qy qz qw\n");
         int pose_num = keyframe_pose6d_unoptimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
         {
@@ -193,7 +180,10 @@ public:
             LogAnalysis::save_trajectory(file_pose_unoptimized, lidar_pos, lidar_rot, pose.time);
         }
         LOG_WARN("Success save global unoptimized lidar poses to file ...");
+        fclose(file_pose_unoptimized);
 
+        FILE *file_pose_optimized = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized.txt").c_str(), "w");
+        fprintf(file_pose_optimized, "# keyframe trajectory optimized\n# timestamp tx ty tz qx qy qz qw\n");
         pose_num = keyframe_pose6d_optimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
         {
@@ -203,6 +193,7 @@ public:
             LogAnalysis::save_trajectory(file_pose_optimized, lidar_pos, lidar_rot, pose.time);
         }
         LOG_WARN("Success save global optimized lidar poses to file ...");
+        fclose(file_pose_optimized);
 
         pcl::PCDWriter pcd_writer;
         pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
@@ -215,6 +206,8 @@ public:
     // for ape
     void save_trajectory_to_other_frame(const QD &extR, const V3D &extP, const std::string& frame)
     {
+        FILE *file_pose_unoptimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_imu.txt").c_str(), "w");
+        fprintf(file_pose_unoptimized_imu, "# keyframe trajectory unoptimized in imu frame\n# timestamp tx ty tz qx qy qz qw\n");
         const auto &state = frontend->get_state();
         int pose_num = keyframe_pose6d_unoptimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
@@ -228,7 +221,10 @@ public:
             LogAnalysis::save_trajectory(file_pose_unoptimized_imu, imu_pos, imu_rot, pose.time);
         }
         LOG_WARN("Success save global unoptimized %s poses to file ...", frame.c_str());
+        fclose(file_pose_unoptimized_imu);
 
+        FILE *file_pose_optimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized_imu.txt").c_str(), "w");
+        fprintf(file_pose_optimized_imu, "# keyframe trajectory optimized in imu frame\n# timestamp tx ty tz qx qy qz qw\n");
         pose_num = keyframe_pose6d_optimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
         {
@@ -241,6 +237,7 @@ public:
             LogAnalysis::save_trajectory(file_pose_optimized_imu, imu_pos, imu_rot, pose.time);
         }
         LOG_WARN("Success save global optimized %s poses to file ...", frame.c_str());
+        fclose(file_pose_optimized_imu);
     }
 
     void save_posegraph2g2o()
@@ -271,11 +268,11 @@ public:
         backend->init_estimate = *initial;
     }
 
-    PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize)
+    PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize, bool showOptimizedPose = true)
     {
         pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose(new pcl::PointCloud<PointXYZIRPYT>());
         backend->pose_mtx.lock();
-        if (loop_closure_enable_flag)
+        if (showOptimizedPose)
             *keyframe_pose = *keyframe_pose6d_optimized;
         else
             *keyframe_pose = *keyframe_pose6d_unoptimized;
@@ -383,10 +380,6 @@ public:
     bool test_mode = false;
 
     /*** keyframe config ***/
-    FILE *file_pose_unoptimized;
-    FILE *file_pose_optimized;
-    FILE *file_pose_unoptimized_imu;
-    FILE *file_pose_optimized_imu;
     bool save_keyframe_en = false;
     bool save_keyframe_descriptor_en = false;
     PointCloudType::Ptr feats_undistort;

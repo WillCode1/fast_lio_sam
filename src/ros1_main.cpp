@@ -22,6 +22,7 @@
 #define EVO
 
 
+bool showOptimizedPose = true;
 double globalMapVisualizationSearchRadius = 1000;
 double globalMapVisualizationPoseDensity = 10;
 double globalMapVisualizationLeafSize = 1;
@@ -306,7 +307,7 @@ void visualize_globalmap_thread(const ros::Publisher &pubGlobalmap)
     while (!flg_exit)
     {
         this_thread::sleep_for(std::chrono::seconds(1));
-        auto submap_visual = slam.get_submap_visual(globalMapVisualizationSearchRadius, globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize);
+        auto submap_visual = slam.get_submap_visual(globalMapVisualizationSearchRadius, globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, showOptimizedPose);
         if (submap_visual == nullptr)
             continue;
         publish_cloud(pubGlobalmap, submap_visual, slam.frontend->lidar_end_time, map_frame);
@@ -341,6 +342,7 @@ int main(int argc, char **argv)
     string lidar_topic, imu_topic, gnss_topic, config_file;
     // location_log = fopen(DEBUG_FILE_DIR("location.log").c_str(), "a");
 
+    ros::param::param("showOptimizedPose", showOptimizedPose, true);
     ros::param::param("globalMapVisualizationSearchRadius", globalMapVisualizationSearchRadius, 1000.);
     ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
