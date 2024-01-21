@@ -212,9 +212,8 @@ public:
             fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), map_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
     }
 
-#if 1
     // for ape
-    void save_trajectory_in_imu_frame()
+    void save_trajectory_to_other_frame(const QD &extR, const V3D &extP, const std::string& frame)
     {
         const auto &state = frontend->get_state();
         int pose_num = keyframe_pose6d_unoptimized->points.size();
@@ -225,10 +224,10 @@ public:
             const auto &lidar_pos = V3D(pose.x, pose.y, pose.z);
             QD imu_rot;
             V3D imu_pos;
-            poseTransformFrame2(lidar_rot, lidar_pos, state.offset_R_L_I, state.offset_T_L_I, imu_rot, imu_pos);
+            poseTransformFrame2(lidar_rot, lidar_pos, extR, extP, imu_rot, imu_pos);
             LogAnalysis::save_trajectory(file_pose_unoptimized_imu, imu_pos, imu_rot, pose.time);
         }
-        LOG_WARN("Success save global unoptimized imu poses to file ...");
+        LOG_WARN("Success save global unoptimized %s poses to file ...", frame.c_str());
 
         pose_num = keyframe_pose6d_optimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
@@ -238,12 +237,11 @@ public:
             const auto &lidar_pos = V3D(pose.x, pose.y, pose.z);
             QD imu_rot;
             V3D imu_pos;
-            poseTransformFrame2(lidar_rot, lidar_pos, state.offset_R_L_I, state.offset_T_L_I, imu_rot, imu_pos);
+            poseTransformFrame2(lidar_rot, lidar_pos, extR, extP, imu_rot, imu_pos);
             LogAnalysis::save_trajectory(file_pose_optimized_imu, imu_pos, imu_rot, pose.time);
         }
-        LOG_WARN("Success save global optimized imu poses to file ...");
+        LOG_WARN("Success save global optimized %s poses to file ...", frame.c_str());
     }
-#endif
 
     void save_posegraph2g2o()
     {

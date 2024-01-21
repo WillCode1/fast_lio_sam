@@ -53,12 +53,12 @@ public:
   bool useGpsElevation = false;
   bool gnss_factor_enable = false;
   deque<GnssPose> gnss_buffer;
+  Eigen::Matrix4d extrinsic_lidar2gnss;
 
 private:
   bool check_mean_and_variance(const std::vector<V3D> &start_point, utm_coordinate::utm_point &utm_origin, const double &variance_thold);
 
 private:
-  Eigen::Matrix4d extrinsic_lidar2gnss;
   FILE *file_pose_gnss;
 };
 
