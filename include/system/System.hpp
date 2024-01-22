@@ -206,8 +206,8 @@ public:
     // for ape
     void save_trajectory_to_other_frame(const QD &extR, const V3D &extP, const std::string& frame)
     {
-        FILE *file_pose_unoptimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_imu.txt").c_str(), "w");
-        fprintf(file_pose_unoptimized_imu, "# keyframe trajectory unoptimized in imu frame\n# timestamp tx ty tz qx qy qz qw\n");
+        FILE *file_pose_unoptimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_" + frame + ".txt").c_str(), "w");
+        fprintf(file_pose_unoptimized_imu, "# keyframe trajectory unoptimized in %s frame\n# timestamp tx ty tz qx qy qz qw\n", frame.c_str());
         const auto &state = frontend->get_state();
         int pose_num = keyframe_pose6d_unoptimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
@@ -223,8 +223,8 @@ public:
         LOG_WARN("Success save global unoptimized %s poses to file ...", frame.c_str());
         fclose(file_pose_unoptimized_imu);
 
-        FILE *file_pose_optimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized_imu.txt").c_str(), "w");
-        fprintf(file_pose_optimized_imu, "# keyframe trajectory optimized in imu frame\n# timestamp tx ty tz qx qy qz qw\n");
+        FILE *file_pose_optimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_optimized_" + frame + ".txt").c_str(), "w");
+        fprintf(file_pose_optimized_imu, "# keyframe trajectory optimized in %s frame\n# timestamp tx ty tz qx qy qz qw\n", frame.c_str());
         pose_num = keyframe_pose6d_optimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
         {

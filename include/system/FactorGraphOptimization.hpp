@@ -136,7 +136,7 @@ private:
             // The weight doubles every 0.1 second
             auto gnss_time_interval_weight = 1.0 * (1 + thisGPS.current_gnss_interval * 10);
 #else
-            auto gnss_time_interval_weight = 1.0;
+            auto gnss_time_interval_weight = 0.1;
 #endif
             gtsam::Vector Vector3(3);
             Vector3 << max(thisGPS.covariance(0), gnss_time_interval_weight), max(thisGPS.covariance(1), gnss_time_interval_weight), max(thisGPS.covariance(2), gnss_time_interval_weight);
