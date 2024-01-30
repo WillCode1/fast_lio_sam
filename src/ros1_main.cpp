@@ -339,7 +339,7 @@ int main(int argc, char **argv)
     bool map_update_mode = false;
     bool save_globalmap_en = false, path_en = true;
     bool scan_pub_en = false, dense_pub_en = false;
-    string lidar_topic, imu_topic, gnss_topic, config_file;
+    string lidar_topic, imu_topic, gnss_topic;
     // location_log = fopen(DEBUG_FILE_DIR("location.log").c_str(), "a");
 
     ros::param::param("showOptimizedPose", showOptimizedPose, true);
@@ -347,10 +347,9 @@ int main(int argc, char **argv)
     ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
     ros::param::param("map_update_mode", map_update_mode, false);
-    ros::param::param("config_file", config_file, std::string(""));
 
-    load_ros_parameters(string(ROOT_DIR) + config_file, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame);
-    load_parameters(slam, string(ROOT_DIR) + config_file, map_update_mode, save_globalmap_en, lidar_type);
+    load_ros_parameters(path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame);
+    load_parameters(slam, map_update_mode, save_globalmap_en, lidar_type);
 
 #ifdef EVO
     evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));

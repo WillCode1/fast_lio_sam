@@ -3,24 +3,24 @@
 
 	<arg name="rviz" default="true" />
 
-	<!-- <param name="config_file" type="string" value="/config/avia.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/mid360.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/horizon.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/velodyne.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/ouster64.yaml" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/avia.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/mid360.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/horizon.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/velodyne.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/ouster64.yaml" command="load" /> -->
 
-	<!-- <param name="config_file" type="string" value="/config/mapping_backup.yaml" /> -->
-	<param name="config_file" type="string" value="/config/mapping_dev.yaml" />
-	<!-- <param name="config_file" type="string" value="/config/mapping_imu_backshaft.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/mapping_pointlio.yaml" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/mapping_backup.yaml" command="load" /> -->
+    <rosparam file="$(find fast_lio_sam)/config/mapping_dev.yaml" command="load" />
+    <!-- <rosparam file="$(find fast_lio_sam)/config/mapping_imu_backshaft.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/mapping_pointlio.yaml" command="load" /> -->
 
-	<!-- <param name="config_file" type="string" value="/config/dataset/nclt.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/dataset/liosam.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/dataset/Hilti2021_ouster.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/dataset/Hilti2021_livox.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/dataset/Hilti2022.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/dataset/UrbanLoco_HK.yaml" /> -->
-	<!-- <param name="config_file" type="string" value="/config/dataset/UrbanLoco_CA.yaml" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/dataset/nclt.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/dataset/liosam.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/dataset/Hilti2021_ouster.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/dataset/Hilti2021_livox.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/dataset/Hilti2022.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/dataset/UrbanLoco_HK.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/dataset/UrbanLoco_CA.yaml" command="load" /> -->
 
 	<param name="showOptimizedPose" type="bool" value="true" />
 	<param name="globalMapVisualizationSearchRadius" type="double" value="1000" />

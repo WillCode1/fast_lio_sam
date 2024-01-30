@@ -57,7 +57,7 @@ find_package(Eigen3 REQUIRED)
 find_package(PCL 1.8 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS serialization timer thread chrono)
 find_package(GTSAM REQUIRED)
-find_package(yaml-cpp REQUIRED)
+find_package(OpenCV REQUIRED)
 
 include_directories(
 	${catkin_INCLUDE_DIRS}
@@ -65,7 +65,7 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${GTSAM_INCLUDE_DIR}
-  ${YAML_CPP_INCLUDE_DIR}
+  ${OpenCV_INCLUDE_DIRS}
   include)
 
 catkin_package(
@@ -82,7 +82,7 @@ add_library(${PROJECT_NAME} SHARED
 target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
 
 add_executable(fastlio_sam_ros1 src/ros1_main.cpp)
-target_link_libraries(fastlio_sam_ros1 ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${YAML_CPP_LIBRARIES})
+target_link_libraries(fastlio_sam_ros1 ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(fastlio_sam_test_bag test/read_rosbag_test.cpp)
-target_link_libraries(fastlio_sam_test_bag ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${YAML_CPP_LIBRARIES})
+target_link_libraries(fastlio_sam_test_bag ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})

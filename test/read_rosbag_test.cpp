@@ -7,6 +7,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Imu.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <opencv2/core.hpp>
 #include "livox_ros_driver/CustomMsg.h"
 #include "system/System.hpp"
 #include "utility/ProgressBar.h"
@@ -112,7 +113,7 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
     }
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
-    load_parameters(slam, config_path, false, save_globalmap_en, lidar_type);
+    load_parameters(slam, false, save_globalmap_en, lidar_type);
     slam.test_mode = true;
 
     ros::Time start_time = view.getBeginTime();
@@ -225,16 +226,20 @@ void traverse_for_config(const std::string &directoryPath)
 
 int main(int argc, char** argv)
 {
-    YAML::Node test_config = YAML::LoadFile(root_path + "/test/test_config.yaml");
+    cv::FileStorage test_config(root_path + "/test/test_config.yaml", cv::FileStorage::READ);
 
     signal(SIGINT, SigHandle);
 
     config_filename = "mapping_dev.yaml";
 
-    topics = test_config["read_topics"].IsDefined() ? test_config["read_topics"].as<vector<std::string>>() : vector<std::string>();
+    std::vector<std::string> dataset_paths;
+    ros::param::param("config_file", topics, vector<std::string>());
+    if (!test_config["read_topics"].empty())
+        test_config["read_topics"] >> topics;
+    if (!test_config["dataset_paths"].empty())
+        test_config["dataset_paths"] >> dataset_paths;
 
     Timer timer;
-    auto dataset_paths = test_config["dataset_paths"].IsDefined() ? test_config["dataset_paths"].as<vector<std::string>>() : vector<std::string>();
     LOG_WARN("111");
     for (const auto& path: dataset_paths)
     {
