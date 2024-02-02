@@ -87,5 +87,5 @@ official:
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: false
-    save_keyframe_descriptor_en: true
+    save_keyframe_descriptor_en: false
     map_path: "/home/will/data/test_mapping/mapping1"
