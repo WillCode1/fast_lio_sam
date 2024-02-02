@@ -186,7 +186,7 @@ private:
             isam->update();
             isam->update();
             isam->update();
-            // LOG_INFO("ISMA2 Update");
+            LOG_INFO("ISMA2 Update");
         }
         // update之后要清空一下保存的因子图，注：历史数据不会清掉，ISAM保存起来了
         gtsam_graph.resize(0);

@@ -30,6 +30,7 @@ int lidar_type;
 System slam;
 std::string map_frame;
 std::string body_frame;
+std::string lidar_frame;
 FILE *location_log = nullptr;
 FILE *imu_quat_eular = fopen(DEBUG_FILE_DIR("imu_quat_eular.txt").c_str(), "w");
 
@@ -168,18 +169,22 @@ void set_posestamp(T &out, const state_ikfom &state)
     out.pose.orientation.w = state.rot.coeffs()[3];
 }
 
-void publish_tf(const geometry_msgs::Pose &pose, const double& lidar_end_time)
+void publish_tf(const geometry_msgs::Pose &pose, const state_ikfom &state, const double& lidar_end_time)
 {
     static tf::TransformBroadcaster br;
     tf::Transform transform;
     tf::Quaternion q;
+    // imu -> map
     transform.setOrigin(tf::Vector3(pose.position.x, pose.position.y, pose.position.z));
-    q.setW(pose.orientation.w);
-    q.setX(pose.orientation.x);
-    q.setY(pose.orientation.y);
-    q.setZ(pose.orientation.z);
+    q.setValue(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w);
     transform.setRotation(q);
     br.sendTransform(tf::StampedTransform(transform, ros::Time().fromSec(lidar_end_time), map_frame, body_frame));
+
+    // lidar -> imu
+    transform.setOrigin(tf::Vector3(state.offset_T_L_I.x(), state.offset_T_L_I.y(), state.offset_T_L_I.z()));
+    q.setValue(state.offset_R_L_I.x(), state.offset_R_L_I.y(), state.offset_R_L_I.z(), state.offset_R_L_I.w());
+    transform.setRotation(q);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time().fromSec(lidar_end_time), body_frame, lidar_frame));
 }
 
 // 发布里程计
@@ -191,7 +196,7 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped, const state_ikfom 
     odomAftMapped.header.stamp = ros::Time().fromSec(lidar_end_time);
     set_posestamp(odomAftMapped.pose, state);
     pubOdomAftMapped.publish(odomAftMapped);
-    publish_tf(odomAftMapped.pose.pose, lidar_end_time);
+    publish_tf(odomAftMapped.pose.pose, state, lidar_end_time);
 }
 
 void publish_imu_path(const ros::Publisher &pubPath, const state_ikfom &state, const double& lidar_end_time)
@@ -348,7 +353,7 @@ int main(int argc, char **argv)
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
     ros::param::param("map_update_mode", map_update_mode, false);
 
-    load_ros_parameters(path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame);
+    load_ros_parameters(path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame, lidar_frame);
     load_parameters(slam, map_update_mode, save_globalmap_en, lidar_type);
 
 #ifdef EVO

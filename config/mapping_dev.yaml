@@ -4,6 +4,7 @@ common:
     gnss_topic:  "/gps/fix"
     map_frame:  "map"
     body_frame:  "body"
+    lidar_frame:  "lidar"
     timedelay_lidar2imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
 
 preprocess:
@@ -89,4 +90,4 @@ official:
     save_resolution: 0.2
     save_keyframe_en: false
     save_keyframe_descriptor_en: false
-    map_path: "/home/will/data/test_mapping/mapping1"
+    # map_path: "/home/will/data/test_mapping/mapping1"

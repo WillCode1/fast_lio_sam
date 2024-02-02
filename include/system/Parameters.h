@@ -2,7 +2,8 @@
 #include <ros/ros.h>
 
 inline void load_ros_parameters(bool &path_en, bool &scan_pub_en, bool &dense_pub_en,
-                                std::string &lidar_topic, std::string &imu_topic, std::string &gnss_topic, std::string &map_frame, std::string &body_frame)
+                                std::string &lidar_topic, std::string &imu_topic, std::string &gnss_topic,
+                                std::string &map_frame, std::string &body_frame, std::string &lidar_frame)
 {
     ros::param::param("publish/path_en", path_en, false);
     ros::param::param("publish/scan_publish_en", scan_pub_en, false);
@@ -13,6 +14,7 @@ inline void load_ros_parameters(bool &path_en, bool &scan_pub_en, bool &dense_pu
     ros::param::param("common/gnss_topic", gnss_topic, std::string("/gps/fix"));
     ros::param::param("common/map_frame", map_frame, std::string("camera_init"));
     ros::param::param("common/body_frame", body_frame, std::string("body"));
+    ros::param::param("common/lidar_frame", lidar_frame, std::string("lidar"));
 }
 
 inline void load_parameters(System &slam, bool map_update_mode, bool &save_globalmap_en, int &lidar_type)
