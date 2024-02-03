@@ -41,7 +41,6 @@ public:
         double mme = 0;
         Eigen::Matrix3d covariance;
         Eigen::Vector4d centroid;
-        double e = 2.718281828459045;
 
 #pragma omp parallel for num_threads(threads_num)
         for (auto &point : map_cloud->points)
@@ -50,11 +49,11 @@ public:
             std::vector<float> pointSearchSqDis;
             kdtree->radiusSearch(point, searchRadius, pointSearchInd, pointSearchSqDis, 0);
 
-            if (pointSearchInd.size() < 2)
+            if (pointSearchInd.size() < 16)
                 continue;
 
             pcl::computeMeanAndCovarianceMatrix(*map_cloud, pointSearchInd, covariance, centroid);
-            covariance *= 2 * M_PI * e;
+            covariance *= 2 * M_PI * M_E;
             auto tmp = 0.5 * std::log(covariance.determinant()); // log = ln
 
             if (!isfinite(tmp))
