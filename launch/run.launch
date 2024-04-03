@@ -8,6 +8,7 @@
     <!-- <rosparam file="$(find fast_lio_sam)/config/horizon.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/velodyne.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/ouster64.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/vanji720_16.yaml" command="load" /> -->
 
     <!-- <rosparam file="$(find fast_lio_sam)/config/mapping_backup.yaml" command="load" /> -->
     <rosparam file="$(find fast_lio_sam)/config/mapping_dev.yaml" command="load" />
