@@ -270,11 +270,6 @@ public:
         if (ground_constraint_enable)
         {
 #if 1
-            // convert to imu frame
-            // auto rpy_imu_fixed = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation);
-            auto imu_state = EigenMath::Quaternion2RPY(state.rot);
-            // state.rot = EigenMath::RPY2Quaternion(V3D(rpy_imu_fixed(0), rpy_imu_fixed(1), imu_state(2)));
-
             // 1.假定雷达相对底盘是平行的，当雷达水平时，添加地面约束
             // 2.依靠imu的测量角(经过重力矫正，并且加上imu_init_rot的姿态翻转)的增量，约束真实的角度增量
             V3D lidar_rot_meas = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation * state.offset_R_L_I);
@@ -284,6 +279,7 @@ public:
             {
                 // 1.约束delta_z = 0
                 state.pos.z() = last_state.pos.z();
+                auto imu_state = EigenMath::Quaternion2RPY(state.rot);
                 state.rot = EigenMath::RPY2Quaternion(V3D(DEG2RAD(180), 0, imu_state(2)));
 #else
                 // 2.约束delta_z和pitch = 0
