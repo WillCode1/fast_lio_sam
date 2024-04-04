@@ -100,6 +100,7 @@ publish:
 
 official:
     ground_constraint_enable: false
+    ground_constraint_angle: 5
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: false

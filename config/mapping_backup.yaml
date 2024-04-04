@@ -84,6 +84,8 @@ publish:
     dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
 
 official:
+    ground_constraint_enable: true
+    ground_constraint_angle: 5
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: false

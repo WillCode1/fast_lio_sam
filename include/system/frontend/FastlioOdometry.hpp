@@ -7,6 +7,11 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
+
+#include <gtsam/slam/PriorFactor.h>
+#include <gtsam/nonlinear/NonlinearFactorGraph.h>
+#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
+
 #include "ImuProcessor.h"
 #include "LidarProcessor.hpp"
 #include "system/Header.h"
@@ -269,24 +274,15 @@ public:
 
         if (ground_constraint_enable)
         {
-#if 1
             // 1.假定雷达相对底盘是平行的，当雷达水平时，添加地面约束
             // 2.依靠imu的测量角(经过重力矫正，并且加上imu_init_rot的姿态翻转)的增量，约束真实的角度增量
             V3D lidar_rot_meas = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation * state.offset_R_L_I);
-            add_ground_constraint = RAD2DEG(std::abs(lidar_rot_meas(0))) < 1 && RAD2DEG(std::abs(lidar_rot_meas(1))) < 10;
+            add_ground_constraint = RAD2DEG(std::abs(lidar_rot_meas(0))) < ground_constraint_angle &&
+                                    RAD2DEG(std::abs(lidar_rot_meas(1))) < ground_constraint_angle;
 
             if (add_ground_constraint)
             {
-                // 1.约束delta_z = 0
-                state.pos.z() = last_state.pos.z();
-                auto imu_state = EigenMath::Quaternion2RPY(state.rot);
-                state.rot = EigenMath::RPY2Quaternion(V3D(DEG2RAD(180), 0, imu_state(2)));
-#else
-                // 2.约束delta_z和pitch = 0
-                state.pos.z() = 0;
-                auto rpy = EigenMath::Quaternion2RPY(state.rot);
-                state.rot = EigenMath::RPY2Quaternion(V3D(rpy(0), 0, rpy(2)));
-#endif
+                ground_constraint_by_gtsam(last_state, state);
             }
             kf.change_x(state);
         }
@@ -613,6 +609,43 @@ protected:
         return true;
     }
 
+    void ground_constraint_by_gtsam(const state_ikfom &last_state, state_ikfom &cur_state)
+    {
+        using namespace gtsam;
+        NonlinearFactorGraph graph;
+        Values initials;
+
+        // imu pose -> lidar pose
+        QD lidar_quat;
+        V3D lidar_pos, lidar_pos2;
+        poseTransformFrame(cur_state.rot, cur_state.pos, cur_state.offset_R_L_I, cur_state.offset_T_L_I, lidar_quat, lidar_pos);
+        cur_state.pos.z() = last_state.pos.z();
+        poseTransformFrame(cur_state.rot, cur_state.pos, cur_state.offset_R_L_I, cur_state.offset_T_L_I, lidar_quat, lidar_pos2);
+        V3D eulerAngle = EigenMath::Quaternion2RPY(lidar_quat);
+
+        auto pose_lio = Pose3(Rot3::RzRyRx(eulerAngle(0), eulerAngle(1), eulerAngle(2)), Point3(lidar_pos(0), lidar_pos(1), lidar_pos(2)));
+        auto pose_correctional = Pose3(Rot3::RzRyRx(0, 0, eulerAngle(2)), Point3(lidar_pos(0), lidar_pos(1), lidar_pos2(2)));
+
+        initials.insert(0, pose_correctional);
+        noiseModel::Diagonal::shared_ptr priorNoise = noiseModel::Diagonal::Variances((Vector(6) << 1e2, 1e2, 1e-4, 1e-4, 1e-4, 1e1).finished());
+        graph.add(PriorFactor<gtsam::Pose3>(0, pose_lio, priorNoise));
+
+        noiseModel::Diagonal::shared_ptr groundConstraintNoise = noiseModel::Diagonal::Variances((Vector(6) << 1e-2, 1e-2, 1e-4, 1e-4, 1e-4, 1e-2).finished());
+        graph.add(PriorFactor<gtsam::Pose3>(0, pose_correctional, groundConstraintNoise));
+
+        LevenbergMarquardtParams parameters;
+        parameters.setMaxIterations(20);
+        parameters.setLinearSolverType("MULTIFRONTAL_QR");
+        LevenbergMarquardtOptimizer optimizer(graph, initials, parameters);
+        Values results = optimizer.optimize();
+        auto cur_estimate = results.at<gtsam::Pose3>(0);
+
+        lidar_pos = V3D(cur_estimate.translation().x(), cur_estimate.translation().y(), cur_estimate.translation().z());
+        V3D lidar_rot(cur_estimate.rotation().roll(), cur_estimate.rotation().pitch(), cur_estimate.rotation().yaw());
+        // lidar pose -> imu pose
+        poseTransformFrame2(EigenMath::RPY2Quaternion(lidar_rot), lidar_pos, cur_state.offset_R_L_I, cur_state.offset_T_L_I, cur_state.rot, cur_state.pos);
+    }
+
     struct EffectFeature
     {
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -681,6 +714,7 @@ public:
 #if 1
     QD imu_orientation;
     bool ground_constraint_enable = false;
+    float ground_constraint_angle = 5;
     bool add_ground_constraint = false;
 #endif
 

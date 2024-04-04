@@ -206,5 +206,6 @@ inline void load_parameters(System &slam, bool map_update_mode, bool &save_globa
     slam.frontend->set_extrinsic(extrinT_eigen, extrinR_eigen);
 
     ros::param::param("official/ground_constraint_enable", slam.frontend->ground_constraint_enable, false);
+    ros::param::param("official/ground_constraint_angle", slam.frontend->ground_constraint_angle, 5.f);
     slam.init_system_mode(map_update_mode);
 }
