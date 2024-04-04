@@ -11,7 +11,6 @@
 #include "LidarProcessor.hpp"
 #include "system/Header.h"
 
-#define Z_Constraint
 
 class FastlioOdometry
 {
@@ -199,9 +198,8 @@ public:
             loger.first_lidar_beg_time = measures->lidar_beg_time;
             loger.inited_first_lidar_beg_time = true;
         }
-#ifdef Z_Constraint
         auto last_state = state;
-#endif
+
         loger.resetTimer();
         imu->Process(*measures, kf, feats_undistort);
         LOG_DEBUG("run fastlio 1");
@@ -219,15 +217,6 @@ public:
         loger.imu_process_time = loger.timer.elapsedLast();
         loger.feats_undistort_size = feats_undistort->points.size();
 
-#ifdef Z_Constraint
-        if (ground_constraint_enable)
-        {
-            // 1.假定雷达位置相对地面是平行的，当雷达水平时，添加地面约束
-            // 2.依靠imu的测量角(经过重力矫正，并且加上imu_init_rot的姿态翻转)的增量，约束真实的角度增量
-            V3D lidar_rot_meas = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation * state.offset_R_L_I);
-            add_ground_constraint = RAD2DEG(std::abs(lidar_rot_meas(0))) < 1 && RAD2DEG(std::abs(lidar_rot_meas(1))) < 1;
-        }
-#endif
         LOG_DEBUG("run fastlio 2");
         /*** interval sample and downsample the feature points in a scan ***/
         feats_down_lidar->clear();
@@ -278,20 +267,24 @@ public:
         loger.meas_update_time = loger.timer.elapsedLast();
         loger.dump_state_to_log(loger.fout_update, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
 
-#ifdef Z_Constraint
-        // TODO: use ekf
         if (ground_constraint_enable)
         {
 #if 1
             // convert to imu frame
-            auto rpy_imu_fixed = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation);
+            // auto rpy_imu_fixed = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation);
             auto imu_state = EigenMath::Quaternion2RPY(state.rot);
-            state.rot = EigenMath::RPY2Quaternion(V3D(rpy_imu_fixed(0), rpy_imu_fixed(1), imu_state(2)));
+            // state.rot = EigenMath::RPY2Quaternion(V3D(rpy_imu_fixed(0), rpy_imu_fixed(1), imu_state(2)));
+
+            // 1.假定雷达相对底盘是平行的，当雷达水平时，添加地面约束
+            // 2.依靠imu的测量角(经过重力矫正，并且加上imu_init_rot的姿态翻转)的增量，约束真实的角度增量
+            V3D lidar_rot_meas = EigenMath::Quaternion2RPY(imu_init_rot * imu_orientation * state.offset_R_L_I);
+            add_ground_constraint = RAD2DEG(std::abs(lidar_rot_meas(0))) < 1 && RAD2DEG(std::abs(lidar_rot_meas(1))) < 10;
+
             if (add_ground_constraint)
             {
                 // 1.约束delta_z = 0
                 state.pos.z() = last_state.pos.z();
-                // state.rot = EigenMath::RPY2Quaternion(V3D(0, 0, imu_state(2)));
+                state.rot = EigenMath::RPY2Quaternion(V3D(DEG2RAD(180), 0, imu_state(2)));
 #else
                 // 2.约束delta_z和pitch = 0
                 state.pos.z() = 0;
@@ -301,7 +294,6 @@ public:
             }
             kf.change_x(state);
         }
-#endif
 
         /*** map update ***/
         V3D pos_Lidar_world = state.pos + state.rot * state.offset_T_L_I;
