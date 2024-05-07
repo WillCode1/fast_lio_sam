@@ -35,12 +35,8 @@ public:
         isam = new gtsam::ISAM2(parameters);
 
         // rpy(rad*rad), xyz(meter*meter)
-        // 1.indoor_noise
         prior_noise_indoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12).finished());
-        // 2.liosam_noise
-        // prior_noise_outdoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
-        // 3.fix liosam_noise(due to utm origin is not zero)
-        prior_noise_outdoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, 1e6, 1e-4, 1e-4, 1e-4).finished());
+        prior_noise_outdoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
     }
 
@@ -63,7 +59,7 @@ public:
         this_pose6d.time = lidar_end_time;
     }
 
-    bool is_keykrame()
+    bool is_keyframe()
     {
         if (keyframe_pose6d_optimized->points.empty())
             return true;
@@ -103,7 +99,7 @@ private:
     {
         if (keyframe_pose6d_optimized->points.empty())
         {
-            if (gnss->gnss_factor_enable)
+            if (gnss_factor_enable)
                 gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_outdoor));
             else
                 gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_indoor));
@@ -132,14 +128,9 @@ private:
         GnssPose thisGPS;
         if (gnss->get_gnss_factor(thisGPS, this_pose6d.time, this_pose6d.z))
         {
-#if 0
-            // The weight doubles every 0.1 second
-            auto gnss_time_interval_weight = 1.0 * (1 + thisGPS.current_gnss_interval * 10);
-#else
-            auto gnss_time_interval_weight = 0.1;
-#endif
+            auto gnss_time_interval_weight = 1.0;
             gtsam::Vector Vector3(3);
-            Vector3 << max(thisGPS.covariance(0), gnss_time_interval_weight), max(thisGPS.covariance(1), gnss_time_interval_weight), max(thisGPS.covariance(2), gnss_time_interval_weight);
+            Vector3 << max(thisGPS.covariance(0), gnss_time_interval_weight), max(thisGPS.covariance(1), gnss_time_interval_weight), max(thisGPS.covariance(2), 0.1);
             gtsam::noiseModel::Diagonal::shared_ptr gnss_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
             gtsam::GPSFactor gps_factor(keyframe_pose6d_optimized->size(), gtsam::Point3(thisGPS.lidar_pos_fix(0), thisGPS.lidar_pos_fix(1), thisGPS.lidar_pos_fix(2)), gnss_noise);
             gtsam_graph.add(gps_factor);
@@ -289,6 +280,8 @@ public:
     // key frame param
     float keyframe_add_dist_threshold = 1;      // m
     float keyframe_add_angle_threshold = 0.2;   // 11.46 degree
+
+    bool gnss_factor_enable = false;
 
     // ikdtree reconstruct
     bool recontruct_kdtree = true;

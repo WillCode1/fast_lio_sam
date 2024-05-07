@@ -111,7 +111,7 @@ public:
         auto cur_state = frontend->get_state();
         backend->set_current_pose(frontend->lidar_end_time, cur_state, keyframe_pose6d_unoptimized->size());
         LOG_DEBUG("run backend 2");
-        if (backend->is_keykrame())
+        if (backend->is_keyframe())
         {
             // save keyframe info
             keyframe_pose6d_unoptimized->push_back(backend->this_pose6d);

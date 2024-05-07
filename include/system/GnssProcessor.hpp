@@ -51,7 +51,6 @@ public:
   float gnssValidInterval = 0.2;
   float gpsCovThreshold = 2;
   bool useGpsElevation = false;
-  bool gnss_factor_enable = false;
   deque<GnssPose> gnss_buffer;
   Eigen::Matrix4d extrinsic_lidar2gnss;
 
@@ -102,7 +101,6 @@ bool GnssProcessor::check_mean_and_variance(const std::vector<V3D> &start_point,
 
 void GnssProcessor::gnss_handler(const GnssPose &gnss_raw)
 {
-  gnss_factor_enable = true;
   static int count = 0;
   static utm_coordinate::utm_point utm_origin;
   static std::vector<V3D> start_point;
@@ -240,13 +238,14 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
 void GnssProcessor::UrbanLoco_handler(const GnssPose &gnss_raw)
 {
   static utm_coordinate::utm_point utm_origin;
-  if (!gnss_factor_enable)
+  static bool first_gps = true;
+  if (first_gps)
   {
     utm_origin.east = gnss_raw.gnss_position(0);
     utm_origin.north = gnss_raw.gnss_position(1);
     utm_origin.up = gnss_raw.gnss_position(2);
+    first_gps = false;
   }
-  gnss_factor_enable = true;
   auto tmp = gnss_raw;
   tmp.gnss_position = gnss_raw.gnss_position - V3D(utm_origin.east, utm_origin.north, utm_origin.up);
   gnss_buffer.push_back(tmp);

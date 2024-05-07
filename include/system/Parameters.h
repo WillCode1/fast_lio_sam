@@ -29,6 +29,7 @@ inline void load_parameters(System &slam, bool map_update_mode, bool &save_globa
 
     ros::param::param("mapping/keyframe_add_dist_threshold", slam.backend->keyframe_add_dist_threshold, 1.f);
     ros::param::param("mapping/keyframe_add_angle_threshold", slam.backend->keyframe_add_angle_threshold, 0.2f);
+    ros::param::param("mapping/gnss_factor_enable", slam.backend->gnss_factor_enable, false);
     ros::param::param("mapping/pose_cov_threshold", slam.backend->pose_cov_threshold, 25.f);
     ros::param::param("mapping/gnssValidInterval", slam.gnss->gnssValidInterval, 0.2f);
     ros::param::param("mapping/gpsCovThreshold", slam.gnss->gpsCovThreshold, 2.f);
@@ -172,6 +173,15 @@ inline void load_parameters(System &slam, bool map_update_mode, bool &save_globa
     {
         LOG_ERROR("frontend odom type error!");
         exit(100);
+    }
+
+    if (slam.backend->gnss_factor_enable)
+    {
+        LOG_INFO("use gnss factor.");
+    }
+    else
+    {
+        LOG_WARN("gnss factor not enable!");
     }
 
     slam.frontend->lidar->init(n_scans, scan_rate, time_unit, blind, detect_range);
