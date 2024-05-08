@@ -57,7 +57,7 @@ public:
         offset_Rli = rot;
     }
 
-    virtual void init_state(shared_ptr<ImuProcessor> &imu)
+    virtual void init_state(shared_ptr<ImuProcessor> &imu, const Eigen::Matrix4d &extrinsic_lidar2gnss)
     {
         acc_norm = imu->mean_acc.norm();
         /* 
@@ -205,7 +205,7 @@ public:
         return true;
     }
 
-    virtual bool run(bool map_update_mode, PointCloudType::Ptr &feats_undistort)
+    virtual bool run(bool map_update_mode, PointCloudType::Ptr &feats_undistort, const Eigen::Matrix4d &extrinsic_lidar2gnss)
     {
         if (loger.runtime_log && !loger.inited_first_lidar_beg_time)
         {
@@ -222,7 +222,7 @@ public:
         }
 
         if (!imu->gravity_align_)
-            init_state(imu);
+            init_state(imu, extrinsic_lidar2gnss);
 
         loger.imu_process_time = loger.timer.elapsedLast();
         loger.feats_undistort_size = feats_undistort->points.size();

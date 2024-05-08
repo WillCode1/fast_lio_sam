@@ -98,7 +98,7 @@ public:
     bool run()
     {
         /*** frontend ***/
-        if (!frontend->run(map_update_mode, feats_undistort))
+        if (!frontend->run(map_update_mode, feats_undistort, gnss->extrinsic_lidar2gnss))
         {
             system_state_vaild = false;
             return system_state_vaild;

@@ -68,7 +68,7 @@ public:
         offset_Rli = rot;
     }
 
-    virtual void init_state(shared_ptr<ImuProcessor> &imu)
+    virtual void init_state(shared_ptr<ImuProcessor> &imu, const Eigen::Matrix4d &extrinsic_lidar2gnss)
     {
         // 1.normalize the acceleration measurenments to unit gravity
         const auto &mean_acc = imu->mean_acc;
@@ -79,8 +79,11 @@ public:
             // 2.gravity aligns the imu direction
             imu->get_imu_init_rot(preset_gravity, state.grav.vec, state.rot);
             state.rot.normalize();
-            // 3.set lidar_init pos to (0, 0, 0)
-            state.pos = -(state.rot * state.offset_T_L_I);
+            // 3.fix lidar_init pos by utm (0, 0, 0)
+            Eigen::Matrix4d utm_pose = Eigen::Matrix4d::Identity();
+            utm_pose *= extrinsic_lidar2gnss;
+            state.pos = utm_pose.topRightCorner(3, 1);
+            state.pos -= state.rot * state.offset_T_L_I;
             // 4.fix gravity vec
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
 
@@ -196,7 +199,7 @@ public:
         return true;
     }
 
-    virtual bool run(bool map_update_mode, PointCloudType::Ptr &feats_undistort)
+    virtual bool run(bool map_update_mode, PointCloudType::Ptr &feats_undistort, const Eigen::Matrix4d &extrinsic_lidar2gnss)
     {
         if (loger.runtime_log && !loger.inited_first_lidar_beg_time)
         {
@@ -216,7 +219,7 @@ public:
         }
 
         if (!imu->gravity_align_)
-            init_state(imu);
+            init_state(imu, extrinsic_lidar2gnss);
 
         state = kf.get_x();
         loger.imu_process_time = loger.timer.elapsedLast();
