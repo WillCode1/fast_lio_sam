@@ -188,7 +188,7 @@ void publish_tf(const geometry_msgs::Pose &pose, const state_ikfom &state, const
 }
 
 // 发布里程计
-void publish_odometry(const ros::Publisher &pubOdomAftMapped, const state_ikfom &state, const double& lidar_end_time)
+void publish_odometry(const ros::Publisher &pubOdomAftMapped, const state_ikfom &state, const double& lidar_end_time, bool need_publish_tf = true)
 {
     nav_msgs::Odometry odomAftMapped;
     odomAftMapped.header.frame_id = map_frame;
@@ -196,7 +196,8 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped, const state_ikfom 
     odomAftMapped.header.stamp = ros::Time().fromSec(lidar_end_time);
     set_posestamp(odomAftMapped.pose, state);
     pubOdomAftMapped.publish(odomAftMapped);
-    publish_tf(odomAftMapped.pose.pose, state, lidar_end_time);
+    if (need_publish_tf)
+        publish_tf(odomAftMapped.pose.pose, state, lidar_end_time);
 }
 
 void publish_imu_path(const ros::Publisher &pubPath, const state_ikfom &state, const double& lidar_end_time)
@@ -374,9 +375,10 @@ int main(int argc, char **argv)
     ros::Publisher pubLaserCloudEffect = nh.advertise<sensor_msgs::PointCloud2>("/cloud_effected", 100000);
     // not used
     ros::Publisher pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/Laser_map", 100000);
-    ros::Publisher pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/Odometry", 100000);
+    ros::Publisher pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/odom_fix", 100000);
     ros::Publisher pubImuPath = nh.advertise<nav_msgs::Path>("/imu_path", 100000);
     ros::Publisher pubLidarPath = nh.advertise<nav_msgs::Path>("/lidar_keyframe_trajectory", 100000);
+    ros::Publisher pubOdomNotFix = nh.advertise<nav_msgs::Odometry>("/odom_not_fix", 100000);
 
     ros::Publisher pubGlobalmap;
     ros::Publisher pubLoopConstraintEdge;
@@ -427,6 +429,7 @@ int main(int argc, char **argv)
 
             /******* Publish odometry *******/
             publish_odometry(pubOdomAftMapped, state, slam.frontend->lidar_end_time);
+            publish_odometry(pubOdomNotFix, slam.frontend->state_not_fix, slam.frontend->lidar_end_time, false);
 
             /******* Publish points *******/
             if (path_en)

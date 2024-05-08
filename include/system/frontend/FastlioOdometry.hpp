@@ -251,6 +251,7 @@ public:
                 pointcloudLidarToWorld(feats_down_lidar, feats_down_world, state);
                 init_global_map(feats_down_world);
             }
+            state_not_fix = state;
             return false;
         }
         loger.kdtree_size = ikdtree.size();
@@ -289,6 +290,8 @@ public:
             }
             kf.change_x(state);
         }
+
+        update_incremental_odom_state(state, last_state, state_not_fix);
 
         /*** map update ***/
         V3D pos_Lidar_world = state.pos + state.rot * state.offset_T_L_I;
@@ -452,6 +455,15 @@ private:
         }
         ekfom_data.R = lidar_meas_cov;
         loger.cal_H_time += (omp_get_wtime() - solve_start) * 1000;
+    }
+
+    void update_incremental_odom_state(const state_ikfom &state_cur, const state_ikfom &state_last, state_ikfom &state_odom)
+    {
+        QD rot_inc = (state_last.rot.conjugate() * state_cur.rot).normalized();
+        V3D pos_inc = state_last.rot.conjugate().normalized() * (state_cur.pos - state_last.pos);
+
+        state_odom.pos = state_odom.rot.normalized() * pos_inc + state_odom.pos;
+        state_odom.rot = (state_odom.rot * rot_inc).normalized();
     }
 
 protected:
@@ -720,6 +732,8 @@ public:
     float ground_constraint_angle = 5;
     bool add_ground_constraint = false;
 #endif
+
+    state_ikfom state_not_fix;   // for publish incremental odom
 
 private:
     esekfom::esekf<state_ikfom, 12, input_ikfom> kf;
