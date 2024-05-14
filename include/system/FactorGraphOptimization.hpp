@@ -100,10 +100,7 @@ private:
     {
         if (keyframe_pose6d_optimized->points.empty())
         {
-            if (gnss_factor_enable)
-                gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_outdoor));
-            else
-                gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_indoor));
+            gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_outdoor));
             init_estimate.insert(0, pclPointTogtsamPose3(this_pose6d));
         }
         else
@@ -281,8 +278,6 @@ public:
     // key frame param
     float keyframe_add_dist_threshold = 1;      // m
     float keyframe_add_angle_threshold = 0.2;   // 11.46 degree
-
-    bool gnss_factor_enable = false;
 
     // ikdtree reconstruct
     bool recontruct_kdtree = true;

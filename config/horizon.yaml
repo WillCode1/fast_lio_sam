@@ -37,7 +37,6 @@ mapping:
     ikdtree_reconstruct_downsamp_size: 0.1
 
     # for add GNSS factor
-    gnss_factor_enable: false
     pose_cov_threshold: 25
     gnssValidInterval: 0.1
     gpsCovThreshold: 2
