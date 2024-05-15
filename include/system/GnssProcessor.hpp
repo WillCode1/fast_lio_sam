@@ -157,10 +157,12 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
   while (!gnss_buffer.empty())
   {
     if (gnss_buffer.front().timestamp < lidar_end_time - gnssValidInterval)
+    // if (gnss_buffer.front().timestamp < lidar_end_time - 2 * gnssValidInterval)
     {
       gnss_buffer.pop_front();
     }
     else if (gnss_buffer.front().timestamp > lidar_end_time + gnssValidInterval)
+    // else if (gnss_buffer.front().timestamp > lidar_end_time)
     {
       return false;
     }
