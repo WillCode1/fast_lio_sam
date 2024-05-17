@@ -43,7 +43,7 @@ mapping:
     # for add GNSS factor
     # pose_cov_threshold: 1
     pose_cov_threshold: 0
-    gnssValidInterval: 0.2
+    gnssValidInterval: 0.1
     gpsCovThreshold: 2
     useGpsElevation: true
 

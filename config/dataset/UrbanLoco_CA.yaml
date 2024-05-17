@@ -1,6 +1,7 @@
 common:
     lidar_topic:  "/rslidar_points"
     imu_topic:  "/imu_raw"
+    # gnss_topic:  "/gps_pose"
     gnss_topic:  "/navsat/odom"
     map_frame:  "map"
     body_frame:  "body"
