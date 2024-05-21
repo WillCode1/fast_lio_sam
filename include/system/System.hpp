@@ -51,30 +51,8 @@ public:
             return;
         }
 
-        /*** init localization mode ***/
-        save_keyframe_en = false;
+        /*** init map update mode ***/
         loop_closure_enable_flag = false;
-
-        if (access(globalmap_path.c_str(), F_OK) != 0)
-        {
-            LOG_ERROR("File not exist! Please check the \"globalmap_path\".");
-            std::exit(100);
-        }
-
-        PointCloudType::Ptr global_map(new PointCloudType());
-        Timer timer;
-        pcl::io::loadPCDFile(globalmap_path, *global_map);
-        if (global_map->points.size() < 5000)
-        {
-            LOG_ERROR("Too few point clouds! Please check the map file.");
-            std::exit(100);
-        }
-        LOG_WARN("Load pcd successfully! There are %lu points in map. Cost time %fms.", global_map->points.size(), timer.elapsedLast());
-
-        if (!relocalization->load_prior_map(global_map))
-        {
-            std::exit(100);
-        }
 
         pcl::io::loadPCDFile(trajectory_path, *relocalization->trajectory_poses);
         if (relocalization->trajectory_poses->points.size() < 10)
@@ -91,8 +69,38 @@ public:
         }
         LOG_WARN("Load keyframe descriptor successfully! There are %lu descriptors.", relocalization->sc_manager->polarcontexts_.size());
 
+        pcl::PCDReader pcd_reader;
+        pcd_reader.read(trajectory_path, *keyframe_pose6d_optimized);
+        *keyframe_pose6d_unoptimized = *keyframe_pose6d_optimized;
+        LOG_WARN("Success load trajectory poses %ld.", keyframe_pose6d_optimized->size());
+
+        gtsam::NonlinearFactorGraph::shared_ptr graph;
+        gtsam::Values::shared_ptr initial;
+        boost::tie(graph, initial) = gtsam::readG2o(map_path + "/graph2g2o.g2o", true);
+        backend->gtsam_graph = *graph;
+        backend->init_estimate = *initial;
+        LOG_WARN("Success load factor graph, size = %ld.", graph->size());
+
+        PointCloudType::Ptr global_map(new PointCloudType());
+        for (auto i = 1; i <= keyframe_pose6d_optimized->size(); ++i)
+        {
+            PointCloudType::Ptr keyframe_pc(new PointCloudType());
+            load_keyframe(keyframe_pc, i);
+            *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d_optimized)[i - 1]);
+            keyframe_scan->push_back(keyframe_pc);
+            octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
+            keyframe_downsample->push_back(keyframe_pc);
+        }
+        octreeDownsampling(global_map, global_map, save_resolution);
+        if (!relocalization->load_prior_map(global_map))
+        {
+            std::exit(100);
+        }
+
         /*** initialize the map kdtree ***/
         frontend->init_global_map(global_map);
+        LOG_WARN("Success load last global map, point size = %ld.", global_map->size());
+        loop_closure_enable_flag = true;
     }
 
     bool run()
@@ -119,7 +127,7 @@ public:
             PointCloudType::Ptr this_keyframe(new PointCloudType());
             pcl::copyPointCloud(*feats_undistort, *this_keyframe);
             keyframe_scan->push_back(this_keyframe);
-            pcl::copyPointCloud(*frontend->feats_down_lidar, *this_keyframe);
+            octreeDownsampling(feats_undistort, this_keyframe, 0.1);
             keyframe_downsample->push_back(this_keyframe);
 
             if (save_keyframe_descriptor_en)
@@ -342,6 +350,15 @@ private:
         std::string keyframe_idx = out.str();
         string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
         savePCDFile(keyframe_file, *feats_undistort);
+    }
+
+    void load_keyframe(PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
+    {
+        std::ostringstream out;
+        out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt - 1;
+        std::string keyframe_idx = out.str();
+        string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
+        pcl::io::loadPCDFile(keyframe_file, *keyframe_pc);
     }
 
     void loopClosureThread()

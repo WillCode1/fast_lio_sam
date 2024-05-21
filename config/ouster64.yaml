@@ -11,7 +11,7 @@ preprocess:
     scan_line: 64
     timestamp_unit: 3                 # 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
     blind: 4
-    det_range: 150.0
+    det_range: 250.0
 
 mapping:
     gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below

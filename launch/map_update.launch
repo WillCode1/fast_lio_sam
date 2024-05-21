@@ -10,7 +10,7 @@
 	<param name="globalMapVisualizationPoseDensity" type="double" value="3" />
 	<param name="globalMapVisualizationLeafSize" type="double" value="0.2" />
 
-	<param name="map_update_mode" type="bool" value="false" />
+	<param name="map_update_mode" type="bool" value="true" />
     <node pkg="fast_lio_sam" type="fastlio_sam_ros1" name="system" output="screen" /> 
 
 	<group if="$(arg rviz)">

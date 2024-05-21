@@ -380,15 +380,9 @@ int main(int argc, char **argv)
     ros::Publisher pubLidarPath = nh.advertise<nav_msgs::Path>("/lidar_keyframe_trajectory", 100000);
     ros::Publisher pubOdomNotFix = nh.advertise<nav_msgs::Odometry>("/odom_not_fix", 100000);
 
-    ros::Publisher pubGlobalmap;
-    ros::Publisher pubLoopConstraintEdge;
-    std::thread visualizeMapThread;
-    if (!slam.map_update_mode)
-    {
-        pubGlobalmap = nh.advertise<sensor_msgs::PointCloud2>("/map_global", 1);
-        visualizeMapThread = std::thread(&visualize_globalmap_thread, pubGlobalmap);
-        pubLoopConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>("/loop_closure_constraints", 1);
-    }
+    ros::Publisher pubGlobalmap = nh.advertise<sensor_msgs::PointCloud2>("/map_global", 1);
+    ros::Publisher pubLoopConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>("/loop_closure_constraints", 1);
+    std::thread visualizeMapThread = std::thread(&visualize_globalmap_thread, pubGlobalmap);
     ros::Subscriber sub_initpose = nh.subscribe("/initialpose", 1, initialPoseCallback);
     // ros::Publisher pubground_points = nh.advertise<sensor_msgs::PointCloud2>("/ground_points", 100000);
 

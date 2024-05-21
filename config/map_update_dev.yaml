@@ -4,6 +4,7 @@ common:
     gnss_topic:  "/gps/fix"
     map_frame:  "map"
     body_frame:  "body"
+    lidar_frame:  "lidar"
     timedelay_lidar2imu: 0.0 # Time offset between lidar and IMU calibrated by other algorithms, e.g. LI-Init (can be found in README).
 
 preprocess:
@@ -12,8 +13,7 @@ preprocess:
     scan_rate: 10                # only need to be set for velodyne, unit: Hz,
     timestamp_unit: 0            # the unit of time/t field in the PointCloud2 rostopic: 0-second, 1-milisecond, 2-microsecond, 3-nanosecond.
     blind: 1
-    det_range: 80.0
-    # det_range: 200.0
+    det_range: 200.0
 
 mapping:
     gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below

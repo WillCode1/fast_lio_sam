@@ -78,6 +78,8 @@ inline void load_parameters(System &slam, bool map_update_mode, bool &save_globa
         slam.keyframe_path = slam.map_path + "/keyframe/";
         slam.scd_path = slam.map_path + "/scancontext/";
     }
+    else
+        slam.map_path = PCD_FILE_DIR("");
 
     ros::param::param("scan_context/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
     ros::param::param("scan_context/sc_dist_thres", slam.relocalization->sc_manager->SC_DIST_THRES, 0.5);
