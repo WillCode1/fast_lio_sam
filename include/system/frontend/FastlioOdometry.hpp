@@ -106,7 +106,7 @@ public:
         state.bg.setZero();
         state.offset_R_L_I = offset_Rli;
         state.offset_T_L_I = offset_Tli;
-        state.grav.vec = gravity_init;
+        state.grav = S2(0, 0, -G_m_s2);
         state.pos = V3D(imu_pose.topRightCorner(3, 1));
         state.rot.coeffs() = Vector4d(fine_tune_quat.x(), fine_tune_quat.y(), fine_tune_quat.z(), fine_tune_quat.w());
         kf.change_x(state);
@@ -218,7 +218,7 @@ public:
             return false;
         }
 
-        if (!imu->gravity_align_)
+        if (!map_update_mode && !imu->gravity_align_)
             init_state(imu, extrinsic_lidar2gnss);
 
         state = kf.get_x();

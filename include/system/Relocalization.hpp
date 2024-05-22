@@ -286,13 +286,19 @@ bool Relocalization::run(const PointCloudType::Ptr &scan, Eigen::Matrix4d &resul
 bool Relocalization::load_keyframe_descriptor(const std::string &path)
 {
     if (!fs::exists(path))
+    {
+        LOG_WARN("path not exists, path = %s!", path.c_str());
         return false;
+    }
 
     int scd_file_count = 0, num_digits = 0;
     scd_file_count = FileOperation::getFilesNumByExtension(path, ".scd");
 
     if (scd_file_count != trajectory_poses->size())
+    {
+        LOG_WARN("scd_file_count != trajectory_poses! %d, %ld", scd_file_count, trajectory_poses->size());
         return false;
+    }
 
     num_digits = FileOperation::getOneFilenameByExtension(path, ".scd").length() - std::string(".scd").length();
 
