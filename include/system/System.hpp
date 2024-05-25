@@ -73,12 +73,12 @@ public:
         *keyframe_pose6d_unoptimized = *keyframe_pose6d_optimized;
         LOG_WARN("Success load trajectory poses %ld.", keyframe_pose6d_optimized->size());
 
-        gtsam::NonlinearFactorGraph::shared_ptr graph;
-        gtsam::Values::shared_ptr initial;
-        boost::tie(graph, initial) = gtsam::readG2o(map_path + "/graph2g2o.g2o", true);
-        backend->gtsam_graph = *graph;
-        backend->init_estimate = *initial;
-        LOG_WARN("Success load factor graph, size = %ld.", graph->size());
+        // gtsam::NonlinearFactorGraph::shared_ptr graph;
+        // gtsam::Values::shared_ptr initial;
+        // boost::tie(graph, initial) = gtsam::readG2o(map_path + "/graph2g2o.g2o", true);
+        // backend->gtsam_graph = *graph;
+        // backend->init_estimate = *initial;
+        // LOG_WARN("Success load factor graph, size = %ld.", graph->size());
 
         PointCloudType::Ptr global_map(new PointCloudType());
         for (auto i = 1; i <= keyframe_pose6d_optimized->size(); ++i)
@@ -89,7 +89,7 @@ public:
             octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
             keyframe_scan->push_back(keyframe_pc);
         }
-        octreeDownsampling(global_map, global_map, save_resolution);
+        octreeDownsampling(global_map, global_map, 0.3);
         if (!relocalization->load_prior_map(global_map))
         {
             std::exit(100);
@@ -254,6 +254,8 @@ public:
 
         backend->isam->saveGraph(map_path + "/gtsam_opt.dot");
         gtsam::writeG2o(backend->isam->getFactorsUnsafe(), backend->optimized_estimate, map_path + "/graph2g2o.g2o");
+
+        backend->isam->getFactorsUnsafe().print("graph");
     }
 
     void load_posegraph_fromg2o()
