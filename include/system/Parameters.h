@@ -197,7 +197,7 @@ inline void load_parameters(System &slam, bool map_update_mode, bool &save_globa
     ros::param::param("mapping/ikdtree_resolution", slam.frontend->ikdtree_resolution, 0.5);
     ros::param::param("mapping/lidar_model_search_range", slam.frontend->lidar_model_search_range, 5.);
     ros::param::param("mapping/lidar_meas_cov", slam.frontend->lidar_meas_cov, 0.001);
-    ros::param::param("mapping/cube_len", slam.frontend->cube_len, 200.);
+    ros::param::param("mapping/cube_side_length", slam.frontend->cube_len, 200.);
     ros::param::param("mapping/extrinsic_est_en", slam.frontend->extrinsic_est_en, true);
     ros::param::param("mapping/runtime_log_enable", slam.frontend->loger.runtime_log, 0);
 
