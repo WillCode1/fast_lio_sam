@@ -22,9 +22,8 @@ public:
         keyframe_pose6d_unoptimized.reset(new pcl::PointCloud<PointXYZIRPYT>());
         keyframe_pose6d_optimized.reset(new pcl::PointCloud<PointXYZIRPYT>());
         keyframe_scan.reset(new deque<PointCloudType::Ptr>());
-        keyframe_downsample.reset(new deque<PointCloudType::Ptr>());
 
-        backend = std::make_shared<FactorGraphOptimization>(keyframe_pose6d_optimized, keyframe_downsample, gnss);
+        backend = std::make_shared<FactorGraphOptimization>(keyframe_pose6d_optimized, keyframe_scan, gnss);
         relocalization = make_shared<Relocalization>();
         loopClosure = make_shared<LoopClosure>(relocalization->sc_manager);
 
@@ -87,9 +86,8 @@ public:
             PointCloudType::Ptr keyframe_pc(new PointCloudType());
             load_keyframe(keyframe_pc, i);
             *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d_optimized)[i - 1]);
-            keyframe_scan->push_back(keyframe_pc);
             octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
-            keyframe_downsample->push_back(keyframe_pc);
+            keyframe_scan->push_back(keyframe_pc);
         }
         octreeDownsampling(global_map, global_map, save_resolution);
         if (!relocalization->load_prior_map(global_map))
@@ -125,10 +123,8 @@ public:
             keyframe_pose6d_unoptimized->push_back(backend->this_pose6d);
 
             PointCloudType::Ptr this_keyframe(new PointCloudType());
-            pcl::copyPointCloud(*feats_undistort, *this_keyframe);
-            keyframe_scan->push_back(this_keyframe);
             octreeDownsampling(feats_undistort, this_keyframe, 0.1);
-            keyframe_downsample->push_back(this_keyframe);
+            keyframe_scan->push_back(this_keyframe);
 
             if (save_keyframe_descriptor_en)
                 relocalization->add_keyframe_descriptor(this_keyframe, scd_path);
@@ -142,7 +138,7 @@ public:
             if (loop_closure_enable_flag && test_mode)
             {
                 backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-                loopClosure->run(frontend->lidar_end_time, *keyframe_downsample);
+                loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
             }
 
             LOG_DEBUG("run backend 3");
@@ -319,7 +315,7 @@ public:
             if (pointDistance(globalMapKeyPosesDS->points[i], keyframe_pose->back()) > globalMapVisualizationSearchRadius)
                 continue;
             int thisKeyInd = (int)globalMapKeyPosesDS->points[i].intensity;
-            *globalMapKeyFrames += *pointcloudKeyframeToWorld((*keyframe_downsample)[thisKeyInd], keyframe_pose->points[thisKeyInd]);
+            *globalMapKeyFrames += *pointcloudKeyframeToWorld((*keyframe_scan)[thisKeyInd], keyframe_pose->points[thisKeyInd]);
         }
         // downsample key frames
         octreeDownsampling(globalMapKeyFrames, globalMapKeyFramesDS, globalMapVisualizationLeafSize);
@@ -371,7 +367,7 @@ private:
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(loop_closure_interval));
             backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-            loopClosure->run(frontend->lidar_end_time, *keyframe_downsample);
+            loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
         }
     }
 
@@ -401,7 +397,6 @@ public:
     bool save_keyframe_descriptor_en = false;
     PointCloudType::Ptr feats_undistort;
     shared_ptr<deque<PointCloudType::Ptr>> keyframe_scan;
-    shared_ptr<deque<PointCloudType::Ptr>> keyframe_downsample;
 
     /*** trajectory by lidar pose in camera_init frame(imu pose + extrinsic) ***/
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_unoptimized;
