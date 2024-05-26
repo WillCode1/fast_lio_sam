@@ -356,7 +356,13 @@ private:
         out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt - 1;
         std::string keyframe_idx = out.str();
         string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
-        pcl::io::loadPCDFile(keyframe_file, *keyframe_pc);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_pc(new pcl::PointCloud<pcl::PointXYZI>());
+        pcl::io::loadPCDFile(keyframe_file, *tmp_pc);
+        keyframe_pc->points.resize(tmp_pc->points.size());
+        for (auto i = 0; i < tmp_pc->points.size(); ++i)
+        {
+            pcl::copyPoint(tmp_pc->points[i], keyframe_pc->points[i]);
+        }
     }
 
     void loopClosureThread()
