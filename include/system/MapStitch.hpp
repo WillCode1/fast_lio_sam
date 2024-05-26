@@ -74,6 +74,11 @@ public:
         
     }
 
+    void run()
+    {
+        
+    }
+
     void load_keyframe(const std::string& keyframe_path, PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
     {
         std::ostringstream out;
