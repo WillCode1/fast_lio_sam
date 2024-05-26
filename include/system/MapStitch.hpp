@@ -66,6 +66,53 @@ public:
         }
 
         load_factor_graph(path);
+
+        for (auto i = 0; i < init_values.size(); ++i)
+        {
+            init_estimate.insert(i, init_values[i]);
+
+            bool loop_is_closed = false;
+            while (gtsam_factors.front().index_to <= i)
+            {
+                gtsam::noiseModel::Diagonal::shared_ptr noise;
+                auto &factor = gtsam_factors.front();
+                if (factor.factor_type == GtsamFactor::Prior)
+                {
+                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
+                    gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(i, factor.value, noise));
+                }
+                else if (factor.factor_type == GtsamFactor::Between || factor.factor_type == GtsamFactor::Loop)
+                {
+                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
+                    gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(factor.index_from, factor.index_to, factor.value, noise));
+                }
+                else if (factor.factor_type == GtsamFactor::Gps)
+                {
+                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(3) << factor.noise).finished());
+                    gtsam_graph.add(gtsam::GPSFactor(factor.index_to, factor.value.translation(), noise));
+                }
+
+                if (factor.factor_type == GtsamFactor::Loop || factor.factor_type == GtsamFactor::Gps)
+                {
+                    loop_is_closed = true;
+                }
+                gtsam_factors.pop();
+            }
+            gtsam_graph.print("asd");
+
+            isam->update(gtsam_graph, init_estimate);
+            isam->update();
+            if (loop_is_closed == true)
+            {
+                isam->update();
+                isam->update();
+                isam->update();
+                isam->update();
+                isam->update();
+            }
+            gtsam_graph.resize(0);
+            init_estimate.clear();
+        }
     }
 
     void load_stitch_map_info(const std::string& path)
@@ -155,7 +202,6 @@ public:
     shared_ptr<Relocalization> relocalization;
 
     shared_ptr<deque<PointCloudType::Ptr>> keyframe_scan;
-
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_optimized;
 
     // gtsam
@@ -163,9 +209,6 @@ public:
     gtsam::Values init_estimate;
     gtsam::Values optimized_estimate;
     gtsam::ISAM2 *isam;
-    gtsam::noiseModel::Diagonal::shared_ptr prior_noise_indoor;
-    gtsam::noiseModel::Diagonal::shared_ptr prior_noise_outdoor;
-    gtsam::noiseModel::Diagonal::shared_ptr odometry_noise;
 
     std::map<int, gtsam::Pose3> init_values;
     std::queue<GtsamFactor> gtsam_factors;
