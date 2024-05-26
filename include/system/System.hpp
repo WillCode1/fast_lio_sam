@@ -239,68 +239,6 @@ public:
         fclose(ofs);
     }
 
-    void load_factor_graph()
-    {
-        if (map_path.compare("") == 0)
-        {
-            LOG_WARN("please set map_path!");
-            return;
-        }
-
-        FILE *ifs = fopen((map_path + "/factor_graph.fg").c_str(), "r");
-        int value_size = 0;
-        int factor_type = 0, index = 0, index2 = 0;
-        double x, y, z, roll, pitch, yaw;
-        double n1, n2, n3, n4, n5, n6;
-        fscanf(ifs, "VERTEX_SIZE: %d\n", &value_size);
-        for (auto i = 0; i < value_size; ++i)
-        {
-            fscanf(ifs, "VERTEX %d: %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &roll, &pitch, &yaw);
-            backend->init_values[index] = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
-        }
-        fscanf(ifs, "EDGE_SIZE: %d\n", &value_size);
-        for (auto i = 0; i < value_size; ++i)
-        {
-            fscanf(ifs, "EDGE %d: ", &factor_type);
-            GtsamFactor factor;
-            if (factor_type == GtsamFactor::Prior)
-            {
-                fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-                       &index, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
-                factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index;
-                factor.index_to = index;
-                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
-                factor.noise.resize(6);
-                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
-            }
-            else if (factor_type == GtsamFactor::Between || factor_type == GtsamFactor::Loop)
-            {
-                fscanf(ifs, "%d %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-                       &index, &index2, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
-                factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index;
-                factor.index_to = index2;
-                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
-                factor.noise.resize(6);
-                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
-            }
-            else if (factor_type == GtsamFactor::Gps)
-            {
-                fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &n1, &n2, &n3);
-                factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index;
-                factor.index_to = index;
-                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(0, 0, 0), gtsam::Point3(x, y, z));
-                factor.noise.resize(3);
-                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2);
-            }
-            backend->gtsam_factors.emplace(factor);
-        }
-
-        fclose(ifs);
-    }
-
     PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize, bool showOptimizedPose = true)
     {
         pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose(new pcl::PointCloud<PointXYZIRPYT>());
