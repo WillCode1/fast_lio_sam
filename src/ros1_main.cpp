@@ -453,7 +453,7 @@ int main(int argc, char **argv)
     }
 
     slam.save_trajectory();
-    slam.save_posegraph2g2o();
+    slam.save_factor_graph();
     // slam.save_trajectory_to_other_frame(slam.frontend->get_state().offset_R_L_I, slam.frontend->get_state().offset_T_L_I, "imu");
     // slam.save_trajectory_to_other_frame(QD(M3D(slam.gnss->extrinsic_lidar2gnss.topLeftCorner(3, 3))), slam.gnss->extrinsic_lidar2gnss.topLeftCorner(3, 1), "gnss");
 

@@ -9,5 +9,4 @@ Log/*.log
 *.pcd
 *.scd
 PCD/*.txt
-PCD/*.g2o
-PCD/*.dot
+PCD/*.fg

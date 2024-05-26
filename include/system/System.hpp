@@ -73,12 +73,8 @@ public:
         *keyframe_pose6d_unoptimized = *keyframe_pose6d_optimized;
         LOG_WARN("Success load trajectory poses %ld.", keyframe_pose6d_optimized->size());
 
-        // gtsam::NonlinearFactorGraph::shared_ptr graph;
-        // gtsam::Values::shared_ptr initial;
-        // boost::tie(graph, initial) = gtsam::readG2o(map_path + "/graph2g2o.g2o", true);
-        // backend->gtsam_graph = *graph;
-        // backend->init_estimate = *initial;
-        // LOG_WARN("Success load factor graph, size = %ld.", graph->size());
+        load_factor_graph();
+        LOG_WARN("Success load factor graph, size = %ld.", backend->isam->getFactorsUnsafe().size());
 
         PointCloudType::Ptr global_map(new PointCloudType());
         for (auto i = 1; i <= keyframe_pose6d_optimized->size(); ++i)
@@ -244,7 +240,7 @@ public:
         fclose(file_pose_optimized_imu);
     }
 
-    void save_posegraph2g2o()
+    void save_factor_graph()
     {
         if (map_path.compare("") == 0)
         {
@@ -252,13 +248,49 @@ public:
             return;
         }
 
-        backend->isam->saveGraph(map_path + "/gtsam_opt.dot");
-        gtsam::writeG2o(backend->isam->getFactorsUnsafe(), backend->optimized_estimate, map_path + "/graph2g2o.g2o");
+        FILE *ofs = fopen((map_path + "/factor_graph.fg").c_str(), "w");
+        fprintf(ofs, "VERTEX_SIZE: %ld\n", backend->init_values.size());
+        for (auto &value : backend->init_values)
+        {
+            fprintf(ofs, "VERTEX %d: %lf %lf %lf %lf %lf %lf\n",
+                    value.first, value.second.x(), value.second.y(), value.second.z(),
+                    value.second.rotation().roll(), value.second.rotation().pitch(), value.second.rotation().yaw());
+        }
+        fprintf(ofs, "EDGE_SIZE: %ld\n", backend->gtsam_factors.size());
+        while (!backend->gtsam_factors.empty())
+        {
+            auto &factor = backend->gtsam_factors.front();
+            if (factor.factor_type == GtsamFactor::Prior)
+            {
+                fprintf(ofs, "EDGE %d: %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                        factor.factor_type, factor.index_to, factor.value.x(), factor.value.y(), factor.value.z(),
+                        factor.value.rotation().roll(), factor.value.rotation().pitch(), factor.value.rotation().yaw(),
+                        std::sqrt(factor.noise(0)), std::sqrt(factor.noise(1)), std::sqrt(factor.noise(2)),
+                        std::sqrt(factor.noise(3)), std::sqrt(factor.noise(4)), std::sqrt(factor.noise(5)));
+            }
+            else if (factor.factor_type == GtsamFactor::Between || factor.factor_type == GtsamFactor::Loop)
+            {
+                fprintf(ofs, "EDGE %d: %d %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                        factor.factor_type, factor.index_from, factor.index_to, 
+                        factor.value.x(), factor.value.y(), factor.value.z(),
+                        factor.value.rotation().roll(), factor.value.rotation().pitch(), factor.value.rotation().yaw(),
+                        std::sqrt(factor.noise(0)), std::sqrt(factor.noise(1)), std::sqrt(factor.noise(2)),
+                        std::sqrt(factor.noise(3)), std::sqrt(factor.noise(4)), std::sqrt(factor.noise(5)));
+            }
+            else if (factor.factor_type == GtsamFactor::Gps)
+            {
+                fprintf(ofs, "EDGE %d: %d %lf %lf %lf %lf %lf %lf\n",
+                        factor.factor_type, factor.index_to, 
+                        factor.value.x(), factor.value.y(), factor.value.z(),
+                        std::sqrt(factor.noise(0)), std::sqrt(factor.noise(1)), std::sqrt(factor.noise(2)));
+            }
+            backend->gtsam_factors.pop();
+        }
 
-        backend->isam->getFactorsUnsafe().print("graph");
+        fclose(ofs);
     }
 
-    void load_posegraph_fromg2o()
+    void load_factor_graph()
     {
         if (map_path.compare("") == 0)
         {
@@ -266,12 +298,58 @@ public:
             return;
         }
 
-        // https://blog.csdn.net/weixin_45572737/article/details/128920683
-        gtsam::NonlinearFactorGraph::shared_ptr graph;
-        gtsam::Values::shared_ptr initial;
-        boost::tie(graph, initial) = gtsam::readG2o(map_path + "/graph2g2o.g2o", true);
-        backend->gtsam_graph = *graph;
-        backend->init_estimate = *initial;
+        FILE *ifs = fopen((map_path + "/factor_graph.fg").c_str(), "r");
+        int value_size = 0;
+        int factor_type = 0, index = 0, index2 = 0;
+        double x, y, z, roll, pitch, yaw;
+        double n1, n2, n3, n4, n5, n6;
+        fscanf(ifs, "VERTEX_SIZE: %d\n", &value_size);
+        for (auto i = 0; i < value_size; ++i)
+        {
+            fscanf(ifs, "VERTEX %d: %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &roll, &pitch, &yaw);
+            backend->init_values[index] = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
+        }
+        fscanf(ifs, "EDGE_SIZE: %d\n", &value_size);
+        for (auto i = 0; i < value_size; ++i)
+        {
+            fscanf(ifs, "EDGE %d: ", &factor_type);
+            GtsamFactor factor;
+            if (factor_type == GtsamFactor::Prior)
+            {
+                fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                       &index, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
+                factor.factor_type = (GtsamFactor::FactorType)factor_type;
+                factor.index_from = index;
+                factor.index_to = index;
+                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
+                factor.noise.resize(6);
+                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
+            }
+            else if (factor_type == GtsamFactor::Between || factor_type == GtsamFactor::Loop)
+            {
+                fscanf(ifs, "%d %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                       &index, &index2, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
+                factor.factor_type = (GtsamFactor::FactorType)factor_type;
+                factor.index_from = index;
+                factor.index_to = index2;
+                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
+                factor.noise.resize(6);
+                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
+            }
+            else if (factor_type == GtsamFactor::Gps)
+            {
+                fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &n1, &n2, &n3);
+                factor.factor_type = (GtsamFactor::FactorType)factor_type;
+                factor.index_from = index;
+                factor.index_to = index;
+                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(0, 0, 0), gtsam::Point3(x, y, z));
+                factor.noise.resize(3);
+                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2);
+            }
+            backend->gtsam_factors.emplace(factor);
+        }
+
+        fclose(ifs);
     }
 
     PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize, bool showOptimizedPose = true)
