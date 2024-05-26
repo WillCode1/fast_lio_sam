@@ -199,7 +199,7 @@ public:
         return true;
     }
 
-    virtual bool run(bool map_update_mode, PointCloudType::Ptr &feats_undistort, const Eigen::Matrix4d &extrinsic_lidar2gnss)
+    virtual bool run(PointCloudType::Ptr &feats_undistort, const Eigen::Matrix4d &extrinsic_lidar2gnss)
     {
         if (loger.runtime_log && !loger.inited_first_lidar_beg_time)
         {
@@ -218,7 +218,7 @@ public:
             return false;
         }
 
-        if (!map_update_mode && !imu->gravity_align_)
+        if (!imu->gravity_align_)
             init_state(imu, extrinsic_lidar2gnss);
 
         state = kf.get_x();
@@ -244,7 +244,7 @@ public:
         loger.downsample_time = loger.timer.elapsedLast();
 
         /*** initialize the map kdtree ***/
-        if (!map_update_mode && ikdtree.Root_Node == nullptr)
+        if (ikdtree.Root_Node == nullptr)
         {
             if (feats_down_lidar->size() > 5)
             {

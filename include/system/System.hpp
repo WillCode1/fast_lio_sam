@@ -36,71 +36,20 @@ public:
             loopthread.join();
     }
 
-    void init_system_mode(bool _map_update_mode)
+    void init_system_mode()
     {
-        map_update_mode = _map_update_mode;
         frontend->detect_range = frontend->lidar->detect_range;
         frontend->init_estimator();
         loopthread = std::thread(&System::loopClosureThread, this);
 
-        if (!map_update_mode)
-        {
-            FileOperation::createDirectoryOrRecreate(keyframe_path);
-            FileOperation::createDirectoryOrRecreate(scd_path);
-            return;
-        }
-
-        /*** init map update mode ***/
-        loop_closure_enable_flag = false;
-
-        pcl::io::loadPCDFile(trajectory_path, *relocalization->trajectory_poses);
-        if (relocalization->trajectory_poses->points.size() < 10)
-        {
-            LOG_ERROR("Too few point clouds! Please check the trajectory file.");
-            std::exit(100);
-        }
-        LOG_WARN("Load trajectory poses successfully! There are %lu poses.", relocalization->trajectory_poses->points.size());
-
-        if (!relocalization->load_keyframe_descriptor(scd_path))
-        {
-            LOG_ERROR("Load keyframe descriptor failed!");
-            std::exit(100);
-        }
-        LOG_WARN("Load keyframe descriptor successfully! There are %lu descriptors.", relocalization->sc_manager->polarcontexts_.size());
-
-        pcl::PCDReader pcd_reader;
-        pcd_reader.read(trajectory_path, *keyframe_pose6d_optimized);
-        *keyframe_pose6d_unoptimized = *keyframe_pose6d_optimized;
-        LOG_WARN("Success load trajectory poses %ld.", keyframe_pose6d_optimized->size());
-
-        load_factor_graph();
-        LOG_WARN("Success load factor graph, size = %ld.", backend->isam->getFactorsUnsafe().size());
-
-        PointCloudType::Ptr global_map(new PointCloudType());
-        for (auto i = 1; i <= keyframe_pose6d_optimized->size(); ++i)
-        {
-            PointCloudType::Ptr keyframe_pc(new PointCloudType());
-            load_keyframe(keyframe_pc, i);
-            octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
-            keyframe_scan->push_back(keyframe_pc);
-            *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d_optimized)[i - 1]);
-        }
-        octreeDownsampling(global_map, global_map, 0.3);
-        if (!relocalization->load_prior_map(global_map))
-        {
-            std::exit(100);
-        }
-
-        /*** initialize the map kdtree ***/
-        frontend->init_global_map(global_map);
-        LOG_WARN("Success load last global map, point size = %ld.", global_map->size());
-        loop_closure_enable_flag = true;
+        FileOperation::createDirectoryOrRecreate(keyframe_path);
+        FileOperation::createDirectoryOrRecreate(scd_path);
     }
 
     bool run()
     {
         /*** frontend ***/
-        if (!frontend->run(map_update_mode, feats_undistort, gnss->extrinsic_lidar2gnss))
+        if (!frontend->run(feats_undistort, gnss->extrinsic_lidar2gnss))
         {
             system_state_vaild = false;
             return system_state_vaild;
@@ -405,7 +354,7 @@ public:
     bool run_relocalization(PointCloudType::Ptr scan, const double &lidar_beg_time)
     {
         run_relocalization_thread = true;
-        if (map_update_mode && !system_state_vaild)
+        if (!system_state_vaild)
         {
             Eigen::Matrix4d imu_pose;
             if (relocalization->run(scan, imu_pose, lidar_beg_time))
@@ -428,21 +377,6 @@ private:
         savePCDFile(keyframe_file, *feats_undistort);
     }
 
-    void load_keyframe(PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
-    {
-        std::ostringstream out;
-        out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt - 1;
-        std::string keyframe_idx = out.str();
-        string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
-        pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_pc(new pcl::PointCloud<pcl::PointXYZI>());
-        pcl::io::loadPCDFile(keyframe_file, *tmp_pc);
-        keyframe_pc->points.resize(tmp_pc->points.size());
-        for (auto i = 0; i < tmp_pc->points.size(); ++i)
-        {
-            pcl::copyPoint(tmp_pc->points[i], keyframe_pc->points[i]);
-        }
-    }
-
     void loopClosureThread()
     {
         if (loop_closure_enable_flag == false)
@@ -459,7 +393,6 @@ private:
 
 public:
     bool system_state_vaild = false; // true: system ok
-    bool map_update_mode = false;  // true: localization, false: slam
     bool loop_closure_enable_flag = false;
     bool run_relocalization_thread = false;
     std::thread relocalization_thread;
