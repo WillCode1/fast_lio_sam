@@ -85,9 +85,9 @@ public:
         {
             PointCloudType::Ptr keyframe_pc(new PointCloudType());
             load_keyframe(keyframe_pc, i);
-            *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d_optimized)[i - 1]);
             octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
             keyframe_scan->push_back(keyframe_pc);
+            *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d_optimized)[i - 1]);
         }
         octreeDownsampling(global_map, global_map, 0.3);
         if (!relocalization->load_prior_map(global_map))
