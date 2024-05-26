@@ -246,6 +246,7 @@ void GnssProcessor::UrbanLoco_handler(const GnssPose &gnss_raw)
     utm_origin.east = gnss_raw.gnss_position(0);
     utm_origin.north = gnss_raw.gnss_position(1);
     utm_origin.up = gnss_raw.gnss_position(2);
+    printf("--utm_origin: east: %.5f, north: %.5f, up: %.5f, zone: %s\n", utm_origin.east, utm_origin.north, utm_origin.up, utm_origin.zone.c_str());
     first_gps = false;
   }
   auto tmp = gnss_raw;

@@ -17,9 +17,9 @@
 #include "GnssProcessor.hpp"
 #include "system/Header.h"
 
-#define MAP_UPDATE
+#define MAP_STITCH
 
-#ifdef MAP_UPDATE
+#ifdef MAP_STITCH
 struct GtsamFactor
 {
     enum FactorType
@@ -123,7 +123,7 @@ private:
             gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_outdoor));
             init_estimate.insert(0, pclPointTogtsamPose3(this_pose6d));
 
-#ifdef MAP_UPDATE
+#ifdef MAP_STITCH
             GtsamFactor factor;
             factor.factor_type = GtsamFactor::Prior;
             factor.index_from = 0;
@@ -141,7 +141,7 @@ private:
             gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(), poseFrom.between(poseTo), odometry_noise));
             init_estimate.insert(keyframe_pose6d_optimized->size(), poseTo);
 
-#ifdef MAP_UPDATE
+#ifdef MAP_STITCH
             GtsamFactor factor;
             factor.factor_type = GtsamFactor::Between;
             factor.index_from = keyframe_pose6d_optimized->size() - 1;
@@ -179,7 +179,7 @@ private:
                      thisGPS.timestamp - keyframe_pose6d_optimized->front().time, thisGPS.current_gnss_interval, Vector3(0), Vector3(1), Vector3(2));
             // LOG_INFO("fix_lidar_pos = (%.3f, %.3f, %.3f).", thisGPS.lidar_pos_fix(0), thisGPS.lidar_pos_fix(1), thisGPS.lidar_pos_fix(2));
 
-#ifdef MAP_UPDATE
+#ifdef MAP_STITCH
             GtsamFactor factor;
             factor.factor_type = GtsamFactor::Gps;
             factor.index_from = keyframe_pose6d_optimized->size();
@@ -205,7 +205,7 @@ private:
             gtsam::noiseModel::Diagonal::shared_ptr noiseBetween = loop_constraint.loop_noise[i];
             gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(indexFrom, indexTo, poseBetween, noiseBetween));
 
-#ifdef MAP_UPDATE
+#ifdef MAP_STITCH
             GtsamFactor factor;
             factor.factor_type = GtsamFactor::Loop;
             factor.index_from = indexFrom;
@@ -347,7 +347,7 @@ public:
     int ikdtree_reconstruct_keyframe_num = 10;
     float ikdtree_reconstruct_downsamp_size = 0.1;
 
-#ifdef MAP_UPDATE
+#ifdef MAP_STITCH
     std::map<int, gtsam::Pose3> init_values;
     std::queue<GtsamFactor> gtsam_factors;
 #endif
