@@ -57,7 +57,7 @@ public:
         for (auto i = 1; i <= keyframe_pose6d_optimized->size(); ++i)
         {
             PointCloudType::Ptr keyframe_pc(new PointCloudType());
-            load_keyframe(keyframe_pc, i);
+            load_keyframe(keyframe_path, keyframe_pc, i);
             octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
             keyframe_scan->push_back(keyframe_pc);
             *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d_optimized)[i - 1]);
@@ -74,7 +74,7 @@ public:
         
     }
 
-    void load_keyframe(PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
+    void load_keyframe(const std::string& keyframe_path, PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
     {
         std::ostringstream out;
         out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt - 1;

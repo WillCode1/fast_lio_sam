@@ -334,8 +334,7 @@ void initialPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
     init_pose.roll = rpy.x();
     init_pose.pitch = rpy.y();
     init_pose.yaw = rpy.z();
-    if (slam.map_update_mode)
-        slam.relocalization->set_init_pose(init_pose);
+    slam.relocalization->set_init_pose(init_pose);
 }
 
 int main(int argc, char **argv)
@@ -397,20 +396,6 @@ int main(int argc, char **argv)
 
         if (!slam.frontend->sync_sensor_data())
             continue;
-
-        if (slam.map_update_mode && !slam.system_state_vaild)
-        {
-            if (!slam.run_relocalization_thread)
-            {
-                if (slam.relocalization_thread.joinable())
-                    slam.relocalization_thread.join();
-
-                PointCloudType::Ptr cur_scan(new PointCloudType);
-                *cur_scan = *slam.frontend->measures->lidar;
-                slam.relocalization_thread = std::thread(&System::run_relocalization, &slam, cur_scan, slam.frontend->measures->lidar_beg_time);
-            }
-            continue;
-        }
 
         LOG_DEBUG("run fastlio");
         if (slam.run())

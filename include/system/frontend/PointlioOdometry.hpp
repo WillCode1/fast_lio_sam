@@ -228,7 +228,7 @@ public:
         loger.feats_undistort_size = feats_undistort->points.size();
 
         /*** initialize the map kdtree ***/
-        if (!map_update_mode && ikdtree.Root_Node == nullptr)
+        if (ikdtree.Root_Node == nullptr)
         {
             if (feats_undistort->size() > 5)
             {
