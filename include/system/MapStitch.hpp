@@ -45,10 +45,7 @@ public:
         }
         LOG_WARN("Load keyframe descriptor successfully! There are %lu descriptors.", relocalization->sc_manager->polarcontexts_.size());
 
-        pcl::PCDReader pcd_reader;
-        pcd_reader.read(trajectory_path, *keyframe_pose6d_optimized);
-        LOG_WARN("Success load trajectory poses %ld.", keyframe_pose6d_optimized->size());
-
+        *keyframe_pose6d_optimized = *relocalization->trajectory_poses;
         PointCloudType::Ptr global_map(new PointCloudType());
         for (auto i = 1; i <= keyframe_pose6d_optimized->size(); ++i)
         {
