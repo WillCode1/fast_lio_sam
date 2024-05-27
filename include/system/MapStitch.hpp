@@ -111,11 +111,13 @@ public:
             gtsam_graph.resize(0);
             init_estimate.clear();
         }
+        LOG_WARN("prior map finished!");
     }
 
     void load_stitch_map_info(const std::string& path)
     {
         
+        LOG_WARN("stitch map finished!");
     }
 
     void run()
@@ -192,7 +194,7 @@ public:
         }
 
         fclose(ifs);
-        LOG_WARN("Success load factor graph, size = %ld.", isam->getFactorsUnsafe().size());
+        LOG_WARN("Success load factor graph, size = %ld.", gtsam_factors.size());
     }
 
 public:
