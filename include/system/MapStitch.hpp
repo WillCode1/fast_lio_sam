@@ -113,13 +113,24 @@ public:
 
     void load_stitch_map_info(const std::string& path)
     {
-        
+        bool system_state_vaild = false;
+        string keyframe_path = path + "/keyframe/";
+
+        PointCloudType::Ptr keyframe_pc(new PointCloudType());
+        load_keyframe(keyframe_path, keyframe_pc, 0);
+
+        Eigen::Matrix4d imu_pose;
+        run_relocalization(keyframe_pc, 100, imu_pose);
+
         LOG_WARN("stitch map finished!");
     }
 
-    void run()
+    // TODO: for gps
+    bool run_relocalization(PointCloudType::Ptr scan, const double &lidar_beg_time, Eigen::Matrix4d &imu_pose)
     {
-
+        if (relocalization->run(scan, imu_pose, lidar_beg_time))
+            return true;
+        return false;
     }
 
     void load_keyframe(const std::string& keyframe_path, PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
