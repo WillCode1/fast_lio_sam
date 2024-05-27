@@ -341,7 +341,6 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "SLAM");
     ros::NodeHandle nh;
-    bool map_update_mode = false;
     bool save_globalmap_en = false, path_en = true;
     bool scan_pub_en = false, dense_pub_en = false;
     string lidar_topic, imu_topic, gnss_topic;
@@ -351,10 +350,9 @@ int main(int argc, char **argv)
     ros::param::param("globalMapVisualizationSearchRadius", globalMapVisualizationSearchRadius, 1000.);
     ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
-    ros::param::param("map_update_mode", map_update_mode, false);
 
     load_ros_parameters(path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame, lidar_frame);
-    load_parameters(slam, map_update_mode, save_globalmap_en, lidar_type);
+    load_parameters(slam, save_globalmap_en, lidar_type);
 
 #ifdef EVO
     evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));

@@ -205,7 +205,7 @@ public:
         return true;
     }
 
-    virtual bool run(bool map_update_mode, PointCloudType::Ptr &feats_undistort, const Eigen::Matrix4d &extrinsic_lidar2gnss)
+    virtual bool run(PointCloudType::Ptr &feats_undistort, const Eigen::Matrix4d &extrinsic_lidar2gnss)
     {
         if (loger.runtime_log && !loger.inited_first_lidar_beg_time)
         {

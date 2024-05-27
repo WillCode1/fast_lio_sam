@@ -113,7 +113,7 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
     }
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
-    load_parameters(slam, false, save_globalmap_en, lidar_type);
+    load_parameters(slam, save_globalmap_en, lidar_type);
     slam.test_mode = true;
 
     ros::Time start_time = view.getBeginTime();

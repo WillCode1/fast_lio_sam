@@ -26,7 +26,6 @@ public:
 
     void load_prior_map_info(const std::string& path)
     {
-        string globalmap_path = path + "/globalmap.pcd";
         string trajectory_path = path + "/trajectory.pcd";
         string keyframe_path = path + "/keyframe/";
         string scd_path = path + "/scancontext/";
@@ -98,7 +97,6 @@ public:
                 }
                 gtsam_factors.pop();
             }
-            gtsam_graph.print("asd");
 
             isam->update(gtsam_graph, init_estimate);
             isam->update();

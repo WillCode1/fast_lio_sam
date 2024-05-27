@@ -17,7 +17,7 @@ inline void load_ros_parameters(bool &path_en, bool &scan_pub_en, bool &dense_pu
     ros::param::param("common/lidar_frame", lidar_frame, std::string("lidar"));
 }
 
-inline void load_parameters(System &slam, bool map_update_mode, bool &save_globalmap_en, int &lidar_type)
+inline void load_parameters(System &slam, bool &save_globalmap_en, int &lidar_type)
 {
     double blind, detect_range;
     int n_scans, scan_rate, time_unit;
@@ -84,7 +84,7 @@ inline void load_parameters(System &slam, bool map_update_mode, bool &save_globa
     ros::param::param("scan_context/lidar_height", slam.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
     ros::param::param("scan_context/sc_dist_thres", slam.relocalization->sc_manager->SC_DIST_THRES, 0.5);
 
-    if (map_update_mode)
+    if (false)
     {
         ros::param::param("utm_origin/zone", slam.relocalization->utm_origin.zone, std::string("51N"));
         ros::param::param("utm_origin/east", slam.relocalization->utm_origin.east, 0.);
