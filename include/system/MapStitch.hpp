@@ -71,7 +71,7 @@ public:
             init_estimate.insert(i, init_values[i]);
 
             bool loop_is_closed = false;
-            while (gtsam_factors.front().index_to <= i)
+            while (!gtsam_factors.empty() && gtsam_factors.front().index_to <= i)
             {
                 gtsam::noiseModel::Diagonal::shared_ptr noise;
                 auto &factor = gtsam_factors.front();
