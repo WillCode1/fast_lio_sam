@@ -3,7 +3,7 @@
 
 	<arg name="rviz" default="true" />
 
-    <rosparam file="$(find fast_lio_sam)/config/map_update_dev.yaml" command="load" />
+    <rosparam file="$(find fast_lio_sam)/config/map_stitch.yaml" command="load" />
 
 	<param name="showOptimizedPose" type="bool" value="true" />
 	<param name="globalMapVisualizationSearchRadius" type="double" value="1000" />
