@@ -83,7 +83,7 @@ public:
             if (loop_closure_enable_flag && test_mode)
             {
                 backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-                loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
+                loopClosure->run(*keyframe_scan);
             }
 
             LOG_DEBUG("run backend 3");
@@ -325,7 +325,7 @@ private:
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(loop_closure_interval));
             backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-            loopClosure->run(frontend->lidar_end_time, *keyframe_scan);
+            loopClosure->run(*keyframe_scan);
         }
     }
 

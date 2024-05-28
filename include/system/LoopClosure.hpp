@@ -128,7 +128,7 @@ public:
         loop_constraint_records[loop_key_cur] = loop_key_ref;
     }
 
-    void detect_loop_by_distance(const deque<PointCloudType::Ptr> &keyframe_scan, const double &lidar_end_time)
+    void detect_loop_by_distance(const deque<PointCloudType::Ptr> &keyframe_scan)
     {
         int latest_id = copy_keyframe_pose6d->size() - 1; // 当前关键帧索引
         int closest_id = -1;                              // 最近关键帧索引
@@ -177,7 +177,7 @@ public:
         perform_loop_closure(keyframe_scan, loop_key_cur, loop_key_ref, "scancontext", true, pose_cur_mat.inverse() * pose_ref_mat);
     }
 
-    void run(const double &lidar_end_time, const deque<PointCloudType::Ptr> &keyframe_scan)
+    void run(const deque<PointCloudType::Ptr> &keyframe_scan)
     {
         if (copy_keyframe_pose6d->points.size() < loop_keyframe_num_thld)
         {
@@ -189,7 +189,7 @@ public:
         // 1.在历史关键帧中查找与当前关键帧距离最近的关键帧
         if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["odom"]))
         {
-            detect_loop_by_distance(keyframe_scan, lidar_end_time);
+            detect_loop_by_distance(keyframe_scan);
         }
 
         // 2.scan context
