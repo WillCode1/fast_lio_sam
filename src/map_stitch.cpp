@@ -1,7 +1,14 @@
-#include "system/MapStitch.hpp"
+#include <csignal>
 #include <ros/ros.h>
+#include "system/MapStitch.hpp"
 
 FILE *location_log = nullptr;
+bool flg_exit = false;
+void SigHandle(int sig)
+{
+    flg_exit = true;
+    LOG_WARN("catch sig %d", sig);
+}
 
 int main(int argc, char **argv)
 {
@@ -9,15 +16,17 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     MapStitch map_stitch;
 
-    ros::param::param("mapping/loop_keyframe_num_thld", map_stitch.loopClosure->loop_keyframe_num_thld, 50);
-    ros::param::param("mapping/loop_closure_search_radius", map_stitch.loopClosure->loop_closure_search_radius, 10.f);
-    ros::param::param("mapping/loop_closure_keyframe_interval", map_stitch.loopClosure->loop_closure_keyframe_interval, 30);
-    ros::param::param("mapping/keyframe_search_num", map_stitch.loopClosure->keyframe_search_num, 20);
-    ros::param::param("mapping/loop_closure_fitness_score_thld", map_stitch.loopClosure->loop_closure_fitness_score_thld, 0.05f);
-    ros::param::param("mapping/icp_downsamp_size", map_stitch.loopClosure->icp_downsamp_size, 0.1f);
-    ros::param::param("mapping/manually_loop_vaild_period", map_stitch.loopClosure->loop_vaild_period["manually"], vector<double>());
-    ros::param::param("mapping/odom_loop_vaild_period", map_stitch.loopClosure->loop_vaild_period["odom"], vector<double>());
-    ros::param::param("mapping/scancontext_loop_vaild_period", map_stitch.loopClosure->loop_vaild_period["scancontext"], vector<double>());
+    ros::param::param("mapping/loop_keyframe_num_thld", map_stitch.loop_keyframe_num_thld, 50);
+    ros::param::param("mapping/loop_closure_search_radius", map_stitch.loop_closure_search_radius, 10.f);
+    ros::param::param("mapping/keyframe_search_num", map_stitch.keyframe_search_num, 20);
+    ros::param::param("mapping/loop_closure_fitness_score_thld", map_stitch.loop_closure_fitness_score_thld, 0.05f);
+    ros::param::param("mapping/icp_downsamp_size", map_stitch.icp_downsamp_size, 0.1f);
+    ros::param::param("mapping/manually_loop_vaild_period", map_stitch.loop_vaild_period["manually"], vector<double>());
+    ros::param::param("mapping/odom_loop_vaild_period", map_stitch.loop_vaild_period["odom"], vector<double>());
+    ros::param::param("mapping/scancontext_loop_vaild_period", map_stitch.loop_vaild_period["scancontext"], vector<double>());
+
+    ros::param::param("scan_context/lidar_height", map_stitch.relocalization->sc_manager->LIDAR_HEIGHT, 2.0);
+    ros::param::param("scan_context/sc_dist_thres", map_stitch.relocalization->sc_manager->SC_DIST_THRES, 0.5);
 
     ros::param::param("utm_origin/zone", map_stitch.relocalization->utm_origin.zone, std::string("51N"));
     ros::param::param("utm_origin/east", map_stitch.relocalization->utm_origin.east, 0.);
@@ -78,5 +87,16 @@ int main(int argc, char **argv)
 
     map_stitch.load_prior_map_info("/home/will/data/test_mapping/mapping1");
     map_stitch.load_stitch_map_info("/home/will/data/test_mapping/mapping2");
+
+    signal(SIGINT, SigHandle);
+    ros::Rate rate(5000);
+    while (ros::ok())
+    {
+        if (flg_exit)
+            break;
+        ros::spinOnce();
+
+        rate.sleep();
+    }
     return 0;
 }
