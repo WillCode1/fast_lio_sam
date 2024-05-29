@@ -113,6 +113,7 @@ public:
             gtsam_graph.resize(0);
             init_estimate.clear();
         }
+        init_values.clear();
         LOG_WARN("prior map finished!");
     }
 
@@ -133,25 +134,84 @@ public:
             keyframe_scan_stitch.push_back(keyframe_pc);
         }
 
+        load_factor_graph(path, keyframe_pose6d_stitch->size());
+
+        // 1.relocalization
         bool system_state_vaild = false;
-
+        int first_index = 0;
         Eigen::Matrix4d imu_pose;
-        run_relocalization(keyframe_scan_stitch.front(), 100, imu_pose);
+        for (first_index = 0; !system_state_vaild && first_index < keyframe_scan_stitch.size(); ++first_index)
+        {
+            // TODO: for gps
+            system_state_vaild = relocalization->run(keyframe_scan_stitch[first_index], imu_pose, 100);
+        }
+        if (!system_state_vaild)
+        {
+            LOG_ERROR("all keyframe relocalization failed, end!");
+            return;
+        }
+        first_index--;
 
+        // 2.loop
+        bool loop_add = false;
         relocalization->sc_manager->SC_DIST_THRES = 0.13;
+        for (auto index = first_index; index < keyframe_scan_stitch.size(); ++index)
+        {
+            // fix pose to prior frame
+            keyframe_pose6d_stitch->points[index];
+            run_loop(index);
 
-        // fix
-        keyframe_pose6d_stitch;
+            if (!loop_constraint.loop_indexs.empty())
+            {
+                loop_add = true;
+            }
 
+        }
+
+        // 4.factor graph optimize
+        for (auto i = keyframe_pose6d_prior->size(); i < init_values.size() + keyframe_pose6d_prior->size(); ++i)
+        {
+            init_estimate.insert(i, pclPointTogtsamPose3(keyframe_pose6d_stitch->points[i - keyframe_pose6d_prior->size()]));
+
+            bool loop_is_closed = false;
+            while (!gtsam_factors.empty() && gtsam_factors.front().index_to <= i)
+            {
+                gtsam::noiseModel::Diagonal::shared_ptr noise;
+                auto &factor = gtsam_factors.front();
+                if (factor.factor_type == GtsamFactor::Between || factor.factor_type == GtsamFactor::Loop)
+                {
+                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
+                    gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(factor.index_from, factor.index_to, factor.value, noise));
+                }
+                else if (factor.factor_type == GtsamFactor::Gps)
+                {
+                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(3) << factor.noise).finished());
+                    gtsam_graph.add(gtsam::GPSFactor(factor.index_to, factor.value.translation(), noise));
+                }
+
+                if (factor.factor_type == GtsamFactor::Loop || factor.factor_type == GtsamFactor::Gps)
+                {
+                    loop_is_closed = true;
+                }
+                gtsam_factors.pop();
+            }
+
+            isam->update(gtsam_graph, init_estimate);
+            isam->update();
+            if (loop_is_closed == true)
+            {
+                isam->update();
+                isam->update();
+                isam->update();
+                isam->update();
+                isam->update();
+            }
+            gtsam_graph.resize(0);
+            init_estimate.clear();
+        }
+
+        init_values.clear();
         LOG_WARN("stitch map finished!");
-    }
-
-    // TODO: for gps
-    bool run_relocalization(PointCloudType::Ptr scan, const double &lidar_beg_time, Eigen::Matrix4d &imu_pose)
-    {
-        if (relocalization->run(scan, imu_pose, lidar_beg_time))
-            return true;
-        return false;
     }
 
     void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
@@ -192,7 +252,7 @@ public:
         return true;
     }
 
-    void load_factor_graph(const std::string &path)
+    void load_factor_graph(const std::string &path, int index_offset = 0)
     {
         FILE *ifs = fopen((path + "/factor_graph.fg").c_str(), "r");
         int value_size = 0;
@@ -203,7 +263,7 @@ public:
         for (auto i = 0; i < value_size; ++i)
         {
             fscanf(ifs, "VERTEX %d: %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &roll, &pitch, &yaw);
-            init_values[index] = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
+            init_values[index + index_offset] = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
         }
         fscanf(ifs, "EDGE_SIZE: %d\n", &value_size);
         for (auto i = 0; i < value_size; ++i)
@@ -215,8 +275,8 @@ public:
                 fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
                        &index, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
                 factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index;
-                factor.index_to = index;
+                factor.index_from = index + index_offset;
+                factor.index_to = index + index_offset;
                 factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
                 factor.noise.resize(6);
                 factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
@@ -226,8 +286,8 @@ public:
                 fscanf(ifs, "%d %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
                        &index, &index2, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
                 factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index;
-                factor.index_to = index2;
+                factor.index_from = index + index_offset;
+                factor.index_to = index2 + index_offset;
                 factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
                 factor.noise.resize(6);
                 factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
@@ -236,8 +296,8 @@ public:
             {
                 fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &n1, &n2, &n3);
                 factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index;
-                factor.index_to = index;
+                factor.index_from = index + index_offset;
+                factor.index_to = index + index_offset;
                 factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(0, 0, 0), gtsam::Point3(x, y, z));
                 factor.noise.resize(3);
                 factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2);
@@ -382,7 +442,7 @@ private:
 
     void run_loop(int index)
     {
-        dartion_time = keyframe_pose6d_stitch->back().time - keyframe_pose6d_stitch->points[index].time;
+        dartion_time = keyframe_pose6d_stitch->points[index].time - keyframe_pose6d_stitch->front().time;
 
         // 1.在历史关键帧中查找与当前关键帧距离最近的关键帧
         if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["odom"]))
