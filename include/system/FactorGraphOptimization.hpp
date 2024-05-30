@@ -30,6 +30,25 @@ struct GtsamFactor
         Gps
     };
 
+    bool operator<(const GtsamFactor &y) const
+    {
+        if (y.factor_type == Prior)
+            return true;
+        else if (factor_type == Prior)
+            return false;
+        else if (factor_type == Loop && y.factor_type == Loop)
+            if (index_from == y.index_from)
+                return index_to > y.index_to;
+            else
+                return index_from > y.index_from;
+        else if (factor_type == Loop)
+            return index_from > y.index_to;
+        else if (y.factor_type == Loop)
+            return index_to > y.index_from;
+        else
+            return index_to > y.index_to;
+    }
+
     FactorType factor_type;
     int index_from;
     int index_to;

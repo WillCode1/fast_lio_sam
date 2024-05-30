@@ -73,10 +73,10 @@ public:
             init_estimate.insert(i, init_values[i]);
 
             bool loop_is_closed = false;
-            while (!gtsam_factors.empty() && gtsam_factors.front().index_to <= i)
+            while (!gtsam_factors.empty() && gtsam_factors.top().index_to <= i)
             {
                 gtsam::noiseModel::Diagonal::shared_ptr noise;
-                auto &factor = gtsam_factors.front();
+                auto &factor = gtsam_factors.top();
                 if (factor.factor_type == GtsamFactor::Prior)
                 {
                     noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
@@ -174,10 +174,10 @@ public:
             init_estimate.insert(i, pclPointTogtsamPose3(keyframe_pose6d_stitch->points[i - keyframe_pose6d_prior->size()]));
 
             bool loop_is_closed = false;
-            while (!gtsam_factors.empty() && gtsam_factors.front().index_to <= i)
+            while (!gtsam_factors.empty() && gtsam_factors.top().index_to <= i)
             {
                 gtsam::noiseModel::Diagonal::shared_ptr noise;
-                auto &factor = gtsam_factors.front();
+                auto &factor = gtsam_factors.top();
                 if (factor.factor_type == GtsamFactor::Between || factor.factor_type == GtsamFactor::Loop)
                 {
                     noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
@@ -509,5 +509,5 @@ public:
     gtsam::ISAM2 *isam;
 
     std::map<int, gtsam::Pose3> init_values;
-    std::queue<GtsamFactor> gtsam_factors;
+    std::priority_queue<GtsamFactor> gtsam_factors;
 };
