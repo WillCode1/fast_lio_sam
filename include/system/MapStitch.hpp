@@ -14,6 +14,7 @@ public:
     {
         keyframe_pose6d_prior.reset(new pcl::PointCloud<PointXYZIRPYT>());
         keyframe_pose6d_stitch.reset(new pcl::PointCloud<PointXYZIRPYT>());
+        keyframe_pose6d_optimized.reset(new pcl::PointCloud<PointXYZIRPYT>());
         sc_manager_stitch = std::make_shared<ScanContext::SCManager>();
 
         relocalization = make_shared<Relocalization>();
@@ -91,12 +92,16 @@ public:
 
         // 1.relocalization
         int first_index = 0;
-        Eigen::Matrix4d imu_pose;
+        Eigen::Matrix4d lidar_pose;
         for (first_index = 0; first_index < keyframe_scan_stitch.size(); ++first_index)
         {
             // TODO: for gps
+            Eigen::Matrix4d imu_pose;
             if (relocalization->run(keyframe_scan_stitch[first_index], imu_pose, 100))
+            {
+                lidar_pose = imu_pose * relocalization->lidar_extrinsic.toMatrix4d();
                 break;
+            }
         }
         if (first_index == keyframe_scan_stitch.size())
         {
@@ -141,15 +146,16 @@ public:
 
         bool stitch_optimize = false;
         // 4.factor graph optimize
+        auto gtsam_factors_tmp = gtsam_factors;
         for (auto i = 0; i < init_values.size(); ++i)
         {
             init_estimate.insert(i, init_values[i]);
 
             bool loop_is_closed = false;
-            while (!gtsam_factors.empty() && gtsam_factors.top().index_to <= i)
+            while (!gtsam_factors_tmp.empty() && gtsam_factors_tmp.top().index_to <= i)
             {
                 gtsam::noiseModel::Diagonal::shared_ptr noise;
-                auto &factor = gtsam_factors.top();
+                auto &factor = gtsam_factors_tmp.top();
                 if (factor.factor_type == GtsamFactor::Prior)
                 {
                     noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
@@ -174,7 +180,7 @@ public:
                     }
                     loop_is_closed = true;
                 }
-                gtsam_factors.pop();
+                gtsam_factors_tmp.pop();
             }
 
             if (i < keyframe_pose6d_prior->size() || stitch_optimize)
@@ -194,7 +200,20 @@ public:
             }
         }
 
-        init_values.clear();
+        // 4.update results
+        optimized_estimate = isam->calculateBestEstimate();
+        int numPoses = optimized_estimate.size();
+        *keyframe_pose6d_optimized += *keyframe_pose6d_prior;
+        *keyframe_pose6d_optimized += *keyframe_pose6d_stitch;
+        for (int i = 0; i < numPoses; ++i)
+        {
+            keyframe_pose6d_optimized->points[i].x = optimized_estimate.at<gtsam::Pose3>(i).translation().x();
+            keyframe_pose6d_optimized->points[i].y = optimized_estimate.at<gtsam::Pose3>(i).translation().y();
+            keyframe_pose6d_optimized->points[i].z = optimized_estimate.at<gtsam::Pose3>(i).translation().z();
+            keyframe_pose6d_optimized->points[i].roll = optimized_estimate.at<gtsam::Pose3>(i).rotation().roll();
+            keyframe_pose6d_optimized->points[i].pitch = optimized_estimate.at<gtsam::Pose3>(i).rotation().pitch();
+            keyframe_pose6d_optimized->points[i].yaw = optimized_estimate.at<gtsam::Pose3>(i).rotation().yaw();
+        }
         LOG_WARN("stitch map finished!");
     }
 
@@ -487,6 +506,8 @@ public:
     deque<PointCloudType::Ptr> keyframe_scan_stitch;
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_stitch;
     std::shared_ptr<ScanContext::SCManager> sc_manager_stitch;
+
+    pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_optimized;
 
     // gtsam
     gtsam::NonlinearFactorGraph gtsam_graph;
