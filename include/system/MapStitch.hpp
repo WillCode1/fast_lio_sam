@@ -67,53 +67,6 @@ public:
         }
 
         load_factor_graph(path);
-
-        for (auto i = 0; i < init_values.size(); ++i)
-        {
-            init_estimate.insert(i, init_values[i]);
-
-            bool loop_is_closed = false;
-            while (!gtsam_factors.empty() && gtsam_factors.top().index_to <= i)
-            {
-                gtsam::noiseModel::Diagonal::shared_ptr noise;
-                auto &factor = gtsam_factors.top();
-                if (factor.factor_type == GtsamFactor::Prior)
-                {
-                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
-                    gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(i, factor.value, noise));
-                }
-                else if (factor.factor_type == GtsamFactor::Between || factor.factor_type == GtsamFactor::Loop)
-                {
-                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
-                    gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(factor.index_from, factor.index_to, factor.value, noise));
-                }
-                else if (factor.factor_type == GtsamFactor::Gps)
-                {
-                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(3) << factor.noise).finished());
-                    gtsam_graph.add(gtsam::GPSFactor(factor.index_to, factor.value.translation(), noise));
-                }
-
-                if (factor.factor_type == GtsamFactor::Loop || factor.factor_type == GtsamFactor::Gps)
-                {
-                    loop_is_closed = true;
-                }
-                gtsam_factors.pop();
-            }
-
-            isam->update(gtsam_graph, init_estimate);
-            isam->update();
-            if (loop_is_closed == true)
-            {
-                isam->update();
-                isam->update();
-                isam->update();
-                isam->update();
-                isam->update();
-            }
-            gtsam_graph.resize(0);
-            init_estimate.clear();
-        }
-        init_values.clear();
         LOG_WARN("prior map finished!");
     }
 
@@ -134,50 +87,74 @@ public:
             keyframe_scan_stitch.push_back(keyframe_pc);
         }
 
-        load_factor_graph(path, keyframe_pose6d_stitch->size());
+        load_factor_graph(path, keyframe_pose6d_prior->size());
 
         // 1.relocalization
-        bool system_state_vaild = false;
         int first_index = 0;
         Eigen::Matrix4d imu_pose;
-        for (first_index = 0; !system_state_vaild && first_index < keyframe_scan_stitch.size(); ++first_index)
+        for (first_index = 0; first_index < keyframe_scan_stitch.size(); ++first_index)
         {
             // TODO: for gps
-            system_state_vaild = relocalization->run(keyframe_scan_stitch[first_index], imu_pose, 100);
+            if (relocalization->run(keyframe_scan_stitch[first_index], imu_pose, 100))
+                break;
         }
-        if (!system_state_vaild)
+        if (first_index == keyframe_scan_stitch.size())
         {
             LOG_ERROR("all keyframe relocalization failed, end!");
             return;
         }
-        first_index--;
 
         // 2.loop
-        bool loop_add = false;
         relocalization->sc_manager->SC_DIST_THRES = 0.13;
         for (auto index = first_index; index < keyframe_scan_stitch.size(); ++index)
         {
             // fix pose to prior frame
             keyframe_pose6d_stitch->points[index];
             run_loop(index);
-
-            if (!loop_constraint.loop_indexs.empty())
-            {
-                loop_add = true;
-            }
-
+        }
+        if (loop_constraint.loop_indexs.empty())
+        {
+            LOG_ERROR("all keyframe loop failed, end!");
+            return;
+        }
+        else if (loop_constraint.loop_indexs.size() < 2)
+        {
+            LOG_WARN("loop constraint num less than 2!");
+        }
+        else if ((loop_constraint.loop_indexs.front().first - loop_constraint.loop_indexs.back().first) < 10)
+        {
+            LOG_WARN("the keyframe distance is too close!");
         }
 
-        // 4.factor graph optimize
-        for (auto i = keyframe_pose6d_prior->size(); i < init_values.size() + keyframe_pose6d_prior->size(); ++i)
+        // 3.add loop factor
+        for (int i = 0; i < (int)loop_constraint.loop_indexs.size(); ++i)
         {
-            init_estimate.insert(i, pclPointTogtsamPose3(keyframe_pose6d_stitch->points[i - keyframe_pose6d_prior->size()]));
+            GtsamFactor factor;
+            factor.factor_type = GtsamFactor::Loop;
+            factor.index_from = loop_constraint.loop_indexs[i].first;
+            factor.index_to = loop_constraint.loop_indexs[i].second;
+            factor.value = loop_constraint.loop_pose_correct[i];
+            factor.noise = loop_constraint.loop_noise[i]->covariance().diagonal();
+            gtsam_factors.emplace(factor);
+        }
+        loop_constraint.clear();
+
+        bool stitch_optimize = false;
+        // 4.factor graph optimize
+        for (auto i = 0; i < init_values.size(); ++i)
+        {
+            init_estimate.insert(i, init_values[i]);
 
             bool loop_is_closed = false;
             while (!gtsam_factors.empty() && gtsam_factors.top().index_to <= i)
             {
                 gtsam::noiseModel::Diagonal::shared_ptr noise;
                 auto &factor = gtsam_factors.top();
+                if (factor.factor_type == GtsamFactor::Prior)
+                {
+                    noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
+                    gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(i, factor.value, noise));
+                }
                 if (factor.factor_type == GtsamFactor::Between || factor.factor_type == GtsamFactor::Loop)
                 {
                     noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << factor.noise).finished());
@@ -191,23 +168,30 @@ public:
 
                 if (factor.factor_type == GtsamFactor::Loop || factor.factor_type == GtsamFactor::Gps)
                 {
+                    if (i >= keyframe_pose6d_prior->size() && factor.factor_type == GtsamFactor::Loop)
+                    {
+                        stitch_optimize = true;
+                    }
                     loop_is_closed = true;
                 }
                 gtsam_factors.pop();
             }
 
-            isam->update(gtsam_graph, init_estimate);
-            isam->update();
-            if (loop_is_closed == true)
+            if (i < keyframe_pose6d_prior->size() || stitch_optimize)
             {
+                isam->update(gtsam_graph, init_estimate);
                 isam->update();
-                isam->update();
-                isam->update();
-                isam->update();
-                isam->update();
+                if (loop_is_closed == true)
+                {
+                    isam->update();
+                    isam->update();
+                    isam->update();
+                    isam->update();
+                    isam->update();
+                }
+                gtsam_graph.resize(0);
+                init_estimate.clear();
             }
-            gtsam_graph.resize(0);
-            init_estimate.clear();
         }
 
         init_values.clear();
@@ -280,6 +264,8 @@ public:
                 factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
                 factor.noise.resize(6);
                 factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
+                if (index_offset > 0)
+                    continue;
             }
             else if (factor_type == GtsamFactor::Between || factor_type == GtsamFactor::Loop)
             {

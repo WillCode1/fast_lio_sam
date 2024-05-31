@@ -41,12 +41,13 @@ struct GtsamFactor
                 return index_to > y.index_to;
             else
                 return index_from > y.index_from;
-        else if (factor_type == Loop)
-            return index_from > y.index_to;
-        else if (y.factor_type == Loop)
-            return index_to > y.index_from;
+
+        auto value_x = std::max(index_from, index_to);
+        auto value_y = std::max(y.index_from, y.index_to);
+        if (value_x != value_y)
+            return value_x > value_y;
         else
-            return index_to > y.index_to;
+            return factor_type > y.factor_type;
     }
 
     FactorType factor_type;
