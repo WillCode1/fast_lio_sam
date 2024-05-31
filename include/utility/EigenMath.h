@@ -178,7 +178,7 @@ namespace EigenMath
     }
 
     template <typename T>
-    static Eigen::Matrix<T, 4, 4> CreateAffineMatrix(const double &x, const double &y, const double &z, const double &roll, const double &pitch, const double &yaw)
+    static Eigen::Matrix<T, 4, 4> CreateAffineMatrix(const T &x, const T &y, const T &z, const T &roll, const T &pitch, const T &yaw)
     {
         return CreateAffineMatrix(Eigen::Matrix<T, 3, 1>(x, y, z), Eigen::Matrix<T, 3, 1>(roll, pitch, yaw));
     }
@@ -192,7 +192,7 @@ namespace EigenMath
     }
 
     template <typename T>
-    static void DecomposeAffineMatrix(const Eigen::Matrix<T, 4, 4> &affine_mat, double &x, double &y, double &z, double &roll, double &pitch, double &yaw)
+    static void DecomposeAffineMatrix(const Eigen::Matrix<T, 4, 4> &affine_mat, T &x, T &y, T &z, T &roll, T &pitch, T &yaw)
     {
         Eigen::Matrix<T, 3, 1> eulerAngles, translation;
         DecomposeAffineMatrix(affine_mat, translation, eulerAngles);

@@ -92,14 +92,14 @@ public:
 
         // 1.relocalization
         int first_index = 0;
-        Eigen::Matrix4d lidar_pose;
+        Eigen::Matrix4d lidar_pose_relocalization;
         for (first_index = 0; first_index < keyframe_scan_stitch.size(); ++first_index)
         {
             // TODO: for gps
             Eigen::Matrix4d imu_pose;
             if (relocalization->run(keyframe_scan_stitch[first_index], imu_pose, 100))
             {
-                lidar_pose = imu_pose * relocalization->lidar_extrinsic.toMatrix4d();
+                lidar_pose_relocalization = imu_pose * relocalization->lidar_extrinsic.toMatrix4d();
                 break;
             }
         }
@@ -109,12 +109,30 @@ public:
             return;
         }
 
+        // fix pose to prior frame
+        Eigen::Matrix4d lidar_pose_ref = EigenMath::CreateAffineMatrix(
+            keyframe_pose6d_stitch->points[first_index].x, keyframe_pose6d_stitch->points[first_index].y, keyframe_pose6d_stitch->points[first_index].z,
+            keyframe_pose6d_stitch->points[first_index].roll, keyframe_pose6d_stitch->points[first_index].pitch, keyframe_pose6d_stitch->points[first_index].yaw);
+        for (auto i = 0; i < keyframe_pose6d_stitch->size(); ++i)
+        {
+            Eigen::Matrix4d lidar_pose_cur = EigenMath::CreateAffineMatrix(
+                keyframe_pose6d_stitch->points[i].x, keyframe_pose6d_stitch->points[i].y, keyframe_pose6d_stitch->points[i].z,
+                keyframe_pose6d_stitch->points[i].roll, keyframe_pose6d_stitch->points[i].pitch, keyframe_pose6d_stitch->points[i].yaw);
+
+            Eigen::Matrix4d lidar_pose_in_prior_frame = lidar_pose_relocalization * lidar_pose_ref.inverse() * lidar_pose_cur;
+            Eigen::Vector3d rpy = EigenMath::RotationMatrix2RPY(M3D(lidar_pose_in_prior_frame.topLeftCorner(3, 3)));
+            keyframe_pose6d_stitch->points[i].x = lidar_pose_in_prior_frame(0, 3);
+            keyframe_pose6d_stitch->points[i].y = lidar_pose_in_prior_frame(1, 3);
+            keyframe_pose6d_stitch->points[i].z = lidar_pose_in_prior_frame(2, 3);
+            keyframe_pose6d_stitch->points[i].roll = rpy(0);
+            keyframe_pose6d_stitch->points[i].pitch = rpy(1);
+            keyframe_pose6d_stitch->points[i].yaw = rpy(2);
+        }
+
         // 2.loop
         relocalization->sc_manager->SC_DIST_THRES = 0.13;
         for (auto index = first_index; index < keyframe_scan_stitch.size(); ++index)
         {
-            // fix pose to prior frame
-            keyframe_pose6d_stitch->points[index];
             run_loop(index);
         }
         if (loop_constraint.loop_indexs.empty())
@@ -213,6 +231,7 @@ public:
             keyframe_pose6d_optimized->points[i].roll = optimized_estimate.at<gtsam::Pose3>(i).rotation().roll();
             keyframe_pose6d_optimized->points[i].pitch = optimized_estimate.at<gtsam::Pose3>(i).rotation().pitch();
             keyframe_pose6d_optimized->points[i].yaw = optimized_estimate.at<gtsam::Pose3>(i).rotation().yaw();
+            keyframe_pose6d_optimized->points[i].intensity = i;
         }
         LOG_WARN("stitch map finished!");
     }
