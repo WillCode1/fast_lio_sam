@@ -11,7 +11,7 @@ mapping:
     keyframe_search_num: 20
     loop_closure_fitness_score_thld: 0.1
     icp_downsamp_size: 0.1
-    manually_loop_vaild_period: [0, 1]
+    manually_loop_vaild_period: [99999999, 99999999]
     odom_loop_vaild_period: []
     scancontext_loop_vaild_period: []
 
