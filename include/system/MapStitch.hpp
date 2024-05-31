@@ -112,12 +112,12 @@ public:
         // fix pose to prior frame
         Eigen::Matrix4d lidar_pose_ref = EigenMath::CreateAffineMatrix(
             keyframe_pose6d_stitch->points[first_index].x, keyframe_pose6d_stitch->points[first_index].y, keyframe_pose6d_stitch->points[first_index].z,
-            keyframe_pose6d_stitch->points[first_index].roll, keyframe_pose6d_stitch->points[first_index].pitch, keyframe_pose6d_stitch->points[first_index].yaw);
+            keyframe_pose6d_stitch->points[first_index].roll, keyframe_pose6d_stitch->points[first_index].pitch, keyframe_pose6d_stitch->points[first_index].yaw).cast<double>();
         for (auto i = 0; i < keyframe_pose6d_stitch->size(); ++i)
         {
             Eigen::Matrix4d lidar_pose_cur = EigenMath::CreateAffineMatrix(
                 keyframe_pose6d_stitch->points[i].x, keyframe_pose6d_stitch->points[i].y, keyframe_pose6d_stitch->points[i].z,
-                keyframe_pose6d_stitch->points[i].roll, keyframe_pose6d_stitch->points[i].pitch, keyframe_pose6d_stitch->points[i].yaw);
+                keyframe_pose6d_stitch->points[i].roll, keyframe_pose6d_stitch->points[i].pitch, keyframe_pose6d_stitch->points[i].yaw).cast<double>();
 
             Eigen::Matrix4d lidar_pose_in_prior_frame = lidar_pose_relocalization * lidar_pose_ref.inverse() * lidar_pose_cur;
             Eigen::Vector3d rpy = EigenMath::RotationMatrix2RPY(M3D(lidar_pose_in_prior_frame.topLeftCorner(3, 3)));
