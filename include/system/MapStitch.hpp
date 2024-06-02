@@ -127,6 +127,7 @@ public:
             keyframe_pose6d_stitch->points[i].roll = rpy(0);
             keyframe_pose6d_stitch->points[i].pitch = rpy(1);
             keyframe_pose6d_stitch->points[i].yaw = rpy(2);
+            init_values[i + keyframe_pose6d_prior->size()] = pclPointTogtsamPose3(keyframe_pose6d_stitch->points[i]);
         }
 
         // 2.loop
@@ -170,7 +171,9 @@ public:
             init_estimate.insert(i, init_values[i]);
 
             bool loop_is_closed = false;
-            while (!gtsam_factors_tmp.empty() && gtsam_factors_tmp.top().index_to <= i)
+            while (!gtsam_factors_tmp.empty() &&
+                   gtsam_factors_tmp.top().index_from <= i &&
+                   gtsam_factors_tmp.top().index_to <= i)
             {
                 gtsam::noiseModel::Diagonal::shared_ptr noise;
                 auto &factor = gtsam_factors_tmp.top();
