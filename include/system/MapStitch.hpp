@@ -37,11 +37,11 @@ public:
         string scd_path = path + "/scancontext/";
 
         pcl::io::loadPCDFile(trajectory_path, *relocalization->trajectory_poses);
-        if (relocalization->trajectory_poses->points.size() < 10)
-        {
-            LOG_ERROR("Too few point clouds! Please check the trajectory file.");
-            std::exit(100);
-        }
+        // if (relocalization->trajectory_poses->points.size() < 10)
+        // {
+        //     LOG_ERROR("Too few point clouds! Please check the trajectory file.");
+        //     std::exit(100);
+        // }
         LOG_WARN("Load trajectory poses successfully! There are %lu poses.", relocalization->trajectory_poses->points.size());
 
         if (!relocalization->load_keyframe_descriptor(scd_path))
@@ -334,6 +334,51 @@ public:
 
         fclose(ifs);
         LOG_WARN("Success load factor graph, size = %ld.", gtsam_factors.size());
+    }
+
+    PointCloudType::Ptr get_submap_visual(float globalMapVisualizationSearchRadius, float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize, bool showOptimizedPose = true)
+    {
+        pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose(new pcl::PointCloud<PointXYZIRPYT>());
+        *keyframe_pose = *keyframe_pose6d_optimized;
+
+        if (keyframe_pose->points.empty())
+            return PointCloudType::Ptr(nullptr);
+
+        pcl::KdTreeFLANN<PointXYZIRPYT>::Ptr kdtreeGlobalMap(new pcl::KdTreeFLANN<PointXYZIRPYT>());
+        pcl::PointCloud<PointXYZIRPYT>::Ptr globalMapKeyPoses(new pcl::PointCloud<PointXYZIRPYT>());
+        pcl::PointCloud<PointXYZIRPYT>::Ptr globalMapKeyPosesDS(new pcl::PointCloud<PointXYZIRPYT>());
+        PointCloudType::Ptr globalMapKeyFrames(new PointCloudType());
+        PointCloudType::Ptr globalMapKeyFramesDS(new PointCloudType());
+
+        // search near key frames to visualize
+        std::vector<int> pointSearchIndGlobalMap;
+        std::vector<float> pointSearchSqDisGlobalMap;
+        kdtreeGlobalMap->setInputCloud(keyframe_pose);
+        kdtreeGlobalMap->radiusSearch(keyframe_pose->back(), globalMapVisualizationSearchRadius, pointSearchIndGlobalMap, pointSearchSqDisGlobalMap, 0);
+
+        for (int i = 0; i < (int)pointSearchIndGlobalMap.size(); ++i)
+            globalMapKeyPoses->push_back(keyframe_pose->points[pointSearchIndGlobalMap[i]]);
+        // downsample near selected key frames pose
+        pcl::VoxelGrid<PointXYZIRPYT> downSizeFilterGlobalMapKeyPoses;
+        downSizeFilterGlobalMapKeyPoses.setLeafSize(globalMapVisualizationPoseDensity, globalMapVisualizationPoseDensity, globalMapVisualizationPoseDensity);
+        downSizeFilterGlobalMapKeyPoses.setInputCloud(globalMapKeyPoses);
+        downSizeFilterGlobalMapKeyPoses.filter(*globalMapKeyPosesDS);
+        for (auto &pt : globalMapKeyPosesDS->points)
+        {
+            kdtreeGlobalMap->nearestKSearch(pt, 1, pointSearchIndGlobalMap, pointSearchSqDisGlobalMap);
+            pt.intensity = keyframe_pose->points[pointSearchIndGlobalMap[0]].intensity;
+        }
+
+        for (int i = 0; i < (int)globalMapKeyPosesDS->size(); ++i)
+        {
+            if (pointDistance(globalMapKeyPosesDS->points[i], keyframe_pose->back()) > globalMapVisualizationSearchRadius)
+                continue;
+            int thisKeyInd = (int)globalMapKeyPosesDS->points[i].intensity;
+            *globalMapKeyFrames += *pointcloudKeyframeToWorld((*keyframe_scan)[thisKeyInd], keyframe_pose->points[thisKeyInd]);
+        }
+        // downsample key frames
+        octreeDownsampling(globalMapKeyFrames, globalMapKeyFramesDS, globalMapVisualizationLeafSize);
+        return globalMapKeyFramesDS;
     }
 
 private:

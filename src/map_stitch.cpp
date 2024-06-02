@@ -1,6 +1,13 @@
 #include <csignal>
 #include <ros/ros.h>
 #include "system/MapStitch.hpp"
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+
+double globalMapVisualizationSearchRadius = 1000;
+double globalMapVisualizationPoseDensity = 10;
+double globalMapVisualizationLeafSize = 1;
+std::string map_frame;
 
 FILE *location_log = nullptr;
 bool flg_exit = false;
@@ -8,6 +15,27 @@ void SigHandle(int sig)
 {
     flg_exit = true;
     LOG_WARN("catch sig %d", sig);
+}
+
+void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, const double& lidar_end_time, const std::string& frame_id)
+{
+    sensor_msgs::PointCloud2 cloud_msg;
+    pcl::toROSMsg(*cloud, cloud_msg);
+    cloud_msg.header.stamp = ros::Time().fromSec(lidar_end_time);
+    cloud_msg.header.frame_id = frame_id;
+    pubCloud.publish(cloud_msg);
+}
+
+void visualize_globalmap_thread(const ros::Publisher &pubGlobalmap)
+{
+    while (!flg_exit)
+    {
+        this_thread::sleep_for(std::chrono::seconds(1));
+        auto submap_visual = slam.get_submap_visual(globalMapVisualizationSearchRadius, globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, showOptimizedPose);
+        if (submap_visual == nullptr)
+            continue;
+        publish_cloud(pubGlobalmap, submap_visual, slam.frontend->lidar_end_time, map_frame);
+    }
 }
 
 int main(int argc, char **argv)
@@ -84,6 +112,10 @@ int main(int argc, char **argv)
     ros::param::param("gicp/feps", feps, 1e-3);
     ros::param::param("gicp/fitness_score", fitness_score, 0.3);
     map_stitch.relocalization->set_gicp_param(use_gicp, filter_range, gicp_downsample, search_radius, teps, feps, fitness_score);
+
+    ros::param::param("globalMapVisualizationSearchRadius", globalMapVisualizationSearchRadius, 1000.);
+    ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
+    ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
 
     map_stitch.load_prior_map_info("/home/will/data/test_mapping/mapping1");
     map_stitch.load_stitch_map_info("/home/will/data/test_mapping/mapping2");
