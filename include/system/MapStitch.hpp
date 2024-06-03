@@ -245,7 +245,10 @@ public:
         for (auto i = 0; i < keyframe_pose6d_prior->size(); ++i)
             keyframe_pose6d_prior->points[i] = keyframe_pose6d_optimized->points[i];
         for (auto i = 0; i < keyframe_pose6d_stitch->size(); ++i)
+        {
             keyframe_pose6d_stitch->points[i] = keyframe_pose6d_optimized->points[i + keyframe_pose6d_prior->size()];
+            keyframe_pose6d_stitch->points[i].intensity = i;
+        }
 
         // 2.scan
 
