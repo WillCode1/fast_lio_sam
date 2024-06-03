@@ -25,7 +25,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: prior_map
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -65,14 +65,14 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 16.664514541625977
-            Min Value: -3.6753270626068115
+            Max Value: 23.777263641357422
+            Min Value: -3.737887144088745
             Value: true
           Axis: Z
           Channel Name: intensity
           Class: rviz/PointCloud2
           Color: 239; 41; 41
-          Color Transformer: FlatColor
+          Color Transformer: AxisColor
           Decay Time: 0
           Enabled: true
           Invert Rainbow: false
@@ -82,7 +82,7 @@ Visualization Manager:
           Position Transformer: XYZ
           Queue Size: 1
           Selectable: false
-          Size (Pixels): 3
+          Size (Pixels): 2
           Size (m): 0.05000000074505806
           Style: Points
           Topic: /map_prior
@@ -93,8 +93,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 18.522478103637695
-            Min Value: -15.65873908996582
+            Max Value: 22.357128143310547
+            Min Value: -3.650221824645996
             Value: true
           Axis: Z
           Channel Name: intensity

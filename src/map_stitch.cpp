@@ -6,7 +6,6 @@
 
 double globalMapVisualizationPoseDensity = 10;
 double globalMapVisualizationLeafSize = 1;
-std::string map_frame;
 
 FILE *location_log = nullptr;
 bool flg_exit = false;
@@ -119,15 +118,15 @@ int main(int argc, char **argv)
         ros::spinOnce();
 
         auto prior_map_visual = map_stitch.get_map_visual(globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, map_stitch.keyframe_pose6d_prior, map_stitch.keyframe_scan_prior);
-        if (prior_map_visual == nullptr)
+        if (prior_map_visual)
         {
-            publish_cloud(pubPriorMap, prior_map_visual, 10000, map_frame);
+            publish_cloud(pubPriorMap, prior_map_visual, 10000, "map");
         }
 
         auto stitch_map_visual = map_stitch.get_map_visual(globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, map_stitch.keyframe_pose6d_stitch, map_stitch.keyframe_scan_stitch);
-        if (stitch_map_visual == nullptr)
+        if (stitch_map_visual)
         {
-            publish_cloud(pubStitchMap, stitch_map_visual, 10000, map_frame);
+            publish_cloud(pubStitchMap, stitch_map_visual, 10000, "map");
         }
 
         rate.sleep();
