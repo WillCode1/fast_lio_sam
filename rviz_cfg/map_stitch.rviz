@@ -25,7 +25,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: prior_map
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -130,8 +130,8 @@ Visualization Manager:
           Head Diameter: 0.30000001192092896
           Head Length: 0.20000000298023224
           Length: 0.30000001192092896
-          Line Style: Lines
-          Line Width: 0.029999999329447746
+          Line Style: Billboards
+          Line Width: 0.10000000149011612
           Name: keyframe_pose_prior
           Offset:
             X: 0
@@ -154,8 +154,8 @@ Visualization Manager:
           Head Diameter: 0.30000001192092896
           Head Length: 0.20000000298023224
           Length: 0.30000001192092896
-          Line Style: Lines
-          Line Width: 0.029999999329447746
+          Line Style: Billboards
+          Line Width: 0.10000000149011612
           Name: keyframe_pose_stitch
           Offset:
             X: 0
@@ -175,8 +175,7 @@ Visualization Manager:
           Marker Topic: /loop_closure_constraints
           Name: loop_constraints
           Namespaces:
-            loop_edges: true
-            loop_nodes: true
+            {}
           Queue Size: 1
           Value: true
       Enabled: true
