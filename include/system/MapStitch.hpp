@@ -239,6 +239,21 @@ public:
         LOG_WARN("stitch map finished!");
     }
 
+    void save_results_info()
+    {
+        // 1.pose
+        for (auto i = 0; i < keyframe_pose6d_prior->size(); ++i)
+            keyframe_pose6d_prior->points[i] = keyframe_pose6d_optimized->points[i];
+        for (auto i = 0; i < keyframe_pose6d_stitch->size(); ++i)
+            keyframe_pose6d_stitch->points[i] = keyframe_pose6d_optimized->points[i + keyframe_pose6d_prior->size()];
+
+        // 2.scan
+
+        // 3.descriptor
+
+        // 4.init_values/gtsam_factors
+    }
+
     void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
     {
         std::ostringstream out;
