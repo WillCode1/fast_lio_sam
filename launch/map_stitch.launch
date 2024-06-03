@@ -1,5 +1,5 @@
 <launch>
-<!-- Launch file for Localization -->
+<!-- Launch file for map stitch -->
 
 	<arg name="rviz" default="true" />
 
