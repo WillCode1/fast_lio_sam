@@ -478,6 +478,7 @@ private:
         loop_constraint.loop_noise.push_back(constraintNoise);
 
         LOG_INFO("dartion_time = %.2f.Loop Factor Added by %s! keyframe id = %d, noise = %.3f.", dartion_time, type.c_str(), loop_key_ref, noiseScore);
+        loop_constraint_records[keyframe_pose6d_prior->size() + loop_key_cur] = loop_key_ref;
     }
 
     void detect_loop_by_distance(int index)
@@ -581,6 +582,7 @@ public:
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_stitch;
     std::shared_ptr<ScanContext::SCManager> sc_manager_stitch;
 
+    unordered_map<int, int> loop_constraint_records; // <new, old>, keyframe index that has added loop constraint
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_optimized;
 
     // gtsam

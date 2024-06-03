@@ -3,9 +3,12 @@
 #include "system/MapStitch.hpp"
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 double globalMapVisualizationPoseDensity = 10;
 double globalMapVisualizationLeafSize = 1;
+std::string map_frame = "map";
 
 FILE *location_log = nullptr;
 bool flg_exit = false;
@@ -24,6 +27,66 @@ void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, co
     pubCloud.publish(cloud_msg);
 }
 
+void visualize_loop_closure_constraints(const ros::Publisher &pubLoopConstraintEdge, const double &timestamp,
+                                        const unordered_map<int, int> &loop_constraint_records,
+                                        const pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d)
+{
+    if (loop_constraint_records.empty())
+        return;
+
+    visualization_msgs::MarkerArray markerArray;
+    // loop nodes
+    visualization_msgs::Marker markerNode;
+    markerNode.header.frame_id = map_frame;
+    markerNode.header.stamp = ros::Time().fromSec(timestamp);
+    markerNode.action = visualization_msgs::Marker::ADD;
+    markerNode.type = visualization_msgs::Marker::SPHERE_LIST;
+    markerNode.ns = "loop_nodes";
+    markerNode.id = 0;
+    markerNode.pose.orientation.w = 1;
+    markerNode.scale.x = 0.3;
+    markerNode.scale.y = 0.3;
+    markerNode.scale.z = 0.3;
+    markerNode.color.r = 0;
+    markerNode.color.g = 0.8;
+    markerNode.color.b = 1;
+    markerNode.color.a = 1;
+    // loop edges
+    visualization_msgs::Marker markerEdge;
+    markerEdge.header.frame_id = map_frame;
+    markerEdge.header.stamp = ros::Time().fromSec(timestamp);
+    markerEdge.action = visualization_msgs::Marker::ADD;
+    markerEdge.type = visualization_msgs::Marker::LINE_LIST;
+    markerEdge.ns = "loop_edges";
+    markerEdge.id = 1;
+    markerEdge.pose.orientation.w = 1;
+    markerEdge.scale.x = 0.1;
+    markerEdge.color.r = 0.9;
+    markerEdge.color.g = 0.9;
+    markerEdge.color.b = 0;
+    markerEdge.color.a = 1;
+
+    for (auto it = loop_constraint_records.begin(); it != loop_constraint_records.end(); ++it)
+    {
+        int key_cur = it->first;
+        int key_pre = it->second;
+        geometry_msgs::Point p;
+        p.x = keyframe_pose6d->points[key_cur].x;
+        p.y = keyframe_pose6d->points[key_cur].y;
+        p.z = keyframe_pose6d->points[key_cur].z;
+        markerNode.points.push_back(p);
+        markerEdge.points.push_back(p);
+        p.x = keyframe_pose6d->points[key_pre].x;
+        p.y = keyframe_pose6d->points[key_pre].y;
+        p.z = keyframe_pose6d->points[key_pre].z;
+        markerNode.points.push_back(p);
+        markerEdge.points.push_back(p);
+    }
+
+    markerArray.markers.push_back(markerNode);
+    markerArray.markers.push_back(markerEdge);
+    pubLoopConstraintEdge.publish(markerArray);
+}
 
 int main(int argc, char **argv)
 {
@@ -108,6 +171,7 @@ int main(int argc, char **argv)
 
     ros::Publisher pubPriorMap = nh.advertise<sensor_msgs::PointCloud2>("/map_prior", 1);
     ros::Publisher pubStitchMap = nh.advertise<sensor_msgs::PointCloud2>("/map_stitch", 1);
+    ros::Publisher pubLoopConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>("/loop_closure_constraints", 1);
 
     signal(SIGINT, SigHandle);
     ros::Rate rate(1);
@@ -120,15 +184,16 @@ int main(int argc, char **argv)
         auto prior_map_visual = map_stitch.get_map_visual(globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, map_stitch.keyframe_pose6d_prior, map_stitch.keyframe_scan_prior);
         if (prior_map_visual)
         {
-            publish_cloud(pubPriorMap, prior_map_visual, 10000, "map");
+            publish_cloud(pubPriorMap, prior_map_visual, 10000, map_frame);
         }
 
         auto stitch_map_visual = map_stitch.get_map_visual(globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, map_stitch.keyframe_pose6d_stitch, map_stitch.keyframe_scan_stitch);
         if (stitch_map_visual)
         {
-            publish_cloud(pubStitchMap, stitch_map_visual, 10000, "map");
+            publish_cloud(pubStitchMap, stitch_map_visual, 10000, map_frame);
         }
 
+        visualize_loop_closure_constraints(pubLoopConstraintEdge, 10000, map_stitch.loop_constraint_records, map_stitch.keyframe_pose6d_optimized);
         rate.sleep();
     }
     return 0;
