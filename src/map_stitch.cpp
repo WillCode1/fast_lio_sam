@@ -1,6 +1,7 @@
 #include <csignal>
 #include <ros/ros.h>
 #include "system/MapStitch.hpp"
+#include <nav_msgs/Path.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <visualization_msgs/Marker.h>
@@ -25,6 +26,33 @@ void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, co
     cloud_msg.header.stamp = ros::Time().fromSec(lidar_end_time);
     cloud_msg.header.frame_id = frame_id;
     pubCloud.publish(cloud_msg);
+}
+
+void publish_lidar_keyframe_trajectory(const ros::Publisher &pubPath, const pcl::PointCloud<PointXYZIRPYT> &trajectory, const double &lidar_end_time)
+{
+    nav_msgs::Path path;
+    path.header.stamp = ros::Time().fromSec(lidar_end_time);
+    path.header.frame_id = map_frame;
+
+    geometry_msgs::PoseStamped msg_lidar_pose;
+    for (const auto &point : trajectory)
+    {
+        msg_lidar_pose.pose.position.x = point.x;
+        msg_lidar_pose.pose.position.y = point.y;
+        msg_lidar_pose.pose.position.z = point.z;
+        auto quat = EigenMath::RPY2Quaternion(V3D(point.roll, point.pitch, point.yaw));
+        msg_lidar_pose.pose.orientation.x = quat.x();
+        msg_lidar_pose.pose.orientation.y = quat.y();
+        msg_lidar_pose.pose.orientation.z = quat.z();
+        msg_lidar_pose.pose.orientation.w = quat.w();
+
+        msg_lidar_pose.header.stamp = ros::Time().fromSec(lidar_end_time);
+        msg_lidar_pose.header.frame_id = map_frame;
+
+        path.poses.push_back(msg_lidar_pose);
+    }
+
+    pubPath.publish(path);
 }
 
 void visualize_loop_closure_constraints(const ros::Publisher &pubLoopConstraintEdge, const double &timestamp,
@@ -171,6 +199,8 @@ int main(int argc, char **argv)
 
     ros::Publisher pubPriorMap = nh.advertise<sensor_msgs::PointCloud2>("/map_prior", 1);
     ros::Publisher pubStitchMap = nh.advertise<sensor_msgs::PointCloud2>("/map_stitch", 1);
+    ros::Publisher pubLidarPathPrior = nh.advertise<nav_msgs::Path>("/keyframe_pose_prior", 100000);
+    ros::Publisher pubLidarPathStitch = nh.advertise<nav_msgs::Path>("/keyframe_pose_stitch", 100000);
     ros::Publisher pubLoopConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>("/loop_closure_constraints", 1);
 
     signal(SIGINT, SigHandle);
@@ -193,6 +223,8 @@ int main(int argc, char **argv)
             publish_cloud(pubStitchMap, stitch_map_visual, 10000, map_frame);
         }
 
+        publish_lidar_keyframe_trajectory(pubLidarPathPrior, *map_stitch.keyframe_pose6d_prior, 10000);
+        publish_lidar_keyframe_trajectory(pubLidarPathStitch, *map_stitch.keyframe_pose6d_stitch, 10000);
         visualize_loop_closure_constraints(pubLoopConstraintEdge, 10000, map_stitch.loop_constraint_records, map_stitch.keyframe_pose6d_optimized);
         rate.sleep();
     }
