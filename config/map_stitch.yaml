@@ -19,7 +19,9 @@ mapping:
 official:
     save_globalmap_en: false
     save_resolution: 0.2
-    map_path: "/home/will/data/test_mapping/mapping3"
+    prior_map_path: "/home/will/data/test_mapping/mapping1"
+    stitch_map_path: "/home/will/data/test_mapping/mapping2"
+    result_map_path: "/home/will/data/test_mapping/mapping3"
 
 # ============relocalization_cfg============
 relocalization_cfg:

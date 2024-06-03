@@ -194,8 +194,12 @@ int main(int argc, char **argv)
     ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
 
-    map_stitch.load_prior_map_info("/home/will/data/test_mapping/mapping1");
-    map_stitch.load_stitch_map_info("/home/will/data/test_mapping/mapping2");
+    std::string prior_map_path, stitch_map_path;
+    ros::param::param("official/prior_map_path", prior_map_path, std::string("/home/will/data/test_mapping/mapping1"));
+    ros::param::param("official/stitch_map_path", stitch_map_path, std::string("/home/will/data/test_mapping/mapping2"));
+
+    map_stitch.load_prior_map_info(prior_map_path);
+    map_stitch.load_stitch_map_info(stitch_map_path);
     map_stitch.save_results_info();
 
     ros::Publisher pubPriorMap = nh.advertise<sensor_msgs::PointCloud2>("/map_prior", 1);
