@@ -196,6 +196,7 @@ int main(int argc, char **argv)
 
     map_stitch.load_prior_map_info("/home/will/data/test_mapping/mapping1");
     map_stitch.load_stitch_map_info("/home/will/data/test_mapping/mapping2");
+    map_stitch.save_results_info();
 
     ros::Publisher pubPriorMap = nh.advertise<sensor_msgs::PointCloud2>("/map_prior", 1);
     ros::Publisher pubStitchMap = nh.advertise<sensor_msgs::PointCloud2>("/map_stitch", 1);
