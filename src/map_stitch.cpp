@@ -4,7 +4,6 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-double globalMapVisualizationSearchRadius = 1000;
 double globalMapVisualizationPoseDensity = 10;
 double globalMapVisualizationLeafSize = 1;
 std::string map_frame;
@@ -26,17 +25,6 @@ void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, co
     pubCloud.publish(cloud_msg);
 }
 
-void visualize_globalmap_thread(const ros::Publisher &pubGlobalmap)
-{
-    while (!flg_exit)
-    {
-        this_thread::sleep_for(std::chrono::seconds(1));
-        auto submap_visual = slam.get_submap_visual(globalMapVisualizationSearchRadius, globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize);
-        if (submap_visual == nullptr)
-            continue;
-        publish_cloud(pubGlobalmap, submap_visual, slam.frontend->lidar_end_time, map_frame);
-    }
-}
 
 int main(int argc, char **argv)
 {
@@ -113,20 +101,34 @@ int main(int argc, char **argv)
     ros::param::param("gicp/fitness_score", fitness_score, 0.3);
     map_stitch.relocalization->set_gicp_param(use_gicp, filter_range, gicp_downsample, search_radius, teps, feps, fitness_score);
 
-    ros::param::param("globalMapVisualizationSearchRadius", globalMapVisualizationSearchRadius, 1000.);
     ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
 
     map_stitch.load_prior_map_info("/home/will/data/test_mapping/mapping1");
     map_stitch.load_stitch_map_info("/home/will/data/test_mapping/mapping2");
 
+    ros::Publisher pubPriorMap = nh.advertise<sensor_msgs::PointCloud2>("/map_prior", 1);
+    ros::Publisher pubStitchMap = nh.advertise<sensor_msgs::PointCloud2>("/map_stitch", 1);
+
     signal(SIGINT, SigHandle);
-    ros::Rate rate(5000);
+    ros::Rate rate(1);
     while (ros::ok())
     {
         if (flg_exit)
             break;
         ros::spinOnce();
+
+        auto prior_map_visual = map_stitch.get_map_visual(globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, map_stitch.keyframe_pose6d_prior, map_stitch.keyframe_scan_prior);
+        if (prior_map_visual == nullptr)
+        {
+            publish_cloud(pubPriorMap, prior_map_visual, 10000, map_frame);
+        }
+
+        auto stitch_map_visual = map_stitch.get_map_visual(globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, map_stitch.keyframe_pose6d_stitch, map_stitch.keyframe_scan_stitch);
+        if (stitch_map_visual == nullptr)
+        {
+            publish_cloud(pubStitchMap, stitch_map_visual, 10000, map_frame);
+        }
 
         rate.sleep();
     }
