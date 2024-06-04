@@ -252,6 +252,7 @@ public:
         string trajectory_path = path + "/trajectory.pcd";
         string keyframe_path = path + "/keyframe/";
         string scd_path = path + "/scancontext/";
+        string globalmap_path = path + "/globalmap.pcd";
         FileOperation::createDirectoryOrRecreate(keyframe_path);
         FileOperation::createDirectoryOrRecreate(scd_path);
 
@@ -281,6 +282,10 @@ public:
 
         // 4.init_values/gtsam_factors
         save_factor_graph(path);
+
+        // 5.save globalmap
+        if (save_globalmap_en)
+            save_globalmap(globalmap_path, save_resolution);
 
         LOG_WARN("Success save results to %s.", path.c_str());
     }
@@ -675,6 +680,18 @@ private:
         }
     }
 
+    void save_globalmap(const std::string &globalmap_path, const double &save_resolution)
+    {
+        PointCloudType::Ptr pcl_map_full(new PointCloudType());
+        for (auto i = 0; i < keyframe_scan_prior.size(); ++i)
+            *pcl_map_full += *pointcloudKeyframeToWorld(keyframe_scan_prior[i], (*keyframe_pose6d_prior)[i]);
+        for (auto i = 0; i < keyframe_scan_stitch.size(); ++i)
+            *pcl_map_full += *pointcloudKeyframeToWorld(keyframe_scan_stitch[i], (*keyframe_pose6d_stitch)[i]);
+
+        octreeDownsampling(pcl_map_full, pcl_map_full, save_resolution);
+        savePCDFile(globalmap_path, *pcl_map_full);
+    }
+
 public:
     double dartion_time;
     std::unordered_map<std::string, std::vector<double>> loop_vaild_period;
@@ -709,4 +726,7 @@ public:
 
     std::map<int, gtsam::Pose3> init_values;
     std::priority_queue<GtsamFactor> gtsam_factors;
+
+    bool save_globalmap_en;
+    float save_resolution;
 };

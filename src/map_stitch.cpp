@@ -195,6 +195,8 @@ int main(int argc, char **argv)
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
 
     std::string prior_map_path, stitch_map_path, result_map_path;
+    ros::param::param("official/save_globalmap_en", map_stitch.save_globalmap_en, false);
+    ros::param::param("official/save_resolution", map_stitch.save_resolution, 0.2f);
     ros::param::param("official/prior_map_path", prior_map_path, std::string("/home/will/data/test_mapping/mapping1"));
     ros::param::param("official/stitch_map_path", stitch_map_path, std::string("/home/will/data/test_mapping/mapping2"));
     ros::param::param("official/result_map_path", result_map_path, std::string("/home/will/data/test_mapping/mapping3"));
