@@ -4,8 +4,8 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /mapping1
-        - /Odometry1
+        - /map2
+        - /constraints1
       Splitter Ratio: 0.6432291865348816
     Tree Height: 1297
   - Class: rviz/Selection
@@ -25,7 +25,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: prior_map
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -119,7 +119,7 @@ Visualization Manager:
           Use rainbow: true
           Value: true
       Enabled: true
-      Name: mapping
+      Name: map
     - Class: rviz/Group
       Displays:
         - Alpha: 1
@@ -183,8 +183,7 @@ Visualization Manager:
           Marker Topic: /loop_constraints_stitch
           Name: loop_stitch
           Namespaces:
-            loop_edges: true
-            loop_nodes: true
+            {}
           Queue Size: 1
           Value: true
         - Class: rviz/MarkerArray
@@ -192,12 +191,11 @@ Visualization Manager:
           Marker Topic: /loop_constraints_add
           Name: loop_new
           Namespaces:
-            loop_edges: true
-            loop_nodes: true
+            {}
           Queue Size: 1
           Value: true
       Enabled: true
-      Name: Odometry
+      Name: constraints
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
