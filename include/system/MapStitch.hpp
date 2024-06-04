@@ -336,6 +336,18 @@ public:
                 factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
                 factor.noise.resize(6);
                 factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
+
+                if (factor_type == GtsamFactor::Loop)
+                {
+                    if (index_offset == 0)
+                    {
+                        loop_constraint_records_prior[factor.index_from] = factor.index_to;
+                    }
+                    else
+                    {
+                        loop_constraint_records_stitch[factor.index_from] = factor.index_to;
+                    }
+                }
             }
             else if (factor_type == GtsamFactor::Gps)
             {
@@ -481,7 +493,7 @@ private:
         loop_constraint.loop_noise.push_back(constraintNoise);
 
         LOG_INFO("dartion_time = %.2f.Loop Factor Added by %s! keyframe id = %d, noise = %.3f.", dartion_time, type.c_str(), loop_key_ref, noiseScore);
-        loop_constraint_records[keyframe_pose6d_prior->size() + loop_key_cur] = loop_key_ref;
+        loop_constraint_records_add[keyframe_pose6d_prior->size() + loop_key_cur] = loop_key_ref;
     }
 
     void detect_loop_by_distance(int index)
@@ -585,7 +597,9 @@ public:
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_stitch;
     std::shared_ptr<ScanContext::SCManager> sc_manager_stitch;
 
-    unordered_map<int, int> loop_constraint_records; // <new, old>, keyframe index that has added loop constraint
+    unordered_map<int, int> loop_constraint_records_prior;
+    unordered_map<int, int> loop_constraint_records_stitch;
+    unordered_map<int, int> loop_constraint_records_add;
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_optimized;
 
     // gtsam

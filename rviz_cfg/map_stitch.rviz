@@ -25,7 +25,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: prior_map
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -172,10 +172,28 @@ Visualization Manager:
           Value: true
         - Class: rviz/MarkerArray
           Enabled: true
-          Marker Topic: /loop_closure_constraints
-          Name: loop_constraints
+          Marker Topic: /loop_constraints_prior
+          Name: loop_prior
           Namespaces:
             {}
+          Queue Size: 1
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /loop_constraints_stitch
+          Name: loop_stitch
+          Namespaces:
+            loop_edges: true
+            loop_nodes: true
+          Queue Size: 1
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /loop_constraints_add
+          Name: loop_new
+          Namespaces:
+            loop_edges: true
+            loop_nodes: true
           Queue Size: 1
           Value: true
       Enabled: true
@@ -217,7 +235,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 5
+      Scale: 4
       Target Frame: map
       X: 0
       Y: 0

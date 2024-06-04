@@ -206,7 +206,9 @@ int main(int argc, char **argv)
     ros::Publisher pubStitchMap = nh.advertise<sensor_msgs::PointCloud2>("/map_stitch", 1);
     ros::Publisher pubLidarPathPrior = nh.advertise<nav_msgs::Path>("/keyframe_pose_prior", 100000);
     ros::Publisher pubLidarPathStitch = nh.advertise<nav_msgs::Path>("/keyframe_pose_stitch", 100000);
-    ros::Publisher pubLoopConstraintEdge = nh.advertise<visualization_msgs::MarkerArray>("/loop_closure_constraints", 1);
+    ros::Publisher pubLoopConstraintPrior = nh.advertise<visualization_msgs::MarkerArray>("/loop_constraints_prior", 1);
+    ros::Publisher pubLoopConstraintStitch = nh.advertise<visualization_msgs::MarkerArray>("/loop_constraints_stitch", 1);
+    ros::Publisher pubLoopConstraintAdd = nh.advertise<visualization_msgs::MarkerArray>("/loop_constraints_add", 1);
 
     signal(SIGINT, SigHandle);
     ros::Rate rate(1);
@@ -230,7 +232,9 @@ int main(int argc, char **argv)
 
         publish_lidar_keyframe_trajectory(pubLidarPathPrior, *map_stitch.keyframe_pose6d_prior, 10000);
         publish_lidar_keyframe_trajectory(pubLidarPathStitch, *map_stitch.keyframe_pose6d_stitch, 10000);
-        visualize_loop_closure_constraints(pubLoopConstraintEdge, 10000, map_stitch.loop_constraint_records, map_stitch.keyframe_pose6d_optimized);
+        visualize_loop_closure_constraints(pubLoopConstraintPrior, 10000, map_stitch.loop_constraint_records_prior, map_stitch.keyframe_pose6d_optimized);
+        visualize_loop_closure_constraints(pubLoopConstraintStitch, 10000, map_stitch.loop_constraint_records_stitch, map_stitch.keyframe_pose6d_optimized);
+        visualize_loop_closure_constraints(pubLoopConstraintAdd, 10000, map_stitch.loop_constraint_records_add, map_stitch.keyframe_pose6d_optimized);
         rate.sleep();
     }
     return 0;
