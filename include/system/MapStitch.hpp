@@ -258,7 +258,6 @@ public:
         // 1.pose
         pcl::PCDWriter pcd_writer;
         pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
-        LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
 
         // 2.scan
         for (auto i = 0; i < keyframe_scan_prior.size(); ++i)
@@ -282,6 +281,8 @@ public:
 
         // 4.init_values/gtsam_factors
         save_factor_graph(path);
+
+        LOG_WARN("Success save results to %s.", path.c_str());
     }
 
     PointCloudType::Ptr get_map_visual(float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize,
