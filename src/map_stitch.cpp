@@ -194,13 +194,13 @@ int main(int argc, char **argv)
     ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
 
-    std::string prior_map_path, stitch_map_path;
+    std::string prior_map_path, stitch_map_path, result_map_path;
     ros::param::param("official/prior_map_path", prior_map_path, std::string("/home/will/data/test_mapping/mapping1"));
     ros::param::param("official/stitch_map_path", stitch_map_path, std::string("/home/will/data/test_mapping/mapping2"));
+    ros::param::param("official/result_map_path", result_map_path, std::string("/home/will/data/test_mapping/mapping3"));
 
     map_stitch.load_prior_map_info(prior_map_path);
     map_stitch.load_stitch_map_info(stitch_map_path);
-    map_stitch.save_results_info();
 
     ros::Publisher pubPriorMap = nh.advertise<sensor_msgs::PointCloud2>("/map_prior", 1);
     ros::Publisher pubStitchMap = nh.advertise<sensor_msgs::PointCloud2>("/map_stitch", 1);
@@ -237,5 +237,7 @@ int main(int argc, char **argv)
         visualize_loop_closure_constraints(pubLoopConstraintAdd, 10000, map_stitch.loop_constraint_records_add, map_stitch.keyframe_pose6d_optimized);
         rate.sleep();
     }
+
+    map_stitch.save_results_info(result_map_path);
     return 0;
 }

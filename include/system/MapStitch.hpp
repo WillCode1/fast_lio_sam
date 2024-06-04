@@ -236,12 +236,7 @@ public:
             keyframe_pose6d_optimized->points[i].yaw = optimized_estimate.at<gtsam::Pose3>(i).rotation().yaw();
             keyframe_pose6d_optimized->points[i].intensity = i;
         }
-        LOG_WARN("stitch map finished!");
-    }
 
-    void save_results_info()
-    {
-        // 1.pose
         for (auto i = 0; i < keyframe_pose6d_prior->size(); ++i)
             keyframe_pose6d_prior->points[i] = keyframe_pose6d_optimized->points[i];
         for (auto i = 0; i < keyframe_pose6d_stitch->size(); ++i)
@@ -249,121 +244,44 @@ public:
             keyframe_pose6d_stitch->points[i] = keyframe_pose6d_optimized->points[i + keyframe_pose6d_prior->size()];
             keyframe_pose6d_stitch->points[i].intensity = i;
         }
+        LOG_WARN("stitch map finished!");
+    }
+
+    void save_results_info(const std::string &path)
+    {
+        string trajectory_path = path + "/trajectory.pcd";
+        string keyframe_path = path + "/keyframe/";
+        string scd_path = path + "/scancontext/";
+        FileOperation::createDirectoryOrRecreate(keyframe_path);
+        FileOperation::createDirectoryOrRecreate(scd_path);
+
+        // 1.pose
+        pcl::PCDWriter pcd_writer;
+        pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
+        LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
 
         // 2.scan
+        for (auto i = 0; i < keyframe_scan_prior.size(); ++i)
+        {
+            save_keyframe(keyframe_scan_prior[i], keyframe_path, i);
+        }
+        for (auto i = 0; i < keyframe_scan_stitch.size(); ++i)
+        {
+            save_keyframe(keyframe_scan_stitch[i], keyframe_path, i + keyframe_scan_prior.size());
+        }
 
         // 3.descriptor
+        for (auto i = 0; i < relocalization->sc_manager->polarcontexts_.size(); ++i)
+        {
+            saveSCD(relocalization->sc_manager->polarcontexts_[i], i, scd_path);
+        }
+        for (auto i = 0; i < sc_manager_stitch->polarcontexts_.size(); ++i)
+        {
+            saveSCD(sc_manager_stitch->polarcontexts_[i], i + keyframe_scan_prior.size(), scd_path);
+        }
 
         // 4.init_values/gtsam_factors
-    }
-
-    void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
-    {
-        std::ostringstream out;
-        out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt;
-        std::string keyframe_idx = out.str();
-        string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
-        pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_pc(new pcl::PointCloud<pcl::PointXYZI>());
-        pcl::io::loadPCDFile(keyframe_file, *tmp_pc);
-        keyframe_pc->points.resize(tmp_pc->points.size());
-        for (auto i = 0; i < tmp_pc->points.size(); ++i)
-        {
-            pcl::copyPoint(tmp_pc->points[i], keyframe_pc->points[i]);
-        }
-    }
-
-    bool load_keyframe_descriptor(const std::string &path)
-    {
-        if (!fs::exists(path))
-        {
-            LOG_WARN("path not exists, path = %s!", path.c_str());
-            return false;
-        }
-
-        int scd_file_count = 0, num_digits = 0;
-        scd_file_count = FileOperation::getFilesNumByExtension(path, ".scd");
-
-        if (scd_file_count != keyframe_pose6d_stitch->size())
-        {
-            LOG_WARN("scd_file_count != trajectory_poses! %d, %ld", scd_file_count, keyframe_pose6d_stitch->size());
-            return false;
-        }
-
-        num_digits = FileOperation::getOneFilenameByExtension(path, ".scd").length() - std::string(".scd").length();
-
-        sc_manager_stitch->loadPriorSCD(path, num_digits, keyframe_pose6d_stitch->size());
-        return true;
-    }
-
-    void load_factor_graph(const std::string &path, int index_offset = 0)
-    {
-        FILE *ifs = fopen((path + "/factor_graph.fg").c_str(), "r");
-        int value_size = 0;
-        int factor_type = 0, index = 0, index2 = 0;
-        double x, y, z, roll, pitch, yaw;
-        double n1, n2, n3, n4, n5, n6;
-        fscanf(ifs, "VERTEX_SIZE: %d\n", &value_size);
-        for (auto i = 0; i < value_size; ++i)
-        {
-            fscanf(ifs, "VERTEX %d: %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &roll, &pitch, &yaw);
-            init_values[index + index_offset] = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
-        }
-        fscanf(ifs, "EDGE_SIZE: %d\n", &value_size);
-        for (auto i = 0; i < value_size; ++i)
-        {
-            fscanf(ifs, "EDGE %d: ", &factor_type);
-            GtsamFactor factor;
-            if (factor_type == GtsamFactor::Prior)
-            {
-                fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-                       &index, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
-                factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index + index_offset;
-                factor.index_to = index + index_offset;
-                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
-                factor.noise.resize(6);
-                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
-                if (index_offset > 0)
-                    continue;
-            }
-            else if (factor_type == GtsamFactor::Between || factor_type == GtsamFactor::Loop)
-            {
-                fscanf(ifs, "%d %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-                       &index, &index2, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
-                factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index + index_offset;
-                factor.index_to = index2 + index_offset;
-                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
-                factor.noise.resize(6);
-                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
-
-                if (factor_type == GtsamFactor::Loop)
-                {
-                    if (index_offset == 0)
-                    {
-                        loop_constraint_records_prior[factor.index_from] = factor.index_to;
-                    }
-                    else
-                    {
-                        loop_constraint_records_stitch[factor.index_from] = factor.index_to;
-                    }
-                }
-            }
-            else if (factor_type == GtsamFactor::Gps)
-            {
-                fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &n1, &n2, &n3);
-                factor.factor_type = (GtsamFactor::FactorType)factor_type;
-                factor.index_from = index + index_offset;
-                factor.index_to = index + index_offset;
-                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(0, 0, 0), gtsam::Point3(x, y, z));
-                factor.noise.resize(3);
-                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2);
-            }
-            gtsam_factors.emplace(factor);
-        }
-
-        fclose(ifs);
-        LOG_WARN("Success load factor graph, size = %ld.", gtsam_factors.size());
+        save_factor_graph(path);
     }
 
     PointCloudType::Ptr get_map_visual(float globalMapVisualizationPoseDensity, float globalMapVisualizationLeafSize,
@@ -574,6 +492,186 @@ private:
         }
 
         return false;
+    }
+
+    void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
+    {
+        std::ostringstream out;
+        out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt;
+        std::string keyframe_idx = out.str();
+        string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
+        pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_pc(new pcl::PointCloud<pcl::PointXYZI>());
+        pcl::io::loadPCDFile(keyframe_file, *tmp_pc);
+        keyframe_pc->points.resize(tmp_pc->points.size());
+        for (auto i = 0; i < tmp_pc->points.size(); ++i)
+        {
+            pcl::copyPoint(tmp_pc->points[i], keyframe_pc->points[i]);
+        }
+    }
+
+    bool load_keyframe_descriptor(const std::string &path)
+    {
+        if (!fs::exists(path))
+        {
+            LOG_WARN("path not exists, path = %s!", path.c_str());
+            return false;
+        }
+
+        int scd_file_count = 0, num_digits = 0;
+        scd_file_count = FileOperation::getFilesNumByExtension(path, ".scd");
+
+        if (scd_file_count != keyframe_pose6d_stitch->size())
+        {
+            LOG_WARN("scd_file_count != trajectory_poses! %d, %ld", scd_file_count, keyframe_pose6d_stitch->size());
+            return false;
+        }
+
+        num_digits = FileOperation::getOneFilenameByExtension(path, ".scd").length() - std::string(".scd").length();
+
+        sc_manager_stitch->loadPriorSCD(path, num_digits, keyframe_pose6d_stitch->size());
+        return true;
+    }
+
+    void load_factor_graph(const std::string &path, int index_offset = 0)
+    {
+        FILE *ifs = fopen((path + "/factor_graph.fg").c_str(), "r");
+        int value_size = 0;
+        int factor_type = 0, index = 0, index2 = 0;
+        double x, y, z, roll, pitch, yaw;
+        double n1, n2, n3, n4, n5, n6;
+        fscanf(ifs, "VERTEX_SIZE: %d\n", &value_size);
+        for (auto i = 0; i < value_size; ++i)
+        {
+            fscanf(ifs, "VERTEX %d: %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &roll, &pitch, &yaw);
+            init_values[index + index_offset] = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
+        }
+        fscanf(ifs, "EDGE_SIZE: %d\n", &value_size);
+        for (auto i = 0; i < value_size; ++i)
+        {
+            fscanf(ifs, "EDGE %d: ", &factor_type);
+            GtsamFactor factor;
+            if (factor_type == GtsamFactor::Prior)
+            {
+                fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                       &index, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
+                factor.factor_type = (GtsamFactor::FactorType)factor_type;
+                factor.index_from = index + index_offset;
+                factor.index_to = index + index_offset;
+                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
+                factor.noise.resize(6);
+                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
+                if (index_offset > 0)
+                    continue;
+            }
+            else if (factor_type == GtsamFactor::Between || factor_type == GtsamFactor::Loop)
+            {
+                fscanf(ifs, "%d %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                       &index, &index2, &x, &y, &z, &roll, &pitch, &yaw, &n1, &n2, &n3, &n4, &n5, &n6);
+                factor.factor_type = (GtsamFactor::FactorType)factor_type;
+                factor.index_from = index + index_offset;
+                factor.index_to = index2 + index_offset;
+                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
+                factor.noise.resize(6);
+                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2), std::pow(n4, 2), std::pow(n5, 2), std::pow(n6, 2);
+
+                if (factor_type == GtsamFactor::Loop)
+                {
+                    if (index_offset == 0)
+                    {
+                        loop_constraint_records_prior[factor.index_from] = factor.index_to;
+                    }
+                    else
+                    {
+                        loop_constraint_records_stitch[factor.index_from] = factor.index_to;
+                    }
+                }
+            }
+            else if (factor_type == GtsamFactor::Gps)
+            {
+                fscanf(ifs, "%d %lf %lf %lf %lf %lf %lf\n", &index, &x, &y, &z, &n1, &n2, &n3);
+                factor.factor_type = (GtsamFactor::FactorType)factor_type;
+                factor.index_from = index + index_offset;
+                factor.index_to = index + index_offset;
+                factor.value = gtsam::Pose3(gtsam::Rot3::RzRyRx(0, 0, 0), gtsam::Point3(x, y, z));
+                factor.noise.resize(3);
+                factor.noise << std::pow(n1, 2), std::pow(n2, 2), std::pow(n3, 2);
+            }
+            gtsam_factors.emplace(factor);
+        }
+
+        fclose(ifs);
+        LOG_WARN("Success load factor graph, size = %ld.", gtsam_factors.size());
+    }
+
+    void save_factor_graph(const std::string &map_path)
+    {
+        FILE *ofs = fopen((map_path + "/factor_graph.fg").c_str(), "w");
+        fprintf(ofs, "VERTEX_SIZE: %ld\n", init_values.size());
+        for (auto &value : init_values)
+        {
+            fprintf(ofs, "VERTEX %d: %lf %lf %lf %lf %lf %lf\n",
+                    value.first, value.second.x(), value.second.y(), value.second.z(),
+                    value.second.rotation().roll(), value.second.rotation().pitch(), value.second.rotation().yaw());
+        }
+        fprintf(ofs, "EDGE_SIZE: %ld\n", gtsam_factors.size());
+        while (!gtsam_factors.empty())
+        {
+            auto &factor = gtsam_factors.top();
+            if (factor.factor_type == GtsamFactor::Prior)
+            {
+                fprintf(ofs, "EDGE %d: %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                        factor.factor_type, factor.index_to, factor.value.x(), factor.value.y(), factor.value.z(),
+                        factor.value.rotation().roll(), factor.value.rotation().pitch(), factor.value.rotation().yaw(),
+                        std::sqrt(factor.noise(0)), std::sqrt(factor.noise(1)), std::sqrt(factor.noise(2)),
+                        std::sqrt(factor.noise(3)), std::sqrt(factor.noise(4)), std::sqrt(factor.noise(5)));
+            }
+            else if (factor.factor_type == GtsamFactor::Between || factor.factor_type == GtsamFactor::Loop)
+            {
+                fprintf(ofs, "EDGE %d: %d %d %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+                        factor.factor_type, factor.index_from, factor.index_to, 
+                        factor.value.x(), factor.value.y(), factor.value.z(),
+                        factor.value.rotation().roll(), factor.value.rotation().pitch(), factor.value.rotation().yaw(),
+                        std::sqrt(factor.noise(0)), std::sqrt(factor.noise(1)), std::sqrt(factor.noise(2)),
+                        std::sqrt(factor.noise(3)), std::sqrt(factor.noise(4)), std::sqrt(factor.noise(5)));
+            }
+            else if (factor.factor_type == GtsamFactor::Gps)
+            {
+                fprintf(ofs, "EDGE %d: %d %lf %lf %lf %lf %lf %lf\n",
+                        factor.factor_type, factor.index_to, 
+                        factor.value.x(), factor.value.y(), factor.value.z(),
+                        std::sqrt(factor.noise(0)), std::sqrt(factor.noise(1)), std::sqrt(factor.noise(2)));
+            }
+            gtsam_factors.pop();
+        }
+
+        fclose(ofs);
+    }
+
+    void save_keyframe(PointCloudType::Ptr scan, const std::string &keyframe_path, int keyframe_cnt, int num_digits = 6)
+    {
+        std::ostringstream out;
+        out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt;
+        std::string keyframe_idx = out.str();
+        string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
+        savePCDFile(keyframe_file, *scan);
+    }
+
+    void saveSCD(const Eigen::MatrixXd &scd, int index, const std::string &save_path, int num_digits = 6, const std::string &delimiter = " ")
+    {
+        std::ostringstream out;
+        out << std::internal << std::setfill('0') << std::setw(num_digits) << index;
+        std::string curr_scd_node_idx = out.str();
+
+        // delimiter: ", " or " " etc.
+        int precision = 3; // or Eigen::FullPrecision, but SCD does not require such accruate precisions so 3 is enough.
+        const static Eigen::IOFormat the_format(precision, Eigen::DontAlignCols, delimiter, "\n");
+
+        std::ofstream file(save_path + "/" + curr_scd_node_idx + ".scd");
+        if (file.is_open())
+        {
+            file << scd.format(the_format);
+            file.close();
+        }
     }
 
 public:
