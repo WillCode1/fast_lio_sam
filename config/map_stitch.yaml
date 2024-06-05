@@ -1,6 +1,5 @@
 mapping:
     # for loop closure
-    loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 10
     keyframe_search_num: 20
