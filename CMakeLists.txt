@@ -68,6 +68,15 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
   include)
 
+add_service_files(
+  FILES
+  mapping.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+)
+
 catkin_package(
   CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
   DEPENDS EIGEN3 PCL
@@ -88,6 +97,9 @@ target_link_libraries(map_stitch stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gt
 
 add_executable(fastlio_sam_ros1 src/ros1_main.cpp)
 target_link_libraries(fastlio_sam_ros1 ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
+add_executable(mapping_srv src/mapping_srv.cpp)
+target_link_libraries(mapping_srv ${catkin_LIBRARIES})
 
 add_executable(fastlio_sam_test_bag test/read_rosbag_test.cpp)
 target_link_libraries(fastlio_sam_test_bag ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
