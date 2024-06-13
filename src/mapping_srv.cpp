@@ -82,7 +82,7 @@ void SetMapTopicMsg(const PointCloudType::Ptr cloud, nav_msgs::OccupancyGrid &ms
     msg.data.resize(msg.info.width * msg.info.height);
     msg.data.assign(msg.info.width * msg.info.height, 0);
 
-    ROS_INFO("data size = %d\n", msg.data.size());
+    ROS_INFO("data size = %ld\n", msg.data.size());
 
     for (int iter = 0; iter < cloud->points.size(); iter++)
     {
