@@ -35,7 +35,7 @@ bool mapping_callback(fast_lio_sam::mapping::Request &request, fast_lio_sam::map
     if (request.action.compare("start") == 0)
     {
         ros::param::set("official/map_path", request.map_name);
-        kill_progress_name = "fastlio_sam_ros";
+        kill_progress_name = "fastlio_sam_ros1";
         execCommand("gnome-terminal -- bash -c \"roslaunch fast_lio_sam run.launch\"");
     }
     else if (request.action.compare("stitch") == 0)
@@ -45,6 +45,12 @@ bool mapping_callback(fast_lio_sam::mapping::Request &request, fast_lio_sam::map
         ros::param::set("official/result_map_path", request.map_name);
         kill_progress_name = "map_stitch";
         execCommand("gnome-terminal -- bash -c \"roslaunch fast_lio_sam map_stitch.launch\"");
+    }
+    else if (request.action.compare("localization") == 0)
+    {
+        ros::param::set("official/map_path", request.map_name);
+        kill_progress_name = "fastlio_localization_ros1";
+        execCommand("gnome-terminal -- bash -c \"roslaunch fastlio_localization run_service.launch\"");
     }
     else if (kill_progress_name.compare("") == 0)
     {
