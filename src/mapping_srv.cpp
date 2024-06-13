@@ -8,7 +8,6 @@
 #include <pcl/point_types.h>
 #include <nav_msgs/OccupancyGrid.h>
 
-double map_resolution = 0.05;
 ros::Publisher map_topic_pub;
 
 void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc, int keyframe_cnt, int num_digits = 6)
@@ -28,7 +27,7 @@ void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyfram
     }
 }
 
-void SetMapTopicMsg(const PointCloudType::Ptr cloud, nav_msgs::OccupancyGrid &msg)
+void SetMapTopicMsg(const PointCloudType::Ptr cloud, nav_msgs::OccupancyGrid &msg, const double &map_resolution)
 {
     msg.header.seq = 0;
     msg.header.stamp = ros::Time::now();
@@ -164,7 +163,7 @@ bool mapping_callback(fast_lio_sam::mapping::Request &request, fast_lio_sam::map
             octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
             *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d)[i]);
         }
-        SetMapTopicMsg(global_map, map_topic_msg);
+        SetMapTopicMsg(global_map, map_topic_msg, 0.05);
         map_topic_pub.publish(map_topic_msg);
         std::this_thread::sleep_for(std::chrono::seconds(1));
         execCommand("mv map.pgm " + request.map_name + "/map.pgm");
