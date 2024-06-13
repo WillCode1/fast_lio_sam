@@ -148,7 +148,7 @@ bool mapping_callback(fast_lio_sam::mapping::Request &request, fast_lio_sam::map
         kill_progress_name = "fastlio_localization_ros1";
         execCommand("gnome-terminal -- bash -c \"roslaunch fastlio_localization run_service.launch\"");
     }
-    else if (request.action.compare("test") == 0)
+    else if (request.action.compare("pcd2pgm") == 0)
     {
         ros::param::set("official/map_path", request.map_name);
         execCommand("gnome-terminal -- bash -c \"rosrun map_server map_saver\"");
