@@ -22,7 +22,7 @@ void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyfram
     keyframe_pc->points.resize(tmp_pc->points.size());
     for (auto i = 0; i < tmp_pc->points.size(); ++i)
     {
-        if (tmp_pc->points[i].z < -1.5 || tmp_pc->points[i].z > 1)
+        if (tmp_pc->points[i].z < -1.5 || tmp_pc->points[i].z > 0.1)
             continue;
         pcl::copyPoint(tmp_pc->points[i], keyframe_pc->points[i]);
     }
