@@ -9,7 +9,7 @@ common:
 preprocess:
     lidar_type: 1                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
     scan_line: 6
-    blind: 0.2                  # 0~0.1: blind, 0.1~0.2: distortion
+    blind: 1                  # 0~0.1: blind, 0.1~0.2: distortion
     det_range: 70.0
 
 mapping:
@@ -45,14 +45,14 @@ mapping:
     # for loop closure
     loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
-    loop_closure_search_radius: 3
+    loop_closure_search_radius: 10
     loop_closure_keyframe_interval: 30
     keyframe_search_num: 20
     loop_closure_fitness_score_thld: 0.2
     icp_downsamp_size: 0.1
     manually_loop_vaild_period: [0, 1]
     odom_loop_vaild_period: []
-    scancontext_loop_vaild_period: []
+    scancontext_loop_vaild_period: [0, 1]
 
     acc_cov: 0.1
     gyr_cov: 0.1
