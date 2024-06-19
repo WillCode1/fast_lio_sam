@@ -82,6 +82,6 @@ publish:
 official:
     ground_constraint_enable: false
     save_globalmap_en: false
-    save_resolution: 0.1
+    save_resolution: 0.2
     save_keyframe_en: false
     save_keyframe_descriptor_en: false
