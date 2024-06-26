@@ -26,7 +26,7 @@ mapping:
     ikdtree_resolution: 0.5
     lidar_model_search_range: 5
     lidar_meas_cov: 0.001
-    cube_side_length: 100
+    cube_side_length: 200
     runtime_log_enable: 0
 
     # for backend
@@ -81,7 +81,7 @@ publish:
 
 official:
     ground_constraint_enable: false
-    save_globalmap_en: false
+    save_globalmap_en: true
     save_resolution: 0.2
     save_keyframe_en: false
     save_keyframe_descriptor_en: false
