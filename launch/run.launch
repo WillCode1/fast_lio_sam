@@ -5,6 +5,7 @@
 
     <!-- <rosparam file="$(find fast_lio_sam)/config/avia.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/mid360.yaml" command="load" /> -->
+    <!-- <rosparam file="$(find fast_lio_sam)/config/test_mid360.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/horizon.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/velodyne.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/ouster64.yaml" command="load" /> -->
