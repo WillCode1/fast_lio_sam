@@ -92,6 +92,12 @@ catkin_package(
   INCLUDE_DIRS
 )
 
+set(FASTLIO_PATH ${PROJECT_SOURCE_DIR}/include/fastlio2)
+add_library(fastlio2 SHARED
+  ${FASTLIO_PATH}/ikd-Tree/ikd_Tree.cpp
+  ${FASTLIO_PATH}/preprocess.cpp
+  ${FASTLIO_PATH}/laserMapping.cpp)
+
 add_library(${PROJECT_NAME} SHARED
   include/ikd-Tree/ikd_Tree.cpp
   include/global_localization/scancontext/Scancontext.cpp
