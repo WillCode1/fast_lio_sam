@@ -395,10 +395,8 @@ int main(int argc, char **argv)
         if (!slam.frontend->sync_sensor_data())
             continue;
 
-        LOG_DEBUG("run fastlio");
         if (slam.run())
         {
-            LOG_DEBUG("publish 1");
             const auto &state = slam.frontend->get_state();
 #ifdef EVO
             et.save_trajectory(state.pos, state.rot, slam.frontend->lidar_end_time);
@@ -429,7 +427,6 @@ int main(int argc, char **argv)
                 slam.frontend->get_ikdtree_point(featsFromMap);
                 publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.frontend->lidar_end_time);
             }
-            LOG_DEBUG("publish 2");
         }
 
         rate.sleep();

@@ -175,7 +175,7 @@ inline void load_parameters(System &slam, bool &save_globalmap_en, int &lidar_ty
         exit(100);
     }
 
-    slam.frontend->lidar->init(n_scans, scan_rate, time_unit, blind, detect_range);
+    slam.frontend->lidar->init(n_scans, scan_rate, time_unit, blind);
     slam.frontend->imu->set_imu_cov(process_noise_cov(gyr_cov, acc_cov, b_gyr_cov, b_acc_cov));
 
     vector<double> gravity_init, eular_init;

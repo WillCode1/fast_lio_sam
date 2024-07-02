@@ -123,7 +123,6 @@ public:
     void run(LoopConstraint &loop_constraint, ikfom_state &state, KD_TREE<PointType> &ikdtree)
     {
         add_factor_and_optimize(loop_constraint, state);
-        LOG_DEBUG("run backend 5");
 
         correct_poses(ikdtree);
     }

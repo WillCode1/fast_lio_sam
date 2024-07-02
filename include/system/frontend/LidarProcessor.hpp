@@ -79,13 +79,13 @@ public:
   LidarProcessor();
   ~LidarProcessor();
 
-  void init(int _n_scans,int _scan_rate, int _time_unit, double _blind, double detect_range);
+  void init(int _n_scans,int _scan_rate, int _time_unit, double _blind);
   void avia_handler(const PointCloudType::Ptr &pl_orig, PointCloudType::Ptr &pcl_out);
   void oust64_handler(const pcl::PointCloud<ouster_ros::Point> &pl_orig, PointCloudType::Ptr &pcl_out);
   void velodyne_handler(const pcl::PointCloud<velodyne_ros::Point> &pl_orig, PointCloudType::Ptr &pcl_out);
 
   int scan_rate;
-  double blind, detect_range;
+  double blind;
 
 private:
   int n_scans, time_unit;
@@ -103,7 +103,6 @@ LidarProcessor::LidarProcessor()
   time_unit = US;
 
   blind = 0;
-  detect_range = 1000;
 
   given_offset_time = false;
   time_unit_scale = 1.e-3f;
@@ -111,14 +110,13 @@ LidarProcessor::LidarProcessor()
 
 LidarProcessor::~LidarProcessor() {}
 
-void LidarProcessor::init(int _n_scans, int _scan_rate, int _time_unit, double _blind, double _detect_range)
+void LidarProcessor::init(int _n_scans, int _scan_rate, int _time_unit, double _blind)
 {
   n_scans = _n_scans;
   scan_rate = _scan_rate;
   time_unit = _time_unit;
 
   blind = _blind;
-  detect_range = _detect_range;
 
   switch (time_unit)
   {
@@ -150,8 +148,7 @@ void LidarProcessor::avia_handler(const PointCloudType::Ptr &pl_orig, PointCloud
   {
     double range = pointDistanceSquare(pl_orig->points[i]);
     if ((pointDistanceSquare(pl_orig->points[i], pl_orig->points[i - 1]) > 1e-7) &&
-        (range > (blind * blind)) &&
-        (range < (detect_range * detect_range)))
+        (range > (blind * blind)))
     {
       pl_surf.push_back(pl_orig->points[i]);
     }
@@ -169,7 +166,7 @@ void LidarProcessor::oust64_handler(const pcl::PointCloud<ouster_ros::Point> &pl
   {
     double range = pointDistanceSquare(pl_orig.points[i]);
 
-    if (range < (blind * blind) || range > (detect_range * detect_range))
+    if (range < (blind * blind))
       continue;
 
     Eigen::Vector3d pt_vec;
@@ -263,7 +260,7 @@ void LidarProcessor::velodyne_handler(const pcl::PointCloud<velodyne_ros::Point>
 
     double range = pointDistanceSquare(added_pt);
 
-    if (range > (blind * blind) && range < (detect_range * detect_range))
+    if (range > (blind * blind))
     {
       pl_surf.points.push_back(added_pt);
     }
