@@ -157,7 +157,6 @@ public:
     {
         FILE *file_pose_unoptimized_imu = fopen(DEBUG_FILE_DIR("keyframe_pose_" + frame + ".txt").c_str(), "w");
         fprintf(file_pose_unoptimized_imu, "# keyframe trajectory unoptimized in %s frame\n# timestamp tx ty tz qx qy qz qw\n", frame.c_str());
-        const auto &state = frontend->get_state();
         int pose_num = keyframe_pose6d_unoptimized->points.size();
         for (auto i = 0; i < pose_num; ++i)
         {
