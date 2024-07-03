@@ -27,7 +27,8 @@ double globalMapVisualizationSearchRadius = 1000;
 double globalMapVisualizationPoseDensity = 10;
 double globalMapVisualizationLeafSize = 1;
 int lidar_type;
-System slam;
+FastlioOdometry frontend;
+Backend backend;
 std::string map_frame;
 std::string body_frame;
 std::string lidar_frame;
@@ -52,12 +53,12 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     {
     case OUST64:
         pcl::fromROSMsg(*msg, pl_orig_oust);
-        slam.frontend->lidar->oust64_handler(pl_orig_oust, scan);
+        frontend.lidar->oust64_handler(pl_orig_oust, scan);
         break;
 
     case VELO16:
         pcl::fromROSMsg(*msg, pl_orig_velo);
-        slam.frontend->lidar->velodyne_handler(pl_orig_velo, scan);
+        frontend.lidar->velodyne_handler(pl_orig_velo, scan);
         break;
 
     default:
@@ -65,8 +66,8 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
         break;
     }
 
-    slam.frontend->cache_pointcloud_data(msg->header.stamp.toSec(), scan);
-    slam.frontend->loger.preprocess_time = timer.elapsedStart();
+    frontend.cache_pointcloud_data(msg->header.stamp.toSec(), scan);
+    frontend.loger.preprocess_time = timer.elapsedStart();
 }
 
 void livox_pcl_cbk(const livox_ros_driver::CustomMsg::ConstPtr &msg)
@@ -90,18 +91,18 @@ void livox_pcl_cbk(const livox_ros_driver::CustomMsg::ConstPtr &msg)
             pl_orig->points.push_back(point);
         }
     }
-    slam.frontend->lidar->avia_handler(pl_orig, scan);
-    slam.frontend->cache_pointcloud_data(msg->header.stamp.toSec(), scan);
-    slam.frontend->loger.preprocess_time = timer.elapsedStart();
+    frontend.lidar->avia_handler(pl_orig, scan);
+    frontend.cache_pointcloud_data(msg->header.stamp.toSec(), scan);
+    frontend.loger.preprocess_time = timer.elapsedStart();
 }
 
 void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
 {
-    slam.frontend->cache_imu_data(msg->header.stamp.toSec(),
-                                  V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
-                                  V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
-                                  QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
-    if (slam.frontend->loger.runtime_log)
+    frontend.cache_imu_data(msg->header.stamp.toSec(),
+                            V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
+                            V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
+                            QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
+    if (frontend.loger.runtime_log)
     {
         static bool flag = false;
         static double start_time = 0;
@@ -117,20 +118,20 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
 
 void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
 {
-    slam.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude)));
-    slam.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude));
+    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude)));
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude));
 }
 
 #ifdef UrbanLoco
 void UrbanLoco_cbk(const nav_msgs::OdometryConstPtr &msg)
 {
-    slam.gnss->UrbanLoco_handler(GnssPose(msg->header.stamp.toSec(),
-                                          V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
-                                          QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
-                                          V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
-    slam.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
-                                              V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
-                                              QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z));
+    backend.gnss->UrbanLoco_handler(GnssPose(msg->header.stamp.toSec(),
+                                             V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                             QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
+                                             V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
+                                                 V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                                 QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z));
 }
 #endif
 
@@ -313,10 +314,10 @@ void visualize_globalmap_thread(const ros::Publisher &pubGlobalmap)
     while (!flg_exit)
     {
         this_thread::sleep_for(std::chrono::seconds(1));
-        auto submap_visual = slam.get_submap_visual(globalMapVisualizationSearchRadius, globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, showOptimizedPose);
+        auto submap_visual = backend.get_submap_visual(globalMapVisualizationSearchRadius, globalMapVisualizationPoseDensity, globalMapVisualizationLeafSize, showOptimizedPose);
         if (submap_visual == nullptr)
             continue;
-        publish_cloud(pubGlobalmap, submap_visual, slam.frontend->lidar_end_time, map_frame);
+        publish_cloud(pubGlobalmap, submap_visual, frontend.lidar_end_time, map_frame);
     }
 }
 
@@ -334,7 +335,7 @@ void initialPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPt
     init_pose.roll = rpy.x();
     init_pose.pitch = rpy.y();
     init_pose.yaw = rpy.z();
-    slam.relocalization->set_init_pose(init_pose);
+    backend.relocalization->set_init_pose(init_pose);
 }
 
 int main(int argc, char **argv)
@@ -352,7 +353,7 @@ int main(int argc, char **argv)
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
 
     load_ros_parameters(path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame, lidar_frame);
-    load_parameters(slam, save_globalmap_en, lidar_type);
+    load_parameters(frontend, backend, save_globalmap_en, lidar_type);
 
 #ifdef EVO
     evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));
@@ -392,53 +393,64 @@ int main(int argc, char **argv)
             break;
         ros::spinOnce();
 
-        if (!slam.frontend->sync_sensor_data())
+        if (!frontend.sync_sensor_data())
             continue;
 
-        if (slam.run())
+        PointCloudType::Ptr feats_undistort(new PointCloudType());
+        PointCloudType::Ptr submap_fix(new PointCloudType());
+        PointXYZIRPYT this_pose6d;
+        if (frontend.run(feats_undistort, backend.gnss->extrinsic_lidar2gnss))
         {
-            const auto &state = slam.frontend->get_state();
+            auto state = frontend.get_state();
+            state2pose(this_pose6d, frontend.lidar_end_time, state);
+            backend.run(this_pose6d, feats_undistort, submap_fix);
+            if (submap_fix->size())
+            {
+                pose2state(this_pose6d, state);
+                frontend.set_pose(state);
+                frontend.ikdtree.reconstruct(submap_fix->points);
+            }
 #ifdef EVO
-            et.save_trajectory(state.pos, state.rot, slam.frontend->lidar_end_time);
+            et.save_trajectory(state.pos, state.rot, frontend.lidar_end_time);
 #endif
 
             /******* Publish odometry *******/
-            publish_odometry(pubOdomAftMapped, state, slam.frontend->lidar_end_time);
-            publish_odometry(pubOdomNotFix, slam.frontend->state_not_fix, slam.frontend->lidar_end_time, false);
+            publish_odometry(pubOdomAftMapped, state, frontend.lidar_end_time);
+            publish_odometry(pubOdomNotFix, frontend.state_not_fix, frontend.lidar_end_time, false);
 
             /******* Publish points *******/
             if (path_en)
             {
-                publish_imu_path(pubImuPath, state, slam.frontend->lidar_end_time);
-                publish_lidar_keyframe_trajectory(pubLidarPath, *slam.keyframe_pose6d_optimized, slam.frontend->lidar_end_time);
+                publish_imu_path(pubImuPath, state, frontend.lidar_end_time);
+                publish_lidar_keyframe_trajectory(pubLidarPath, *backend.keyframe_pose6d_optimized, frontend.lidar_end_time);
             }
             if (scan_pub_en)
                 if (dense_pub_en)
-                    publish_cloud_world(pubLaserCloudFull, slam.feats_undistort, state, slam.frontend->lidar_end_time);
+                    publish_cloud_world(pubLaserCloudFull, feats_undistort, state, frontend.lidar_end_time);
                 else
-                    publish_cloud(pubLaserCloudFull, slam.frontend->feats_down_world, slam.frontend->lidar_end_time, map_frame);
-            // publish_cloud_world(pubground_points, slam.frontend->ground_filter.ground_points, state, slam.frontend->lidar_end_time);
+                    publish_cloud(pubLaserCloudFull, frontend.feats_down_world, frontend.lidar_end_time, map_frame);
+            // publish_cloud_world(pubground_points, frontend.ground_filter.ground_points, state, frontend.lidar_end_time);
 
-            visualize_loop_closure_constraints(pubLoopConstraintEdge, slam.frontend->lidar_end_time, slam.loopClosure->loop_constraint_records, slam.loopClosure->copy_keyframe_pose6d);
-            // publish_cloud_world(pubLaserCloudEffect, laserCloudOri, state, slam.frontend->lidar_end_time);
+            visualize_loop_closure_constraints(pubLoopConstraintEdge, frontend.lidar_end_time, backend.loopClosure->loop_constraint_records, backend.loopClosure->copy_keyframe_pose6d);
+            // publish_cloud_world(pubLaserCloudEffect, laserCloudOri, state, frontend.lidar_end_time);
             if (0)
             {
                 PointCloudType::Ptr featsFromMap(new PointCloudType());
-                slam.frontend->get_ikdtree_point(featsFromMap);
-                publish_ikdtree_map(pubLaserCloudMap, featsFromMap, slam.frontend->lidar_end_time);
+                frontend.get_ikdtree_point(featsFromMap);
+                publish_ikdtree_map(pubLaserCloudMap, featsFromMap, frontend.lidar_end_time);
             }
         }
 
         rate.sleep();
     }
 
-    slam.save_trajectory();
-    slam.save_factor_graph();
-    // slam.save_trajectory_to_other_frame(slam.frontend->get_state().offset_R_L_I, slam.frontend->get_state().offset_T_L_I, "imu");
-    // slam.save_trajectory_to_other_frame(QD(M3D(slam.gnss->extrinsic_lidar2gnss.topLeftCorner(3, 3))), slam.gnss->extrinsic_lidar2gnss.topLeftCorner(3, 1), "gnss");
+    backend.save_trajectory();
+    backend.save_factor_graph();
+    // backend.save_trajectory_to_other_frame(frontend.get_state().offset_R_L_I, frontend.get_state().offset_T_L_I, "imu");
+    // backend.save_trajectory_to_other_frame(QD(M3D(backend.gnss->extrinsic_lidar2gnss.topLeftCorner(3, 3))), backend.gnss->extrinsic_lidar2gnss.topLeftCorner(3, 1), "gnss");
 
     if (save_globalmap_en)
-        slam.save_globalmap();
+        backend.save_globalmap();
 
     return 0;
 }

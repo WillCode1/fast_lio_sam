@@ -12,10 +12,11 @@
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/slam/dataset.h>
 
+#include <map>
+#include <queue>
 #include "DataDef.h"
-#include "ikd-Tree/ikd_Tree.h"
+#include "Header.h"
 #include "GnssProcessor.hpp"
-#include "system/Header.h"
 
 #define MAP_STITCH
 
@@ -81,26 +82,7 @@ public:
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
     }
 
-    template <typename ikfom_state>
-    void set_current_pose(const double &lidar_end_time, const ikfom_state &cur_state, uint32_t keyframe_index)
-    {
-        // imu pose -> lidar pose
-        QD lidar_rot;
-        V3D lidar_pos;
-        poseTransformFrame(cur_state.rot, cur_state.pos, cur_state.offset_R_L_I, cur_state.offset_T_L_I, lidar_rot, lidar_pos);
-
-        Eigen::Vector3d eulerAngle = EigenMath::Quaternion2RPY(lidar_rot);
-        this_pose6d.x = lidar_pos(0); // x
-        this_pose6d.y = lidar_pos(1); // y
-        this_pose6d.z = lidar_pos(2); // z
-        this_pose6d.intensity = keyframe_index;
-        this_pose6d.roll = eulerAngle(0);  // roll
-        this_pose6d.pitch = eulerAngle(1); // pitch
-        this_pose6d.yaw = eulerAngle(2);   // yaw
-        this_pose6d.time = lidar_end_time;
-    }
-
-    bool is_keyframe()
+    bool is_keyframe(const PointXYZIRPYT &this_pose6d)
     {
         if (keyframe_pose6d_optimized->points.empty())
             return true;
@@ -119,12 +101,11 @@ public:
         return true;
     }
 
-    template <typename ikfom_state>
-    void run(LoopConstraint &loop_constraint, ikfom_state &state, KD_TREE<PointType> &ikdtree)
+    void run(LoopConstraint &loop_constraint, PointXYZIRPYT &this_pose6d, PointCloudType::Ptr &submap_fix)
     {
-        add_factor_and_optimize(loop_constraint, state);
+        add_factor_and_optimize(loop_constraint, this_pose6d);
 
-        correct_poses(ikdtree);
+        correct_poses(submap_fix);
     }
 
     void get_keyframe_pose6d(pcl::PointCloud<PointXYZIRPYT>::Ptr& copy_keyframe_pose6d)
@@ -135,7 +116,7 @@ public:
     }
 
 private:
-    void add_odom_factor()
+    void add_odom_factor(const PointXYZIRPYT &this_pose6d)
     {
         if (keyframe_pose6d_optimized->points.empty())
         {
@@ -173,7 +154,7 @@ private:
         }
     }
 
-    void add_gnss_factor()
+    void add_gnss_factor(const PointXYZIRPYT &this_pose6d)
     {
         if (gnss->gnss_buffer.empty())
             return;
@@ -239,12 +220,11 @@ private:
         loop_is_closed = true;
     }
 
-    template <typename ikfom_state>
-    void add_factor_and_optimize(LoopConstraint &loop_constraint, ikfom_state &state)
+    void add_factor_and_optimize(LoopConstraint &loop_constraint, PointXYZIRPYT &this_pose6d)
     {
-        add_odom_factor();
+        add_odom_factor(this_pose6d);
 
-        add_gnss_factor();
+        add_gnss_factor(this_pose6d);
 
         add_loop_factor(loop_constraint);
 
@@ -279,34 +259,24 @@ private:
         pose_mtx.unlock();
 
         pose_covariance = isam->marginalCovariance(optimized_estimate.size() - 1);
-
-        if (loop_is_closed == true)
-        {
-            Eigen::Vector3d lidar_pos(this_pose6d.x, this_pose6d.y, this_pose6d.z);
-            Eigen::Vector3d lidar_rot(this_pose6d.roll, this_pose6d.pitch, this_pose6d.yaw);
-            poseTransformFrame2(EigenMath::RPY2Quaternion(lidar_rot), lidar_pos, state.offset_R_L_I, state.offset_T_L_I, state.rot, state.pos);
-        }
     }
 
-    void reset_ikdtree(KD_TREE<PointType> &ikdtree)
+    void get_submap_fix(PointCloudType::Ptr &submap_fix)
     {
         if (recontruct_kdtree)
         {
             PointCloudType::Ptr submap_keyframes(new PointCloudType());
-            PointCloudType::Ptr submap_keyframesDS(new PointCloudType());
 
             int key_poses_num = keyframe_pose6d_optimized->size();
             for (int i = std::max(0, key_poses_num - ikdtree_reconstruct_keyframe_num); i < key_poses_num; ++i)
             {
                 *submap_keyframes += *pointcloudKeyframeToWorld((*keyframe_scan)[i], keyframe_pose6d_optimized->points[i]);
             }
-            octreeDownsampling(submap_keyframes, submap_keyframesDS, ikdtree_reconstruct_downsamp_size);
-
-            ikdtree.reconstruct(submap_keyframesDS->points);
+            octreeDownsampling(submap_keyframes, submap_fix, ikdtree_reconstruct_downsamp_size);
         }
     }
 
-    void correct_poses(KD_TREE<PointType> &ikdtree)
+    void correct_poses(PointCloudType::Ptr &submap_fix)
     {
         if (keyframe_pose6d_optimized->points.empty())
             return;
@@ -330,7 +300,7 @@ private:
 #endif
             }
             pose_mtx.unlock();
-            reset_ikdtree(ikdtree);
+            get_submap_fix(submap_fix);
             loop_is_closed = false;
         }
     }
@@ -338,7 +308,6 @@ private:
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     std::mutex pose_mtx;
-    PointXYZIRPYT this_pose6d;
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d_optimized;
     shared_ptr<deque<PointCloudType::Ptr>> keyframe_scan;
 

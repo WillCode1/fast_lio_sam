@@ -2,18 +2,15 @@
 #include <omp.h>
 #include <math.h>
 #include <thread>
-#include "ikd-Tree/ikd_Tree.h"
-#include "frontend/FastlioOdometry.hpp"
-#include "frontend/PointlioOdometry.hpp"
+#include "Header.h"
 #include "FactorGraphOptimization.hpp"
-#include "system/Header.h"
 #include "Relocalization.hpp"
 #include "LoopClosure.hpp"
 
-class System
+class Backend
 {
 public:
-    System()
+    Backend()
     {
         save_resolution = 0.1;
 
@@ -26,11 +23,9 @@ public:
         backend = std::make_shared<FactorGraphOptimization>(keyframe_pose6d_optimized, keyframe_scan, gnss);
         relocalization = make_shared<Relocalization>();
         loopClosure = make_shared<LoopClosure>(relocalization->sc_manager);
-
-        feats_undistort.reset(new PointCloudType());
     }
 
-    ~System()
+    ~Backend()
     {
         if (loopthread.joinable())
             loopthread.join();
@@ -38,31 +33,19 @@ public:
 
     void init_system_mode()
     {
-        frontend->init_estimator();
-        loopthread = std::thread(&System::loopClosureThread, this);
+        loopthread = std::thread(&Backend::loopClosureThread, this);
 
         FileOperation::createDirectoryOrRecreate(keyframe_path);
         FileOperation::createDirectoryOrRecreate(scd_path);
     }
 
-    bool run()
+    void run(PointXYZIRPYT &this_pose6d, PointCloudType::Ptr &feats_undistort, PointCloudType::Ptr &submap_fix)
     {
-        /*** frontend ***/
-        if (!frontend->run(feats_undistort, gnss->extrinsic_lidar2gnss))
-        {
-            system_state_vaild = false;
-            return system_state_vaild;
-        }
-
-        system_state_vaild = true;
-
-        /*** backend ***/
-        auto cur_state = frontend->get_state();
-        backend->set_current_pose(frontend->lidar_end_time, cur_state, keyframe_pose6d_unoptimized->size());
-        if (backend->is_keyframe())
+        this_pose6d.intensity = keyframe_pose6d_unoptimized->size();
+        if (backend->is_keyframe(this_pose6d))
         {
             // save keyframe info
-            keyframe_pose6d_unoptimized->push_back(backend->this_pose6d);
+            keyframe_pose6d_unoptimized->push_back(this_pose6d);
 
             PointCloudType::Ptr this_keyframe(new PointCloudType());
             octreeDownsampling(feats_undistort, this_keyframe, 0.1);
@@ -74,7 +57,7 @@ public:
                 relocalization->add_keyframe_descriptor(this_keyframe, "");
 
             if (save_keyframe_en)
-                save_keyframe(keyframe_scan->size());
+                save_keyframe(feats_undistort, keyframe_scan->size());
 
             /*** loop closure ***/
             if (loop_closure_enable_flag && test_mode)
@@ -84,12 +67,8 @@ public:
             }
 
             loopClosure->get_loop_constraint(loop_constraint);
-            backend->run(loop_constraint, cur_state, frontend->ikdtree);
-            frontend->set_pose(cur_state);
-            return system_state_vaild;
+            backend->run(loop_constraint, this_pose6d, submap_fix);
         }
-
-        return system_state_vaild;
     }
 
     void save_globalmap()
@@ -282,30 +261,23 @@ public:
         return globalMapKeyFramesDS;
     }
 
-    bool run_relocalization(PointCloudType::Ptr scan, const double &lidar_beg_time)
+    bool run_relocalization(PointCloudType::Ptr scan, const double &lidar_beg_time, Eigen::Matrix4d &imu_pose)
     {
         run_relocalization_thread = true;
-        if (!system_state_vaild)
-        {
-            Eigen::Matrix4d imu_pose;
-            if (relocalization->run(scan, imu_pose, lidar_beg_time))
-            {
-                frontend->reset_state(imu_pose);
-                system_state_vaild = true;
-            }
-        }
+        if (relocalization->run(scan, imu_pose, lidar_beg_time))
+            return true;
         run_relocalization_thread = false;
-        return system_state_vaild;
+        return false;
     }
 
 private:
-    void save_keyframe(int keyframe_cnt, int num_digits = 6)
+    void save_keyframe(PointCloudType::Ptr &cloud, int keyframe_cnt, int num_digits = 6)
     {
         std::ostringstream out;
         out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt - 1;
         std::string keyframe_idx = out.str();
         string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
-        savePCDFile(keyframe_file, *feats_undistort);
+        savePCDFile(keyframe_file, *cloud);
     }
 
     void loopClosureThread()
@@ -323,7 +295,6 @@ private:
     }
 
 public:
-    bool system_state_vaild = false; // true: system ok
     bool loop_closure_enable_flag = false;
     bool run_relocalization_thread = false;
     std::thread relocalization_thread;
@@ -332,7 +303,6 @@ public:
     shared_ptr<GnssProcessor> gnss;
 
     /*** module ***/
-    shared_ptr<FastlioOdometry> frontend;
     shared_ptr<FactorGraphOptimization> backend;
     shared_ptr<LoopClosure> loopClosure;
     shared_ptr<Relocalization> relocalization;
@@ -345,7 +315,6 @@ public:
     /*** keyframe config ***/
     bool save_keyframe_en = false;
     bool save_keyframe_descriptor_en = false;
-    PointCloudType::Ptr feats_undistort;
     shared_ptr<deque<PointCloudType::Ptr>> keyframe_scan;
 
     /*** trajectory by lidar pose in camera_init frame(imu pose + extrinsic) ***/

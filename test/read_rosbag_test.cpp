@@ -32,7 +32,7 @@ void SigHandle(int sig)
     LOG_WARN("catch sig %d", sig);
 }
 
-void standard_pcl_cbk(System& slam, const sensor_msgs::PointCloud2::ConstPtr &msg)
+void standard_pcl_cbk(FastlioOdometry &frontend, const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
     Timer timer;
     pcl::PointCloud<ouster_ros::Point> pl_orig_oust;
@@ -43,12 +43,12 @@ void standard_pcl_cbk(System& slam, const sensor_msgs::PointCloud2::ConstPtr &ms
     {
     case OUST64:
         pcl::fromROSMsg(*msg, pl_orig_oust);
-        slam.frontend->lidar->oust64_handler(pl_orig_oust, scan);
+        frontend.lidar->oust64_handler(pl_orig_oust, scan);
         break;
 
     case VELO16:
         pcl::fromROSMsg(*msg, pl_orig_velo);
-        slam.frontend->lidar->velodyne_handler(pl_orig_velo, scan);
+        frontend.lidar->velodyne_handler(pl_orig_velo, scan);
         break;
 
     default:
@@ -56,10 +56,10 @@ void standard_pcl_cbk(System& slam, const sensor_msgs::PointCloud2::ConstPtr &ms
         break;
     }
 
-    slam.frontend->cache_pointcloud_data(msg->header.stamp.toSec(), scan);
+    frontend.cache_pointcloud_data(msg->header.stamp.toSec(), scan);
 }
 
-void livox_pcl_cbk(System& slam, const livox_ros_driver::CustomMsg::ConstPtr &msg)
+void livox_pcl_cbk(FastlioOdometry &frontend, const livox_ros_driver::CustomMsg::ConstPtr &msg)
 {
     Timer timer;
     auto plsize = msg->point_num;
@@ -80,25 +80,26 @@ void livox_pcl_cbk(System& slam, const livox_ros_driver::CustomMsg::ConstPtr &ms
             pl_orig->points.push_back(point);
         }
     }
-    slam.frontend->lidar->avia_handler(pl_orig, scan);
-    slam.frontend->cache_pointcloud_data(msg->header.stamp.toSec(), scan);
+    frontend.lidar->avia_handler(pl_orig, scan);
+    frontend.cache_pointcloud_data(msg->header.stamp.toSec(), scan);
 }
 
-void imu_cbk(System& slam, const sensor_msgs::Imu::ConstPtr &msg)
+void imu_cbk(FastlioOdometry &frontend, const sensor_msgs::Imu::ConstPtr &msg)
 {
-    slam.frontend->cache_imu_data(msg->header.stamp.toSec(),
-                                  V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
-                                  V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
-                                  QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
+    frontend.cache_imu_data(msg->header.stamp.toSec(),
+                            V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
+                            V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
+                            QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
 }
 
 void test_rosbag(const std::string &bagfile, const std::string &config_path, const std::vector<std::string> &topics, const std::string &bag_path)
 {
-    System slam;
-    slam.globalmap_path = bag_path + "/globalmap.pcd";
-    slam.trajectory_path = bag_path + "/trajectory.pcd";
-    slam.keyframe_path = bag_path + "/keyframe/";
-    slam.scd_path = bag_path + "/scancontext/";
+    FastlioOdometry frontend;
+    Backend backend;
+    backend.globalmap_path = bag_path + "/globalmap.pcd";
+    backend.trajectory_path = bag_path + "/trajectory.pcd";
+    backend.keyframe_path = bag_path + "/keyframe/";
+    backend.scd_path = bag_path + "/scancontext/";
 
     rosbag::Bag bag;
 
@@ -113,8 +114,8 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
     }
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
-    load_parameters(slam, save_globalmap_en, lidar_type);
-    slam.test_mode = true;
+    load_parameters(frontend, backend, save_globalmap_en, lidar_type);
+    backend.test_mode = true;
 
     ros::Time start_time = view.getBeginTime();
     ros::Time end_time = view.getEndTime();
@@ -134,38 +135,38 @@ void test_rosbag(const std::string &bagfile, const std::string &config_path, con
         if (msg.isType<sensor_msgs::PointCloud2>())
         {
             sensor_msgs::PointCloud2::ConstPtr cloud = msg.instantiate<sensor_msgs::PointCloud2>();
-            standard_pcl_cbk(slam, cloud);
-            if (slam.frontend->sync_sensor_data())
-                slam.run();
+            standard_pcl_cbk(frontend, cloud);
+            // if (frontend.sync_sensor_data())
+            //     slam.run();
             printProgressBar(cost, bag_duration);
         }
         else if (msg.isType<livox_ros_driver::CustomMsg>())
         {
             livox_ros_driver::CustomMsg::ConstPtr cloud = msg.instantiate<livox_ros_driver::CustomMsg>();
-            livox_pcl_cbk(slam, cloud);
-            if (slam.frontend->sync_sensor_data())
-                slam.run();
+            livox_pcl_cbk(frontend, cloud);
+            // if (frontend.sync_sensor_data())
+            //     slam.run();
             printProgressBar(cost, bag_duration);
         }
         else if (msg.isType<sensor_msgs::Imu>())
         {
             sensor_msgs::Imu::ConstPtr imu = msg.instantiate<sensor_msgs::Imu>();
-            imu_cbk(slam, imu);
-            if (slam.frontend->sync_sensor_data())
-                slam.run();
+            imu_cbk(frontend, imu);
+            // if (frontend.sync_sensor_data())
+            //     slam.run();
         }
     }
 
     bag.close();
 
-    if (!flg_exit && !slam.frontend->lidar_buffer.empty())
+    if (!flg_exit && !frontend.lidar_buffer.empty())
     {
-        slam.run();
+        // slam.run();
     }
-    slam.save_trajectory();
+    backend.save_trajectory();
 
     if (save_globalmap_en)
-        slam.save_globalmap();
+        backend.save_globalmap();
 }
 
 std::string execCommand(const std::string &command)

@@ -119,6 +119,34 @@ inline Eigen::Affine3f pclPointToAffine3f(const PointXYZIRPYT &thisPoint)
     return pcl::getTransformation(thisPoint.x, thisPoint.y, thisPoint.z, thisPoint.roll, thisPoint.pitch, thisPoint.yaw);
 }
 
+template <typename ikfom_state>
+void state2pose(PointXYZIRPYT &this_pose6d, const double &lidar_end_time, const ikfom_state &state)
+{
+    // imu pose -> lidar pose
+    QD lidar_rot;
+    V3D lidar_pos;
+    poseTransformFrame(state.rot, state.pos, state.offset_R_L_I, state.offset_T_L_I, lidar_rot, lidar_pos);
+
+    Eigen::Vector3d eulerAngle = EigenMath::Quaternion2RPY(lidar_rot);
+    this_pose6d.x = lidar_pos(0); // x
+    this_pose6d.y = lidar_pos(1); // y
+    this_pose6d.z = lidar_pos(2); // z
+    this_pose6d.roll = eulerAngle(0);  // roll
+    this_pose6d.pitch = eulerAngle(1); // pitch
+    this_pose6d.yaw = eulerAngle(2);   // yaw
+    this_pose6d.time = lidar_end_time;
+}
+
+template <typename ikfom_state>
+void pose2state(const PointXYZIRPYT &this_pose6d, ikfom_state &state)
+{
+    // lidar pose -> imu pose
+    V3D lidar_pos = V3D(this_pose6d.x, this_pose6d.y, this_pose6d.z);
+    V3D eulerAngle = V3D(this_pose6d.roll, this_pose6d.pitch, this_pose6d.yaw);
+    QD lidar_rot = EigenMath::RPY2Quaternion(eulerAngle);
+    poseTransformFrame2(lidar_rot, lidar_pos, state.offset_R_L_I, state.offset_T_L_I, state.rot, state.pos);
+}
+
 inline void octreeDownsampling(const PointCloudType::Ptr &src, PointCloudType::Ptr &map_ds, const double &save_resolution)
 {
     pcl::octree::OctreePointCloudVoxelCentroid<PointType> octree(save_resolution);
