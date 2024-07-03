@@ -3,9 +3,9 @@
 #include <math.h>
 #include <thread>
 #include "system/Header.h"
-#include "FactorGraphOptimization.hpp"
-#include "Relocalization.hpp"
-#include "LoopClosure.hpp"
+#include "backend/FactorGraphOptimization.hpp"
+#include "backend/Relocalization.hpp"
+#include "backend/LoopClosure.hpp"
 
 class MapStitch
 {

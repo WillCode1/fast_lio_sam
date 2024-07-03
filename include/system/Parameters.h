@@ -1,5 +1,6 @@
-#include "system/frontend/FastlioOdometry.hpp"
-#include "system/System.hpp"
+#pragma once
+#include "frontend/FastlioOdometry.hpp"
+#include "backend/System.hpp"
 #include <ros/ros.h>
 
 inline void load_ros_parameters(bool &path_en, bool &scan_pub_en, bool &dense_pub_en,

@@ -1,3 +1,4 @@
+#pragma once
 #include <pcl/registration/gicp.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/visualization/pcl_visualizer.h>

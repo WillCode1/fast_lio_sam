@@ -14,8 +14,8 @@
 
 #include <map>
 #include <queue>
-#include "DataDef.h"
-#include "Header.h"
+#include "system/DataDef.h"
+#include "system/Header.h"
 #include "GnssProcessor.hpp"
 
 #define MAP_STITCH
