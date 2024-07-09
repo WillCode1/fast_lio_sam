@@ -11,7 +11,7 @@
 #include "livox_ros_driver/CustomMsg.h"
 #include "system/backend/System.hpp"
 #include "utility/ProgressBar.h"
-#include "system/Parameters.h"
+#include "system/ParametersRos1.h"
 using namespace std;
 FILE *location_log = nullptr;
 
