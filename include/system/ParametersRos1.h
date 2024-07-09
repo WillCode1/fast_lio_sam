@@ -1,7 +1,7 @@
 #pragma once
 #include "frontend/FastlioOdometry.hpp"
 #include "backend/System.hpp"
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 inline void load_ros_parameters(bool &path_en, bool &scan_pub_en, bool &dense_pub_en,
                                 std::string &lidar_topic, std::string &imu_topic, std::string &gnss_topic,
