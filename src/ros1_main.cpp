@@ -399,7 +399,7 @@ int main(int argc, char **argv)
         PointCloudType::Ptr feats_undistort(new PointCloudType());
         PointCloudType::Ptr submap_fix(new PointCloudType());
         PointXYZIRPYT this_pose6d;
-        if (frontend.run(feats_undistort, backend.gnss->extrinsic_lidar2gnss))
+        if (frontend.run(feats_undistort))
         {
             auto state = frontend.get_state();
             state2pose(this_pose6d, frontend.lidar_end_time, state);

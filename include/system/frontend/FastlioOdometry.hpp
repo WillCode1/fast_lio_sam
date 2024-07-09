@@ -68,7 +68,7 @@ public:
         offset_Rli = rot;
     }
 
-    virtual void init_state(shared_ptr<ImuProcessor> &imu, const Eigen::Matrix4d &extrinsic_lidar2gnss)
+    virtual void init_state(shared_ptr<ImuProcessor> &imu)
     {
         // 1.normalize the acceleration measurenments to unit gravity
         const auto &mean_acc = imu->mean_acc;
@@ -199,7 +199,7 @@ public:
         return true;
     }
 
-    virtual bool run(PointCloudType::Ptr &feats_undistort, const Eigen::Matrix4d &extrinsic_lidar2gnss)
+    virtual bool run(PointCloudType::Ptr &feats_undistort)
     {
         if (loger.runtime_log && !loger.inited_first_lidar_beg_time)
         {
@@ -219,7 +219,7 @@ public:
         }
 
         if (!imu->gravity_align_)
-            init_state(imu, extrinsic_lidar2gnss);
+            init_state(imu);
 
         state = kf.get_x();
         loger.imu_process_time = loger.timer.elapsedLast();
@@ -685,6 +685,7 @@ public:
     V3D offset_Tli;
     M3D offset_Rli;
     V3D gravity_init;
+    Eigen::Matrix4d extrinsic_lidar2gnss;
     LogAnalysis loger;
 
     /*** sensor data processor ***/

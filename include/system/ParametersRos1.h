@@ -41,6 +41,7 @@ inline void load_parameters(FastlioOdometry &frontend, Backend &backend, bool &s
     extrinT_eigen << VEC_FROM_ARRAY(extrinT);
     extrinR_eigen << MAT_FROM_ARRAY(extrinR);
     backend.gnss->set_extrinsic(extrinT_eigen, extrinR_eigen);
+    frontend.extrinsic_lidar2gnss = backend.gnss->extrinsic_lidar2gnss;
 
     ros::param::param("mapping/recontruct_kdtree", backend.backend->recontruct_kdtree, true);
     ros::param::param("mapping/ikdtree_reconstruct_keyframe_num", backend.backend->ikdtree_reconstruct_keyframe_num, 10);
