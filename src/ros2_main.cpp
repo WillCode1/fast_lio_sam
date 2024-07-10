@@ -3,6 +3,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <pcl_conversions/pcl_conversions.h>
@@ -96,10 +97,29 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg)
 void imu_cbk(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
     frontend.cache_imu_data(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9,
-                        V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
-                        V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
-                        QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
+                            V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
+                            V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
+                            QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
 }
+
+void gnss_cbk(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
+{
+    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9, V3D(msg->latitude, msg->longitude, msg->altitude)));
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9, V3D(msg->latitude, msg->longitude, msg->altitude));
+}
+
+#ifdef UrbanLoco
+void UrbanLoco_cbk(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+    backend.gnss->UrbanLoco_handler(GnssPose(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9,
+                                             V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                             QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
+                                             V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.sec + msg->header.stamp.nanosec * 1.0e-9,
+                                                 V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                                 QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z));
+}
+#endif
 
 void publish_cloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr &pubCloud, PointCloudType::Ptr cloud, const double& lidar_end_time, const std::string& frame_id)
 {
