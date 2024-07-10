@@ -179,7 +179,7 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
         node->get_parameter("bnb3d_linear_z_window_size", match_option.linear_z_window_size);
         node->get_parameter("bnb3d_angular_search_window", match_option.angular_search_window);
         node->get_parameter("bnb3d_pc_resolutions", match_option.pc_resolutions);
-        node->get_parameter("bnb3d_bnb_depth", match_option.bnb_depth);
+        node->get_parameter("bnb3d_depth", match_option.bnb_depth);
         node->get_parameter("bnb3d_min_score", match_option.min_score);
         node->get_parameter("bnb3d_enough_score", match_option.enough_score);
         node->get_parameter("bnb3d_min_xy_resolution", match_option.min_xy_resolution);
@@ -188,20 +188,20 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
         node->get_parameter("bnb3d_filter_size_scan", match_option.filter_size_scan);
         node->get_parameter("bnb3d_debug_mode", match_option.debug_mode);
 
+        node->declare_parameter("extrinsic_T", vector<double>());
+        node->declare_parameter("extrinsic_R", vector<double>());
+        node->get_parameter("extrinsic_T", extrinT);
+        node->get_parameter("extrinsic_R", extrinR);
+        extrinT_eigen << VEC_FROM_ARRAY(extrinT);
+        extrinR_eigen << MAT_FROM_ARRAY(extrinR);
+        V3D ext_rpy = EigenMath::RotationMatrix2RPY(extrinR_eigen);
         Pose lidar_extrinsic;
-        node->declare_parameter("relocal_cfg_lidar_ext_x", 0.);
-        node->declare_parameter("relocal_cfg_lidar_ext_y", 0.);
-        node->declare_parameter("relocal_cfg_lidar_ext_z", 0.);
-        node->declare_parameter("relocal_cfg_lidar_ext_roll", 0.);
-        node->declare_parameter("relocal_cfg_lidar_ext_pitch", 0.);
-        node->declare_parameter("relocal_cfg_lidar_ext_yaw", 0.);
-
-        node->get_parameter("relocal_cfg_lidar_ext_x", lidar_extrinsic.x);
-        node->get_parameter("relocal_cfg_lidar_ext_y", lidar_extrinsic.y);
-        node->get_parameter("relocal_cfg_lidar_ext_z", lidar_extrinsic.z);
-        node->get_parameter("relocal_cfg_lidar_ext_roll", lidar_extrinsic.roll);
-        node->get_parameter("relocal_cfg_lidar_ext_pitch", lidar_extrinsic.pitch);
-        node->get_parameter("relocal_cfg_lidar_ext_yaw", lidar_extrinsic.yaw);
+        lidar_extrinsic.x = extrinT_eigen.x();
+        lidar_extrinsic.y = extrinT_eigen.y();
+        lidar_extrinsic.z = extrinT_eigen.z();
+        lidar_extrinsic.roll = ext_rpy.x();
+        lidar_extrinsic.pitch = ext_rpy.y();
+        lidar_extrinsic.yaw = ext_rpy.z();
         backend.relocalization->set_bnb3d_param(match_option, lidar_extrinsic);
 
         double step_size, resolution;
@@ -215,7 +215,7 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
         double gicp_downsample, filter_range, search_radius, teps, feps, fitness_score;
         node->declare_parameter("gicp_use_gicp", true);
         node->declare_parameter("gicp_filter_range", 80.);
-        node->declare_parameter("gicp_gicp_downsample", 0.2);
+        node->declare_parameter("gicp_downsample", 0.2);
         node->declare_parameter("gicp_search_radius", 0.5);
         node->declare_parameter("gicp_teps", 1e-3);
         node->declare_parameter("gicp_feps", 1e-3);
