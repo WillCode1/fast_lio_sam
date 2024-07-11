@@ -7,7 +7,6 @@
 #include "system/Pcd2Pgm.hpp"
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
-#include <nav_msgs/OccupancyGrid.h>
 
 ros::Publisher map_topic_pub;
 
@@ -84,7 +83,6 @@ bool mapping_callback(fast_lio_sam::mapping::Request &request, fast_lio_sam::map
         ros::param::set("official/map_path", request.map_name);
         pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d(new pcl::PointCloud<PointXYZIRPYT>());
         PointCloudType::Ptr global_map(new PointCloudType());
-        nav_msgs::OccupancyGrid map_topic_msg;
         pcl::io::loadPCDFile(request.map_name + "/trajectory.pcd", *keyframe_pose6d);
         for (auto i = 0; i < keyframe_pose6d->size(); ++i)
         {
@@ -121,7 +119,6 @@ int main(int argc, char **argv)
     ros::init(argc,argv,"mapping_srv");
     ros::NodeHandle nh;
     ros::ServiceServer server = nh.advertiseService("mappingSrv", mapping_callback);
-    map_topic_pub = nh.advertise<nav_msgs::OccupancyGrid>("map", 1);
     ROS_INFO("mapping service start!");
 
     ros::spin();
