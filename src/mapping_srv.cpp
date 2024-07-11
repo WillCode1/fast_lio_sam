@@ -4,6 +4,7 @@
 #include <thread>
 #include "system/DataDef.h"
 #include "system/Header.h"
+#include "system/Pcd2Pgm.hpp"
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -24,76 +25,6 @@ void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyfram
         if (tmp_pc->points[i].z < -1.5 || tmp_pc->points[i].z > 0.1)
             continue;
         pcl::copyPoint(tmp_pc->points[i], keyframe_pc->points[i]);
-    }
-}
-
-void SetMapTopicMsg(const PointCloudType::Ptr cloud, nav_msgs::OccupancyGrid &msg, const double &map_resolution)
-{
-    msg.header.seq = 0;
-    msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = "map";
-
-    msg.info.map_load_time = ros::Time::now();
-    msg.info.resolution = map_resolution;
-
-    double x_min, x_max, y_min, y_max; // 这里是投影到xy平面，如果要投到xz/yz，这里以及后面的xy对应的数据改为你想投影的平面
-
-    if (cloud->points.empty())
-    {
-        ROS_WARN("pcd is empty!\n");
-
-        return;
-    }
-
-    for (int i = 0; i < cloud->points.size() - 1; i++)
-    {
-        if (i == 0)
-        {
-            x_min = x_max = cloud->points[i].x;
-            y_min = y_max = cloud->points[i].y;
-        }
-
-        double x = cloud->points[i].x;
-        double y = cloud->points[i].y;
-
-        if (x < x_min)
-            x_min = x;
-        if (x > x_max)
-            x_max = x;
-
-        if (y < y_min)
-            y_min = y;
-        if (y > y_max)
-            y_max = y;
-    }
-
-    msg.info.origin.position.x = x_min;
-    msg.info.origin.position.y = y_min;
-    msg.info.origin.position.z = 0.0;
-    msg.info.origin.orientation.x = 0.0;
-    msg.info.origin.orientation.y = 0.0;
-    msg.info.origin.orientation.z = 0.0;
-    msg.info.origin.orientation.w = 1.0;
-
-    msg.info.width = int((x_max - x_min) / map_resolution);
-    msg.info.height = int((y_max - y_min) / map_resolution);
-
-    msg.data.resize(msg.info.width * msg.info.height);
-    msg.data.assign(msg.info.width * msg.info.height, 0);
-
-    ROS_INFO("data size = %ld\n", msg.data.size());
-
-    for (int iter = 0; iter < cloud->points.size(); iter++)
-    {
-        int i = int((cloud->points[iter].x - x_min) / map_resolution);
-        if (i < 0 || i >= msg.info.width)
-            continue;
-
-        int j = int((cloud->points[iter].y - y_min) / map_resolution);
-        if (j < 0 || j >= msg.info.height - 1)
-            continue;
-
-        msg.data[i + j * msg.info.width] = 100;
     }
 }
 
@@ -151,7 +82,6 @@ bool mapping_callback(fast_lio_sam::mapping::Request &request, fast_lio_sam::map
     else if (request.action.compare("pcd2pgm") == 0)
     {
         ros::param::set("official/map_path", request.map_name);
-        execCommand("gnome-terminal -- bash -c \"rosrun map_server map_saver\"");
         pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d(new pcl::PointCloud<PointXYZIRPYT>());
         PointCloudType::Ptr global_map(new PointCloudType());
         nav_msgs::OccupancyGrid map_topic_msg;
@@ -163,11 +93,9 @@ bool mapping_callback(fast_lio_sam::mapping::Request &request, fast_lio_sam::map
             octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
             *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d)[i]);
         }
-        SetMapTopicMsg(global_map, map_topic_msg, 0.05);
-        map_topic_pub.publish(map_topic_msg);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        execCommand("mv map.pgm " + request.map_name + "/map.pgm");
-        execCommand("mv map.yaml " + request.map_name + "/map.yaml");
+        Pcd2Pgm mg(0.05, request.map_name + "/map");
+        mg.convert_from_pcd(global_map);
+        mg.convert_to_pgm();
     }
     else if (kill_progress_name.compare("") == 0)
     {
