@@ -157,15 +157,6 @@ else(ROS_EDITION STREQUAL "ROS2")
 
   ament_package()
 
-  # add_service_files(
-  #   FILES
-  #   mapping.srv
-  # )
-
-  # generate_messages(
-  #   DEPENDENCIES
-  # )
-
   # add_executable(map_stitch 
   #   include/global_localization/scancontext/Scancontext.cpp
   #   src/map_stitch.cpp)
@@ -179,9 +170,6 @@ else(ROS_EDITION STREQUAL "ROS2")
     include/system/backend/System.hpp)
   target_link_libraries(fastlio_sam_ros2 stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
   ament_target_dependencies(fastlio_sam_ros2 rclcpp sensor_msgs nav_msgs visualization_msgs tf2_ros livox_ros_driver2)
-
-  # add_executable(mapping_srv src/mapping_srv.cpp)
-  # target_link_libraries(mapping_srv)
 
   # add_executable(fastlio_sam_test_bag test/read_rosbag_test.cpp)
   # target_link_libraries(fastlio_sam_test_bag ${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
