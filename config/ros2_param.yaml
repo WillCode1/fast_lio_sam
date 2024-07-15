@@ -81,3 +81,4 @@ fast_lio_sam:
         save_resolution: 0.2
         save_keyframe_en: false
         save_keyframe_descriptor_en: false
+        map_path: "/home/will/tmp/"
