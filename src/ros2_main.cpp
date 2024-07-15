@@ -344,6 +344,10 @@ int main(int argc, char **argv)
     bool save_globalmap_en = false, path_en = true;
     bool scan_pub_en = false, dense_pub_en = false;
     string lidar_topic, imu_topic, gnss_topic;
+
+    bool save_pgm = false;
+    double pgm_resolution;
+    float min_z, max_z;
     // location_log = fopen(DEBUG_FILE_DIR("location.log").c_str(), "a");
 
     node->declare_parameter("showOptimizedPose", true);
@@ -357,6 +361,7 @@ int main(int argc, char **argv)
 
     load_ros_parameters(node, path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame, lidar_frame);
     load_parameters(node, frontend, backend, save_globalmap_en, lidar_type);
+    load_pgm_parameters(node, save_pgm, pgm_resolution, min_z, max_z);
 
 #ifdef EVO
     evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));
@@ -453,6 +458,9 @@ int main(int argc, char **argv)
 
     if (save_globalmap_en)
         backend.save_globalmap();
+
+    if (save_pgm)
+        backend.save_pgm(pgm_resolution, min_z, max_z);
 
     return 0;
 }

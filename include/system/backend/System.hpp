@@ -6,6 +6,7 @@
 #include "FactorGraphOptimization.hpp"
 #include "Relocalization.hpp"
 #include "LoopClosure.hpp"
+#include "system/Pcd2Pgm.hpp"
 
 class Backend
 {
@@ -87,6 +88,24 @@ public:
         octreeDownsampling(pcl_map_full, pcl_map_full, save_resolution);
         savePCDFile(globalmap_path, *pcl_map_full);
         LOG_WARN("Success save global map to %s.", globalmap_path.c_str());
+    }
+
+    void save_pgm(const double &pgm_resolution, const float &min_z, const float &max_z)
+    {
+        pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d(new pcl::PointCloud<PointXYZIRPYT>());
+        PointCloudType::Ptr global_map(new PointCloudType());
+        pcl::io::loadPCDFile(trajectory_path, *keyframe_pose6d);
+        for (auto i = 0; i < keyframe_pose6d->size(); ++i)
+        {
+            PointCloudType::Ptr keyframe_pc(new PointCloudType());
+            load_keyframe(keyframe_path, keyframe_pc, i, 6, min_z, max_z);
+            octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
+            *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d)[i]);
+        }
+        Pcd2Pgm mg(pgm_resolution, map_path + "/map");
+        mg.convert_from_pcd(global_map);
+        mg.convert_to_pgm();
+        LOG_WARN("Success save pgm to %s.", map_path.c_str());
     }
 
     void save_trajectory()
@@ -271,6 +290,25 @@ public:
     }
 
 private:
+    void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc,
+                       int keyframe_cnt, int num_digits = 6,
+                       const float &min_z = -1.5, const float &max_z = 0.1)
+    {
+        std::ostringstream out;
+        out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt;
+        std::string keyframe_idx = out.str();
+        string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
+        pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_pc(new pcl::PointCloud<pcl::PointXYZI>());
+        pcl::io::loadPCDFile(keyframe_file, *tmp_pc);
+        keyframe_pc->points.resize(tmp_pc->points.size());
+        for (auto i = 0; i < tmp_pc->points.size(); ++i)
+        {
+            if (tmp_pc->points[i].z < min_z || tmp_pc->points[i].z > max_z)
+                continue;
+            pcl::copyPoint(tmp_pc->points[i], keyframe_pc->points[i]);
+        }
+    }
+
     void save_keyframe(PointCloudType::Ptr &cloud, int keyframe_cnt, int num_digits = 6)
     {
         std::ostringstream out;

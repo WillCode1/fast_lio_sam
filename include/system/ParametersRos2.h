@@ -285,3 +285,16 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     node->get_parameter("ground_constraint_angle", frontend.ground_constraint_angle);
     backend.init_system_mode();
 }
+
+inline void load_pgm_parameters(rclcpp::Node::SharedPtr &node, bool &save_pgm, double &pgm_resolution, float &min_z, float &max_z)
+{
+    node->declare_parameter("save_pgm", false);
+    node->declare_parameter("pgm_resolution", 0.05);
+    node->declare_parameter("min_z", -1.5f);
+    node->declare_parameter("max_z", 0.1f);
+
+    node->get_parameter("save_pgm", save_pgm);
+    node->get_parameter("pgm_resolution", pgm_resolution);
+    node->get_parameter("min_z", min_z);
+    node->get_parameter("max_z", max_z);
+}
