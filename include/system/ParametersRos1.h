@@ -184,7 +184,7 @@ inline void load_parameters(FastlioOdometry &frontend, Backend &backend, bool &s
     backend.init_system_mode();
 }
 
-inline void load_pgm_parameters(bool &save_pgm, double &pgm_resolution, const float &min_z, const float &max_z)
+inline void load_pgm_parameters(bool &save_pgm, double &pgm_resolution, float &min_z, float &max_z)
 {
     ros::param::param("official/save_pgm", save_pgm, false);
     ros::param::param("official/pgm_resolution", pgm_resolution, 0.05);
