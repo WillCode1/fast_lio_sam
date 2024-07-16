@@ -48,24 +48,24 @@ public:
             // save keyframe info
             keyframe_pose6d_unoptimized->push_back(this_pose6d);
 
-            // PointCloudType::Ptr this_keyframe(new PointCloudType());
-            // octreeDownsampling(feats_undistort, this_keyframe, 0.1);
-            // keyframe_scan->push_back(this_keyframe);
+            PointCloudType::Ptr this_keyframe(new PointCloudType());
+            octreeDownsampling(feats_undistort, this_keyframe, 0.1);
+            keyframe_scan->push_back(this_keyframe);
 
-            // if (save_keyframe_descriptor_en)
-            //     relocalization->add_keyframe_descriptor(this_keyframe, scd_path);
-            // else
-            //     relocalization->add_keyframe_descriptor(this_keyframe, "");
+            if (save_keyframe_descriptor_en)
+                relocalization->add_keyframe_descriptor(this_keyframe, scd_path);
+            else
+                relocalization->add_keyframe_descriptor(this_keyframe, "");
 
-            // if (save_keyframe_en)
-            //     save_keyframe(feats_undistort, keyframe_scan->size());
+            if (save_keyframe_en)
+                save_keyframe(feats_undistort, keyframe_scan->size());
 
-            // /*** loop closure ***/
-            // if (loop_closure_enable_flag && test_mode)
-            // {
-            //     backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
-            //     loopClosure->run(*keyframe_scan);
-            // }
+            /*** loop closure ***/
+            if (loop_closure_enable_flag && test_mode)
+            {
+                backend->get_keyframe_pose6d(loopClosure->copy_keyframe_pose6d);
+                loopClosure->run(*keyframe_scan);
+            }
 
             loopClosure->get_loop_constraint(loop_constraint);
             backend->run(loop_constraint, this_pose6d, submap_fix);
