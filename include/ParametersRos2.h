@@ -1,6 +1,6 @@
 #pragma once
 #include "frontend/FastlioOdometry.hpp"
-#include "backend/System.hpp"
+#include "backend/backend/Backend.hpp"
 #include <rclcpp/rclcpp.hpp>
 
 inline void load_ros_parameters(rclcpp::Node::SharedPtr &node, bool &path_en, bool &scan_pub_en, bool &dense_pub_en,

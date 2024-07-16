@@ -1,10 +1,87 @@
 #pragma once
+#include <fstream>
+#include <Eigen/Eigen>
+#include <vector>
 #include <deque>
-#include <iomanip>
+#include <mutex>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/common/distances.h>
+#include <pcl/common/eigen.h>
+#include <pcl/octree/octree_pointcloud_voxelcentroid.h>
+#include <pcl/io/pcd_io.h>
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/linear/NoiseModel.h>
-#include "system/Header.h"
-#include "frontend/use-ikfom.h"
+
+#include "utility/LogTool.h"
+#include "utility/Timer.h"
+#include "utility/FileOperation.h"
+#include "utility/EigenMath.h"
+#include "utility/MathTools.h"
+
+using namespace std;
+using namespace Eigen;
+using namespace EigenMath;
+
+#define G_m_s2 (9.81) // Gravaty const in GuangDong/China
+
+#define VEC_FROM_ARRAY(v) v[0], v[1], v[2]
+#define MAT_FROM_ARRAY(v) v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8]
+#define LEFT_MULTIPLY_QUA(v) -v[1], -v[2], -v[3], \
+                             v[0], -v[3], v[2],   \
+                             v[3], v[0], -v[1],   \
+                             -v[2], v[1], v[0];
+#define CONSTRAIN(v, min, max) ((v > min) ? ((v < max) ? v : max) : min)
+#define ARRAY_FROM_EIGEN(mat) mat.data(), mat.data() + mat.rows() * mat.cols()
+#define STD_VEC_FROM_EIGEN(mat) vector<decltype(mat)::Scalar>(mat.data(), mat.data() + mat.rows() * mat.cols())
+#define DEBUG_FILE_DIR(name) (string(string(ROOT_DIR) + "Log/" + name))
+#define PCD_FILE_DIR(name) (string(string(ROOT_DIR) + "PCD/" + name))
+
+/**
+ * 6D位姿点云结构定义
+ */
+struct PointXYZIRPYT
+{
+    PCL_ADD_POINT4D
+    PCL_ADD_INTENSITY;
+    float roll;
+    float pitch;
+    float yaw;
+    double time;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+
+POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZIRPYT,
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (float, intensity, intensity)
+    (float, roll, roll)
+    (float, pitch, pitch)
+    (float, yaw, yaw)
+    (double, time, time))
+
+using PointType = pcl::PointXYZINormal;
+using PointCloudType = pcl::PointCloud<PointType>;
+
+using V3D = Eigen::Vector3d;
+using M3D = Eigen::Matrix3d;
+using V3F = Eigen::Vector3f;
+using M3F = Eigen::Matrix3f;
+using QD = Eigen::Quaterniond;
+using QF = Eigen::Quaternionf;
+
+#define MD(a, b) Matrix<double, (a), (b)>
+#define VD(a) Matrix<double, (a), 1>
+#define MF(a, b) Matrix<float, (a), (b)>
+#define VF(a) Matrix<float, (a), 1>
+
+#define EYE3D (M3D::Identity())
+#define EYE3F (M3F::Identity())
+#define ZERO3D (V3D::Zero())
+#define ZERO3F (V3F::Zero())
+#define EYEQD (QD::Identity())
+#define EYEQF (QF::Identity())
 
 struct ImuState
 {
@@ -19,12 +96,6 @@ struct ImuState
     V3D vel;
     V3D pos;
     M3D rot;
-};
-
-enum FrontendOdometryType
-{
-    Fastlio,
-    Pointlio
 };
 
 struct ImuData
@@ -75,6 +146,95 @@ struct LoopConstraint
     vector<gtsam::Pose3> loop_pose_correct;
     vector<gtsam::noiseModel::Diagonal::shared_ptr> loop_noise;
 };
+
+template <typename PointType>
+float pointDistanceSquare(const PointType &p)
+{
+    return (p.x) * (p.x) + (p.y) * (p.y) + (p.z) * (p.z);
+}
+
+template <typename PointType>
+float pointDistanceSquare(const PointType &p1, const PointType &p2)
+{
+    return pcl::squaredEuclideanDistance(p1, p2);
+}
+
+template <typename PointType>
+float pointDistance(const PointType &p)
+{
+    return sqrt(pointDistanceSquare(p));
+}
+
+template <typename PointType>
+float pointDistance(const PointType &p1, const PointType &p2)
+{
+    return sqrt(pointDistanceSquare(p1, p2));
+}
+
+inline gtsam::Pose3 pclPointTogtsamPose3(const PointXYZIRPYT &thisPoint)
+{
+    return gtsam::Pose3(gtsam::Rot3::RzRyRx(thisPoint.roll, thisPoint.pitch, thisPoint.yaw),
+                        gtsam::Point3(thisPoint.x, thisPoint.y, thisPoint.z));
+}
+
+inline Eigen::Affine3f pclPointToAffine3f(const PointXYZIRPYT &thisPoint)
+{
+    return pcl::getTransformation(thisPoint.x, thisPoint.y, thisPoint.z, thisPoint.roll, thisPoint.pitch, thisPoint.yaw);
+}
+
+template <typename ikfom_state>
+void state2pose(PointXYZIRPYT &this_pose6d, const double &lidar_end_time, const ikfom_state &state)
+{
+    // imu pose -> lidar pose
+    QD lidar_rot;
+    V3D lidar_pos;
+    poseTransformFrame(state.rot, state.pos, state.offset_R_L_I, state.offset_T_L_I, lidar_rot, lidar_pos);
+
+    Eigen::Vector3d eulerAngle = EigenMath::Quaternion2RPY(lidar_rot);
+    this_pose6d.x = lidar_pos(0); // x
+    this_pose6d.y = lidar_pos(1); // y
+    this_pose6d.z = lidar_pos(2); // z
+    this_pose6d.roll = eulerAngle(0);  // roll
+    this_pose6d.pitch = eulerAngle(1); // pitch
+    this_pose6d.yaw = eulerAngle(2);   // yaw
+    this_pose6d.time = lidar_end_time;
+}
+
+template <typename ikfom_state>
+void pose2state(const PointXYZIRPYT &this_pose6d, ikfom_state &state)
+{
+    // lidar pose -> imu pose
+    V3D lidar_pos = V3D(this_pose6d.x, this_pose6d.y, this_pose6d.z);
+    V3D eulerAngle = V3D(this_pose6d.roll, this_pose6d.pitch, this_pose6d.yaw);
+    QD lidar_rot = EigenMath::RPY2Quaternion(eulerAngle);
+    poseTransformFrame2(lidar_rot, lidar_pos, state.offset_R_L_I, state.offset_T_L_I, state.rot, state.pos);
+}
+
+inline void octreeDownsampling(const PointCloudType::Ptr &src, PointCloudType::Ptr &map_ds, const double &save_resolution)
+{
+    pcl::octree::OctreePointCloudVoxelCentroid<PointType> octree(save_resolution);
+    octree.setInputCloud(src);
+    octree.defineBoundingBox();
+    octree.addPointsFromInputCloud();
+    pcl::octree::OctreePointCloudVoxelCentroid<PointType>::AlignedPointTVector centroids;
+    octree.getVoxelCentroids(centroids);
+
+    map_ds->points.assign(centroids.begin(), centroids.end());
+    map_ds->width = 1;
+    map_ds->height = map_ds->points.size();
+}
+
+inline void savePCDFile(const std::string &save_path, const PointCloudType &src)
+{
+    pcl::PointCloud<pcl::PointXYZI>::Ptr save_pc(new pcl::PointCloud<pcl::PointXYZI>(src.points.size(), 1));
+    for (auto i = 0; i < src.points.size(); ++i)
+    {
+        pcl::copyPoint(src.points[i], save_pc->points[i]);
+    }
+    pcl::io::savePCDFileBinary(save_path, *save_pc);
+}
+
+inline const bool compare_timestamp(PointType &x, PointType &y) { return (x.curvature < y.curvature); };
 
 template <typename ikfom_state>
 void pointLidarToWorld(V3D const &p_lidar, V3D &p_imu, const ikfom_state &state)
@@ -144,6 +304,12 @@ inline PointCloudType::Ptr pointcloudKeyframeToWorld(const PointCloudType::Ptr &
     return cloud_out;
 }
 
+enum FrontendOdometryType
+{
+    Fastlio,
+    Pointlio
+};
+
 class LogAnalysis
 {
 public:
@@ -153,6 +319,7 @@ public:
         imu_process_avetime = downsample_avetime = kdtree_search_avetime = match_avetime = cal_H_avetime = 0;
         meas_update_avetime = kdtree_incremental_avetime = kdtree_delete_avetime = map_incre_avetime = map_remove_avetime = total_avetime = 0;
 
+#ifndef NO_LOGER
         fout_predict = fopen(DEBUG_FILE_DIR("state_predict.txt").c_str(), "w");
         fout_update = fopen(DEBUG_FILE_DIR("state_update.txt").c_str(), "w");
         fout_fastlio_log = fopen(DEBUG_FILE_DIR("fast_lio_log.csv").c_str(), "w");
@@ -161,6 +328,7 @@ public:
             cout << "~~~~" << ROOT_DIR << " file opened" << endl;
         else
             cout << "~~~~" << ROOT_DIR << " doesn't exist" << endl;
+#endif
     }
 
     ~LogAnalysis()
@@ -184,73 +352,6 @@ public:
         const auto &offset_xyz = state.offset_T_L_I;
         const auto &offset_rpy = EigenMath::Quaternion2RPY(state.offset_R_L_I);
         LOG_INFO_COND(need_print, "extrinsic_est: (%.5f, %.5f, %.5f, %.5f, %.5f, %.5f)", offset_xyz(0), offset_xyz(1), offset_xyz(2), RAD2DEG(offset_rpy(0)), RAD2DEG(offset_rpy(1)), RAD2DEG(offset_rpy(2)));
-    }
-
-    template <typename ikfom_state>
-    void dump_state_to_log(FILE *fp, const ikfom_state &state, const double &delta_time)
-    {
-        if (!runtime_log)
-            return;
-
-        V3D rot_ang = EigenMath::Quaternion2RPY(state.rot);
-        V3D ext_rot_LI = EigenMath::Quaternion2RPY(state.offset_R_L_I);
-        fprintf(fp, "%lf ", delta_time);
-        fprintf(fp, "%lf %lf %lf ", rot_ang(0), rot_ang(1), rot_ang(2));                                  // Angle
-        fprintf(fp, "%lf %lf %lf ", state.pos(0), state.pos(1), state.pos(2));                            // Pos
-        fprintf(fp, "%lf %lf %lf ", state.vel(0), state.vel(1), state.vel(2));                            // Vel
-        fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                                       // omega
-        fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                                       // Acc
-        fprintf(fp, "%lf %lf %lf ", state.bg(0), state.bg(1), state.bg(2));                               // Bias_g
-        fprintf(fp, "%lf %lf %lf ", state.ba(0), state.ba(1), state.ba(2));                               // Bias_a
-        fprintf(fp, "%lf %lf %lf ", ext_rot_LI(0), ext_rot_LI(1), ext_rot_LI(2));                         // ext_R_LI
-        fprintf(fp, "%lf %lf %lf ", state.offset_T_L_I(0), state.offset_T_L_I(1), state.offset_T_L_I(2)); // ext_T_LI
-        fprintf(fp, "%lf %lf %lf", state.gravity(0), state.gravity(1), state.gravity(2));                 // gravity
-        fprintf(fp, "\n");
-        fflush(fp);
-    }
-
-    void dump_state_to_log(FILE *fp, const state_ikfom &state, const double &delta_time)
-    {
-        if (!runtime_log)
-            return;
-
-        V3D rot_ang = EigenMath::Quaternion2RPY(state.rot);
-        V3D ext_rot_LI = EigenMath::Quaternion2RPY(state.offset_R_L_I);
-        fprintf(fp, "%lf ", delta_time);
-        fprintf(fp, "%lf %lf %lf ", rot_ang(0), rot_ang(1), rot_ang(2));                                  // Angle
-        fprintf(fp, "%lf %lf %lf ", state.pos(0), state.pos(1), state.pos(2));                            // Pos
-        fprintf(fp, "%lf %lf %lf ", state.vel(0), state.vel(1), state.vel(2));                            // Vel
-        fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                                       // omega
-        fprintf(fp, "%lf %lf %lf ", 0.0, 0.0, 0.0);                                                       // Acc
-        fprintf(fp, "%lf %lf %lf ", state.bg(0), state.bg(1), state.bg(2));                               // Bias_g
-        fprintf(fp, "%lf %lf %lf ", state.ba(0), state.ba(1), state.ba(2));                               // Bias_a
-        fprintf(fp, "%lf %lf %lf ", ext_rot_LI(0), ext_rot_LI(1), ext_rot_LI(2));                         // ext_R_LI
-        fprintf(fp, "%lf %lf %lf ", state.offset_T_L_I(0), state.offset_T_L_I(1), state.offset_T_L_I(2)); // ext_T_LI
-        fprintf(fp, "%lf %lf %lf", state.grav[0], state.grav[1], state.grav[2]);                          // gravity
-        fprintf(fp, "\n");
-        fflush(fp);
-    }
-
-    void dump_state_to_log(FILE *fp, const state_output &state, const double &delta_time)
-    {
-        if (!runtime_log)
-            return;
-
-        V3D rot_ang = EigenMath::Quaternion2RPY(state.rot);
-        V3D ext_rot_LI = EigenMath::Quaternion2RPY(state.offset_R_L_I);
-        fprintf(fp, "%lf ", delta_time);
-        fprintf(fp, "%lf %lf %lf ", rot_ang(0), rot_ang(1), rot_ang(2));                                  // Angle
-        fprintf(fp, "%lf %lf %lf ", state.pos(0), state.pos(1), state.pos(2));                            // Pos
-        fprintf(fp, "%lf %lf %lf ", state.vel(0), state.vel(1), state.vel(2));                            // Vel
-        fprintf(fp, "%lf %lf %lf ", state.omg(0), state.omg(1), state.omg(2));                            // omega
-        fprintf(fp, "%lf %lf %lf ", state.acc(0), state.acc(1), state.acc(2));                            // Acc
-        fprintf(fp, "%lf %lf %lf ", state.bg(0), state.bg(1), state.bg(2));                               // Bias_g
-        fprintf(fp, "%lf %lf %lf ", state.ba(0), state.ba(1), state.ba(2));                               // Bias_a
-        fprintf(fp, "%lf %lf %lf ", ext_rot_LI(0), ext_rot_LI(1), ext_rot_LI(2));                         // ext_R_LI
-        fprintf(fp, "%lf %lf %lf ", state.offset_T_L_I(0), state.offset_T_L_I(1), state.offset_T_L_I(2)); // ext_T_LI
-        fprintf(fp, "%lf %lf %lf", state.gravity(0), state.gravity(1), state.gravity(2));                 // gravity
-        fprintf(fp, "\n");
-        fflush(fp);
     }
 
     void output_fastlio_log_to_csv(const double &lidar_beg_time)
@@ -295,10 +396,11 @@ public:
 
     void print_fastlio_cost_time()
     {
+        total_time = preprocess_time + imu_process_time + downsample_time + meas_update_time + map_incre_time + map_remove_time;
+
         if (!runtime_log)
             return;
 
-        total_time = preprocess_time + imu_process_time + downsample_time + meas_update_time + map_incre_time + map_remove_time;
         frame_num++;
 
         preprocess_avetime = (preprocess_avetime * (frame_num - 1) + preprocess_time) / frame_num;
@@ -363,3 +465,6 @@ public:
 
     int feats_undistort_size = 0, feats_down_size = 0, kdtree_size = 0, kdtree_size_end = 0, add_point_size = 0, kdtree_delete_counter = 0;
 };
+
+
+// #define DEDUB_MODE

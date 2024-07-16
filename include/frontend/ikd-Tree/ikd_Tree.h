@@ -19,8 +19,8 @@
 
 using namespace std;
 
-// typedef pcl::PointXYZINormal PointType;
-// typedef vector<PointType, Eigen::aligned_allocator<PointType>>  PointVector;
+typedef pcl::PointXYZINormal PointType;
+typedef vector<PointType, Eigen::aligned_allocator<PointType>>  PointVector;
 
 struct BoxPointType
 {

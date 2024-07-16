@@ -2,10 +2,10 @@
 #include <omp.h>
 #include <math.h>
 #include <thread>
-#include "system/Header.h"
-#include "backend/FactorGraphOptimization.hpp"
-#include "backend/Relocalization.hpp"
-#include "backend/LoopClosure.hpp"
+#include "../Header.h"
+#include "FactorGraphOptimization.hpp"
+#include "Relocalization.hpp"
+#include "LoopClosure.hpp"
 
 class MapStitch
 {

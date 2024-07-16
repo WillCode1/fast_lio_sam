@@ -1,6 +1,6 @@
 #include <csignal>
 #include <ros/ros.h>
-#include "system/MapStitch.hpp"
+#include "backend/backend/MapStitch.hpp"
 #include <nav_msgs/Path.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>

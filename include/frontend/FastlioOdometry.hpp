@@ -14,7 +14,8 @@
 
 #include "ImuProcessor.h"
 #include "LidarProcessor.hpp"
-#include "system/Header.h"
+#include "backend/Header.h"
+#include "ikd-Tree/ikd_Tree.h"
 
 
 class FastlioOdometry
@@ -262,7 +263,7 @@ public:
             return true;
         }
 
-        loger.dump_state_to_log(loger.fout_predict, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
+        // loger.dump_state_to_log(loger.fout_predict, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
 
         /*** iterated state estimation ***/
         feats_down_world->resize(feats_down_size);
@@ -274,7 +275,7 @@ public:
         kf.update_iterated_fastlio2();
         state = kf.get_x();
         loger.meas_update_time = loger.timer.elapsedLast();
-        loger.dump_state_to_log(loger.fout_update, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
+        // loger.dump_state_to_log(loger.fout_update, state, measures->lidar_beg_time - loger.first_lidar_beg_time);
 
         if (ground_constraint_enable)
         {

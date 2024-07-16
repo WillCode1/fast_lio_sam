@@ -85,15 +85,15 @@ if(ROS_EDITION STREQUAL "ROS1")
   )
 
   add_library(${PROJECT_NAME} SHARED
-    include/ikd-Tree/ikd_Tree.cpp
-    include/global_localization/scancontext/Scancontext.cpp
-    include/system/frontend/ImuProcessor.cpp
-    include/system/frontend/use-ikfom.cpp
-    include/system/backend/System.hpp)
+    include/frontend/ikd-Tree/ikd_Tree.cpp
+    include/frontend/ImuProcessor.cpp
+    include/frontend/use-ikfom.cpp
+    include/backend/global_localization/scancontext/Scancontext.cpp
+    include/backend/backend/Backend.hpp)
   target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
 
   add_executable(map_stitch 
-    include/global_localization/scancontext/Scancontext.cpp
+    include/backend/global_localization/scancontext/Scancontext.cpp
     src/map_stitch.cpp)
   target_link_libraries(map_stitch stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam ${catkin_LIBRARIES})
 
@@ -146,16 +146,16 @@ else(ROS_EDITION STREQUAL "ROS2")
   ament_package()
 
   # add_executable(map_stitch 
-  #   include/global_localization/scancontext/Scancontext.cpp
+  #   include/backend/global_localization/scancontext/Scancontext.cpp
   #   src/map_stitch.cpp)
   # target_link_libraries(map_stitch stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
 
   add_executable(fastlio_sam_ros2 src/ros2_main.cpp
-    include/ikd-Tree/ikd_Tree.cpp
-    include/global_localization/scancontext/Scancontext.cpp
-    include/system/frontend/ImuProcessor.cpp
-    include/system/frontend/use-ikfom.cpp
-    include/system/backend/System.hpp)
+    include/frontend/ikd-Tree/ikd_Tree.cpp
+    include/backend/global_localization/scancontext/Scancontext.cpp
+    include/frontend/ImuProcessor.cpp
+    include/frontend/use-ikfom.cpp
+    include/backend/backend/Backend.hpp)
   target_link_libraries(fastlio_sam_ros2 stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
   ament_target_dependencies(fastlio_sam_ros2 rclcpp sensor_msgs nav_msgs visualization_msgs tf2_ros livox_ros_driver2)
 

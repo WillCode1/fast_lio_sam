@@ -1,6 +1,6 @@
 #ifndef USE_IKFOM_H
 #define USE_IKFOM_H
-#include <IKFoM_toolkit/esekfom/esekfom.hpp>
+#include "IKFoM_toolkit/esekfom/esekfom.hpp"
 
 typedef MTK::vect<1, double> vect1;
 typedef MTK::vect<2, double> vect2;
