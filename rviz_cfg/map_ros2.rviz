@@ -56,16 +56,6 @@ Visualization Manager:
         All Enabled: true
         body:
           Value: true
-        camera_color_frame:
-          Value: true
-        camera_color_optical_frame:
-          Value: true
-        camera_depth_frame:
-          Value: true
-        camera_depth_optical_frame:
-          Value: true
-        camera_link:
-          Value: true
         lidar:
           Value: true
         map:
@@ -153,8 +143,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 23.72212791442871
-            Min Value: -7.965800762176514
+            Max Value: 2.097450017929077
+            Min Value: -3.3206560611724854
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -323,13 +313,14 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        loop_edges: true
+        loop_nodes: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: visualization_marker_array
+        Value: loop_closure_constraints
       Value: true
   Enabled: true
   Global Options:
