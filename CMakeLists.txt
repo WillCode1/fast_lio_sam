@@ -92,10 +92,10 @@ if(ROS_EDITION STREQUAL "ROS1")
     include/backend/backend/Backend.hpp)
   target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
 
-  add_executable(map_stitch 
-    include/backend/global_localization/scancontext/Scancontext.cpp
-    src/map_stitch.cpp)
-  target_link_libraries(map_stitch stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam ${catkin_LIBRARIES})
+  # add_executable(map_stitch 
+  #   include/backend/global_localization/scancontext/Scancontext.cpp
+  #   src/map_stitch.cpp)
+  # target_link_libraries(map_stitch stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam ${catkin_LIBRARIES})
 
   add_executable(fastlio_sam_ros1 src/ros1_main.cpp)
   target_link_libraries(fastlio_sam_ros1 ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
