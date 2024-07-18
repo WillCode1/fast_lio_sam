@@ -83,11 +83,11 @@ official:
     ground_constraint_enable: false
     save_globalmap_en: true
     save_resolution: 0.2
-    save_keyframe_en: false
+    save_keyframe_en: true
     save_keyframe_descriptor_en: false
     map_path: "/home/will/tmp/"
 
     save_pgm: true
     pgm_resolution: 0.05
-    min_z: -0.5
-    max_z: 0.2
+    min_z: 0.0
+    max_z: 1.3
