@@ -90,4 +90,4 @@ official:
     save_pgm: true
     pgm_resolution: 0.05
     min_z: 0.0
-    max_z: 1.0
+    max_z: 0.9
