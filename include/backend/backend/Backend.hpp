@@ -99,7 +99,7 @@ public:
         {
             PointCloudType::Ptr keyframe_pc(new PointCloudType());
             load_keyframe(keyframe_path, keyframe_pc, i, 6, min_z, max_z);
-            octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
+            // octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
             *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d)[i]);
         }
         Pcd2Pgm mg(pgm_resolution, map_path + "/map");
@@ -300,12 +300,15 @@ private:
         string keyframe_file(keyframe_path + keyframe_idx + string(".pcd"));
         pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_pc(new pcl::PointCloud<pcl::PointXYZI>());
         pcl::io::loadPCDFile(keyframe_file, *tmp_pc);
-        keyframe_pc->points.resize(tmp_pc->points.size());
         for (auto i = 0; i < tmp_pc->points.size(); ++i)
         {
             if (tmp_pc->points[i].z < min_z || tmp_pc->points[i].z > max_z)
                 continue;
-            pcl::copyPoint(tmp_pc->points[i], keyframe_pc->points[i]);
+            if (tmp_pc->points[i].x < 0)
+                continue;
+            PointType point;
+            pcl::copyPoint(tmp_pc->points[i], point);
+            keyframe_pc->points.emplace_back(point);
         }
     }
 
