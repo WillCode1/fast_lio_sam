@@ -43,6 +43,7 @@ mapping:
     useGpsElevation: true
 
     # for loop closure
+    loop_closure_interval: 300
     loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
     loop_closure_search_radius: 3
