@@ -643,10 +643,10 @@ protected:
         auto pose_correctional = Pose3(Rot3::RzRyRx(0, 0, eulerAngle(2)), Point3(lidar_pos(0), lidar_pos(1), lidar_pos2(2)));
 
         initials.insert(0, pose_correctional);
-        noiseModel::Diagonal::shared_ptr priorNoise = noiseModel::Diagonal::Variances((Vector(6) << 1e2, 1e2, 1e-4, 1e-4, 1e-4, 1e1).finished());
+        noiseModel::Diagonal::shared_ptr priorNoise = noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e2, 1e2, 1e-4, 1e-4, 1e-4, 1e1).finished());
         graph.add(PriorFactor<gtsam::Pose3>(0, pose_lio, priorNoise));
 
-        noiseModel::Diagonal::shared_ptr groundConstraintNoise = noiseModel::Diagonal::Variances((Vector(6) << 1e-2, 1e-2, 1e-4, 1e-4, 1e-4, 1e-2).finished());
+        noiseModel::Diagonal::shared_ptr groundConstraintNoise = noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, 1e-4, 1e-4, 1e-4, 1e-2).finished());
         graph.add(PriorFactor<gtsam::Pose3>(0, pose_correctional, groundConstraintNoise));
 
         LevenbergMarquardtParams parameters;
