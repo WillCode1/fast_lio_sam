@@ -103,6 +103,16 @@ if(ROS_EDITION STREQUAL "ROS1")
   add_executable(fastlio_sam_test_bag test/read_rosbag_test.cpp)
   target_link_libraries(fastlio_sam_test_bag ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
+  install(TARGETS ${PROJECT_NAME} fastlio_sam_ros1
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+
+  install(DIRECTORY launch config rviz_cfg Log
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  )
+
 else(ROS_EDITION STREQUAL "ROS2")
   if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic)
