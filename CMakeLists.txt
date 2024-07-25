@@ -140,6 +140,7 @@ else(ROS_EDITION STREQUAL "ROS2")
     ${Boost_INCLUDE_DIRS}
     ${GTSAM_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
+    ${pcl_conversions_INCLUDE_DIRS}
     include)
 
   if(BUILD_TESTING)
