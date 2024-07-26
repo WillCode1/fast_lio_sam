@@ -17,7 +17,7 @@
 #include "ParametersRos2.h"
 #include "backend/backend/Backend.hpp"
 #include "backend/utility/evo_tool.h"
-#define EVO
+// #define EVO
 
 bool showOptimizedPose = true;
 double globalMapVisualizationSearchRadius = 1000;
@@ -30,7 +30,6 @@ std::string map_frame;
 std::string body_frame;
 std::string lidar_frame;
 FILE *location_log = nullptr;
-FILE *imu_quat_eular = fopen(DEBUG_FILE_DIR("imu_quat_eular.txt").c_str(), "w");
 
 bool flg_exit = false;
 void SigHandle(int sig)

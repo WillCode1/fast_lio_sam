@@ -19,7 +19,7 @@
 #include "ParametersRos1.h"
 #include "backend/backend/Backend.hpp"
 #include "backend/utility/evo_tool.h"
-#define EVO
+// #define EVO
 
 
 bool showOptimizedPose = true;
@@ -33,7 +33,6 @@ std::string map_frame;
 std::string body_frame;
 std::string lidar_frame;
 FILE *location_log = nullptr;
-FILE *imu_quat_eular = fopen(DEBUG_FILE_DIR("imu_quat_eular.txt").c_str(), "w");
 
 bool flg_exit = false;
 void SigHandle(int sig)
@@ -102,18 +101,6 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
                             V3D(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z),
                             V3D(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
                             QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
-    if (frontend.loger.runtime_log)
-    {
-        static bool flag = false;
-        static double start_time = 0;
-        if (!flag)
-        {
-            flag = true;
-            start_time = msg->header.stamp.toSec();
-        }
-        auto rpy = EigenMath::Quaternion2RPY(QD(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z));
-        fprintf(imu_quat_eular, "%0.4lf %0.4f %0.4f %0.4f %0.4f %0.4f %0.4f\n", msg->header.stamp.toSec() - start_time, 0., 0., 0., rpy.x(), rpy.y(), rpy.z());
-    }
 }
 
 void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)

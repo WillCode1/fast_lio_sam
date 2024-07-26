@@ -82,7 +82,7 @@ fast_lio_sam:
         save_resolution: 0.2
         save_keyframe_en: true
         save_keyframe_descriptor_en: false
-        map_path: "/home/will/tmp/"
+        map_path: "/home/chery/tmp/"
 
         save_pgm: true
         pgm_resolution: 0.05

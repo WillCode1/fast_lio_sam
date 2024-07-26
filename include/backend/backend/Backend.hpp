@@ -110,6 +110,7 @@ public:
 
     void save_trajectory()
     {
+#ifndef NO_LOGER
         FILE *file_pose_unoptimized = fopen(DEBUG_FILE_DIR("keyframe_pose.txt").c_str(), "w");
         fprintf(file_pose_unoptimized, "# keyframe trajectory unoptimized\n# timestamp tx ty tz qx qy qz qw\n");
         int pose_num = keyframe_pose6d_unoptimized->points.size();
@@ -135,13 +136,16 @@ public:
         }
         LOG_WARN("Success save global optimized lidar poses to file ...");
         fclose(file_pose_optimized);
+#endif
 
         pcl::PCDWriter pcd_writer;
         pcd_writer.writeBinary(trajectory_path, *keyframe_pose6d_optimized);
         LOG_WARN("Success save trajectory poses to %s.", trajectory_path.c_str());
 
+#ifndef NO_LOGER
         if (map_path.compare("") != 0)
             fs::copy_file(DEBUG_FILE_DIR("keyframe_pose_optimized.txt"), map_path + "/keyframe_pose_optimized.txt", fs::copy_options::overwrite_existing);
+#endif
     }
 
     // for ape
