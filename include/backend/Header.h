@@ -338,7 +338,7 @@ enum FrontendOdometryType
     Pointlio
 };
 
-#define NO_LOGER
+// #define NO_LOGER
 
 class LogAnalysis
 {
