@@ -82,7 +82,7 @@ Visualization Manager:
           Position Transformer: XYZ
           Queue Size: 1
           Selectable: false
-          Size (Pixels): 2
+          Size (Pixels): 1
           Size (m): 0.05000000074505806
           Style: Points
           Topic: /map_prior
@@ -110,7 +110,7 @@ Visualization Manager:
           Position Transformer: XYZ
           Queue Size: 1
           Selectable: true
-          Size (Pixels): 2
+          Size (Pixels): 1
           Size (m): 0.009999999776482582
           Style: Points
           Topic: /map_stitch
