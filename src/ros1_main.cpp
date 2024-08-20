@@ -124,10 +124,10 @@ void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
     if (msg->rtk_age > 30)
         return;
 
-    if (msg->latitude_std > 0.05 || msg->longitude_std > 0.05 || msg->altitude_std > 0.05)
+    if (msg->latitude_std > 0.03 || msg->longitude_std > 0.03 || msg->altitude_std > 0.05)
         return;
 
-    if (msg->roll_std > 0.1 || msg->pitch_std > 0.1 || msg->azimuth_std > 0.1)
+    if (msg->roll_std > 0.05 || msg->pitch_std > 0.05 || msg->azimuth_std > 0.05)
         return;
 
     QD rot = EigenMath::RPY2Quaternion(V3D(msg->roll, msg->pitch, msg->azimuth));
