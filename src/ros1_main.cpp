@@ -19,6 +19,7 @@
 #include "ParametersRos1.h"
 #include "backend/backend/Backend.hpp"
 #include "backend/utility/evo_tool.h"
+#include "slam_interfaces/InsPvax.h"
 // #define EVO
 
 
@@ -107,6 +108,36 @@ void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
 {
     backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude)));
     backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude));
+}
+
+void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
+{
+    if (msg->ins_status != 0xFFFFFFFF)
+        return;
+
+    if (msg->position_status != 4 || msg->heading_status != 4)
+        return;
+
+    if (msg->numsv <= 20)
+        return;
+
+    if (msg->rtk_age > 30)
+        return;
+
+    if (msg->latitude_std > 0.05 || msg->longitude_std > 0.05 || msg->altitude_std > 0.05)
+        return;
+
+    if (msg->roll_std > 0.1 || msg->pitch_std > 0.1 || msg->azimuth_std > 0.1)
+        return;
+
+    QD rot = EigenMath::RPY2Quaternion(V3D(msg->roll, msg->pitch, msg->azimuth));
+    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(),
+                                        V3D(msg->latitude, msg->longitude, msg->altitude),
+                                        rot,
+                                        V3D(msg->latitude_std, msg->longitude_std, msg->altitude_std)));
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
+                                        V3D(msg->latitude, msg->longitude, msg->altitude),
+                                        rot);
 }
 
 #ifdef UrbanLoco
@@ -356,8 +387,10 @@ int main(int argc, char **argv)
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
 #ifdef UrbanLoco
     ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, UrbanLoco_cbk);
-#else
+#elif defined(liosam)
     ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, gnss_cbk);
+#else
+    ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, gnss_ins_cbk);
 #endif
     // 发布当前正在扫描的点云，topic名字为/cloud_registered
     ros::Publisher pubLaserCloudFull = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered", 100000);
