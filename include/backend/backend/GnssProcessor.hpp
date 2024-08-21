@@ -2,6 +2,10 @@
 #include <deque>
 #include "backend/global_localization/UtmCoordinate.h"
 #include "backend/Header.h"
+// #define ENU
+#ifdef ENU
+#include "backend/global_localization/EnuCoordinate.hpp"
+#endif
 // #define UrbanLoco
 // #define liosam
 
@@ -120,7 +124,7 @@ void GnssProcessor::gnss_handler(const GnssPose &gnss_raw)
 
   if (count <= 10)
   {
-#if !defined(liosam)
+#if 0
     utm_origin = utm;
     printf("--utm_origin: east: %.5f, north: %.5f, up: %.5f, zone: %s\n", utm_origin.east, utm_origin.north, utm_origin.up, utm_origin.zone.c_str());
     start_point.emplace_back(V3D(utm_origin.east, utm_origin.north, utm_origin.up));
@@ -133,7 +137,7 @@ void GnssProcessor::gnss_handler(const GnssPose &gnss_raw)
 #endif
     return;
   }
-#if !defined(liosam)
+#if 0
   else if (count == 11)
   {
     if (check_mean_and_variance(start_point, utm_origin, 0.05))
@@ -150,11 +154,15 @@ void GnssProcessor::gnss_handler(const GnssPose &gnss_raw)
   }
 #endif
 
-  GnssPose utm_pose = gnss_raw;
-  utm_pose.gnss_position = V3D(utm.east - utm_origin.east, utm.north - utm_origin.north, utm.up - utm_origin.up);
-  gnss_buffer.push_back(utm_pose);
+  GnssPose gps_pose = gnss_raw;
+#ifdef ENU
+  gps_pose.gnss_position = zlam::Earth::LLH2ENU(gnss_raw.gnss_position, true);
+#else
+  gps_pose.gnss_position = V3D(utm.east - utm_origin.east, utm.north - utm_origin.north, utm.up - utm_origin.up);
+#endif
+  gnss_buffer.push_back(gps_pose);
 #ifndef NO_LOGER
-  LogAnalysis::save_trajectory(file_pose_gnss, utm_pose.gnss_position, utm_pose.gnss_quat, utm_pose.timestamp);
+  LogAnalysis::save_trajectory(file_pose_gnss, gps_pose.gnss_position, gps_pose.gnss_quat, gps_pose.timestamp);
 #endif
 }
 
