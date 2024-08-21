@@ -21,6 +21,14 @@
 #include "backend/utility/evo_tool.h"
 #include "slam_interfaces/InsPvax.h"
 // #define EVO
+#ifdef ENU
+namespace zlam
+{
+    Eigen::Vector3d Earth::_origin = Eigen::Vector3d::Zero();  // ECEF
+    Eigen::Matrix3d Earth::_cne = Eigen::Matrix3d::Identity(); //
+    bool Earth::_origin_setted = false;                        // 是否设置过圆心
+} // namespace zlam
+#endif
 
 
 bool showOptimizedPose = true;
@@ -119,16 +127,16 @@ void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
         return;
 
     if (msg->numsv <= 20)
-        return;
+    return;
 
     if (msg->rtk_age > 30)
         return;
 
     if (msg->latitude_std > 0.05 || msg->longitude_std > 0.05 || msg->altitude_std > 0.1)
-        return;
+    return;
 
     if (msg->roll_std > 0.05 || msg->pitch_std > 0.05 || msg->azimuth_std > 0.05)
-        return;
+    return;
 
     QD rot = EigenMath::RPY2Quaternion(V3D(msg->roll, msg->pitch, msg->azimuth));
     backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(),
@@ -377,6 +385,10 @@ int main(int argc, char **argv)
     load_ros_parameters(path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame, lidar_frame);
     load_parameters(frontend, backend, save_globalmap_en, lidar_type);
     load_pgm_parameters(save_pgm, pgm_resolution, min_z, max_z);
+
+#ifdef ENU
+    zlam::Earth::SetOrigin(V3D(31.4200590 , 120.6394099, 14.790));
+#endif
 
 #ifdef EVO
     evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));
