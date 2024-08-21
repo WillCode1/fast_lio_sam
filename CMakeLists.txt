@@ -61,6 +61,7 @@ if(ROS_EDITION STREQUAL "ROS1")
     tf
     livox_ros_driver
     eigen_conversions
+    slam_interfaces
   )
 
   find_package(Eigen3 REQUIRED)
@@ -128,6 +129,7 @@ else(ROS_EDITION STREQUAL "ROS2")
   find_package(pcl_conversions REQUIRED)
   find_package(tf2_ros REQUIRED)
   find_package(livox_ros_driver2 REQUIRED)
+  find_package(slam_interfaces REQUIRED)
 
   find_package(Eigen3 REQUIRED)
   find_package(PCL 1.8 REQUIRED)
