@@ -1,7 +1,8 @@
 common:
-    lidar_topic:  "/drivers/top_lidar_origin"
-    imu_topic:  "/drivers/imu_data"
-    gnss_topic:  "/gps/fix"
+    lidar_topic:  "/points_raw"
+    imu_topic:  "/imu_raw"
+    gnss_topic:  "/rtk_ins"
+    # gnss_topic:  "/rtk"
     map_frame:  "map"
     body_frame:  "body"
     lidar_frame:  "lidar"
@@ -41,7 +42,7 @@ mapping:
     ikdtree_reconstruct_downsamp_size: 0.1
 
     # for add GNSS factor
-    pose_cov_threshold: 25
+    pose_cov_threshold: 0
     gnssValidInterval: 0.1
     gpsCovThreshold: 2
     useGpsElevation: true
@@ -65,15 +66,19 @@ mapping:
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
     # lidar -> imu
-    extrinsic_T: [ -0.00665, 0, -1.51277]
-    extrinsic_R: [ 1, 0, 0, 
-                   0, -1, 0, 
-                   0, 0, -1 ]
+    extrinsic_T: [ -1.86788048, 1.439669, -0.04807745 ]
+    extrinsic_R: [ -0.00337318, 0.9999481, -0.00961673, 
+                   -0.9999394, -0.00347372, -0.01045515, 
+                   -0.01048799, 0.00958081, 0.99989912 ]
     # lidar -> gnss
-    extrinsic_gnss_T: [ 0, 0, 0 ]
-    extrinsic_gnss_R: [ 1, 0, 0, 
-                        0, 1, 0, 
-                        0, 0, 1 ]
+    extrinsic_gnss_T: [ 0, 1.9, 1.25 ]   # cgi=car
+    extrinsic_gnss_R: [ -0.0016280, -0.9999238, -0.0122332, 
+                        0.9999526, -0.0017452, 0.0095778, 
+                        -0.0095984, -0.0122170, 0.9998793 ]
+    # extrinsic_gnss_T: [ -0.49459332, 3.43799565, 0.13195309 ]
+    # extrinsic_gnss_R: [ -0.99991086, 0.00523579, -0.01228374, 
+    #                     -0.00535283, -0.9999404, 0.0095129, 
+    #                     -0.01223317, 0.00957778, 0.9998793 ]
 
 scan_context:
     lidar_height: 2.183
@@ -85,9 +90,9 @@ publish:
     dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
 
 official:
-    ground_constraint_enable: true
+    ground_constraint_enable: false
     ground_constraint_angle: 5
-    save_globalmap_en: false
+    save_globalmap_en: true
     save_resolution: 0.2
     save_keyframe_en: false
     save_keyframe_descriptor_en: false
