@@ -92,7 +92,6 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     extrinT_eigen << VEC_FROM_ARRAY(extrinT);
     extrinR_eigen << MAT_FROM_ARRAY(extrinR);
     backend.gnss->set_extrinsic(extrinT_eigen, extrinR_eigen);
-    frontend.extrinsic_lidar2gnss = backend.gnss->extrinsic_lidar2gnss;
 
     node->get_parameter("recontruct_kdtree", backend.backend->recontruct_kdtree);
     node->get_parameter("ikdtree_reconstruct_keyframe_num", backend.backend->ikdtree_reconstruct_keyframe_num);

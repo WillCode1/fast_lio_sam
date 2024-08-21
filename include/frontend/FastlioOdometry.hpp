@@ -80,14 +80,7 @@ public:
             // 2.gravity aligns the imu direction
             imu->get_imu_init_rot(preset_gravity, state.grav.vec, state.rot);
             state.rot.normalize();
-#if 0
-            // 3.fix lidar_init pos by utm (0, 0, 0)
-            Eigen::Matrix4d utm_pose = Eigen::Matrix4d::Identity();
-            utm_pose *= extrinsic_lidar2gnss;
-            state.pos = utm_pose.topRightCorner(3, 1);
-            state.pos -= state.rot * state.offset_T_L_I;
-#endif
-            // 4.fix gravity vec
+            // 3.fix gravity vec
             gravity_init = state.grav.vec = state.rot * state.grav.vec;
 
             auto tmp = EigenMath::Quaternion2RPY(state.rot);
@@ -688,7 +681,6 @@ public:
     V3D offset_Tli;
     M3D offset_Rli;
     V3D gravity_init;
-    Eigen::Matrix4d extrinsic_lidar2gnss;
     LogAnalysis loger;
 
     /*** sensor data processor ***/
