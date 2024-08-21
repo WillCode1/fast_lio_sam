@@ -12,7 +12,7 @@
 #include "backend/backend/Backend.hpp"
 #include "backend/utility/ProgressBar.h"
 #include "ParametersRos1.h"
-#ifdef EVO
+#ifdef ENU
 namespace zlam
 {
     Eigen::Vector3d Earth::_origin = Eigen::Vector3d::Zero();  // ECEF
