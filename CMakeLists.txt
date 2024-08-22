@@ -168,6 +168,7 @@ else(ROS_EDITION STREQUAL "ROS2")
   add_executable(fastlio_sam_ros2 src/ros2_main.cpp
     include/frontend/ikd-Tree/ikd_Tree.cpp
     include/backend/global_localization/scancontext/Scancontext.cpp
+    include/backend/global_localization/InitCoordinate.cpp
     include/frontend/ImuProcessor.cpp
     include/frontend/use-ikfom.cpp
     include/backend/backend/Backend.hpp)
