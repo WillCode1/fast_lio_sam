@@ -12,14 +12,6 @@
 #include "backend/backend/Backend.hpp"
 #include "backend/utility/ProgressBar.h"
 #include "ParametersRos1.h"
-#ifdef ENU
-namespace zlam
-{
-    Eigen::Vector3d Earth::_origin = Eigen::Vector3d::Zero();  // ECEF
-    Eigen::Matrix3d Earth::_cne = Eigen::Matrix3d::Identity(); //
-    bool Earth::_origin_setted = false;                        // 是否设置过圆心
-} // namespace zlam
-#endif
 using namespace std;
 FILE *location_log = nullptr;
 

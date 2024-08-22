@@ -90,6 +90,7 @@ if(ROS_EDITION STREQUAL "ROS1")
     include/frontend/ImuProcessor.cpp
     include/frontend/use-ikfom.cpp
     include/backend/global_localization/scancontext/Scancontext.cpp
+    include/backend/global_localization/InitCoordinate.cpp
     include/backend/backend/Backend.hpp)
   target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
 

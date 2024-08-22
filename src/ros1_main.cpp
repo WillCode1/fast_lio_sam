@@ -21,14 +21,8 @@
 #include "backend/utility/evo_tool.h"
 #include "slam_interfaces/InsPvax.h"
 // #define EVO
-#ifdef ENU
-namespace zlam
-{
-    Eigen::Vector3d Earth::_origin = Eigen::Vector3d::Zero();  // ECEF
-    Eigen::Matrix3d Earth::_cne = Eigen::Matrix3d::Identity(); //
-    bool Earth::_origin_setted = false;                        // 是否设置过圆心
-} // namespace zlam
-#endif
+// #define UrbanLoco
+// #define liosam
 
 
 bool showOptimizedPose = true;
@@ -118,6 +112,17 @@ void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
     backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude));
 }
 
+void UrbanLoco_cbk(const nav_msgs::OdometryConstPtr &msg)
+{
+    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(),
+                                        V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                        QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
+                                        V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
+                                                 V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+                                                 QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z));
+}
+
 void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
 {
     if (msg->ins_status != 0xFFFFFFFF)
@@ -127,39 +132,26 @@ void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
         return;
 
     if (msg->numsv <= 20)
-    return;
+        return;
 
     if (msg->rtk_age > 30)
         return;
 
-    if (msg->latitude_std > 0.05 || msg->longitude_std > 0.05 || msg->altitude_std > 0.1)
-    return;
+    // if (msg->latitude_std > 0.05 || msg->longitude_std > 0.05 || msg->altitude_std > 0.1)
+    //     return;
 
-    if (msg->roll_std > 0.05 || msg->pitch_std > 0.05 || msg->azimuth_std > 0.05)
-    return;
+    // if (msg->roll_std > 0.05 || msg->pitch_std > 0.05 || msg->azimuth_std > 0.05)
+    //     return;
 
     QD rot = EigenMath::RPY2Quaternion(V3D(msg->roll, msg->pitch, msg->azimuth));
     backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(),
-                                        V3D(msg->latitude, msg->longitude, msg->altitude),
+                                        V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude),
                                         rot,
                                         V3D(msg->latitude_std, msg->longitude_std, msg->altitude_std)));
     backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
-                                        V3D(msg->latitude, msg->longitude, msg->altitude),
+                                        V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude),
                                         rot);
 }
-
-#ifdef UrbanLoco
-void UrbanLoco_cbk(const nav_msgs::OdometryConstPtr &msg)
-{
-    backend.gnss->UrbanLoco_handler(GnssPose(msg->header.stamp.toSec(),
-                                             V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
-                                             QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
-                                             V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
-    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
-                                                 V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
-                                                 QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z));
-}
-#endif
 
 void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, const double& lidar_end_time, const std::string& frame_id)
 {
@@ -387,7 +379,9 @@ int main(int argc, char **argv)
     load_pgm_parameters(save_pgm, pgm_resolution, min_z, max_z);
 
 #ifdef ENU
-    zlam::Earth::SetOrigin(V3D(31.4200590 , 120.6394099, 14.790));
+    enu_coordinate::Earth::SetOrigin(V3D(31.4200590 , 120.6394099, 14.790));
+#else
+    utm_coordinate::SetUtmOrigin(V3D(31.4200590 , 120.6394099, 14.790));
 #endif
 
 #ifdef EVO

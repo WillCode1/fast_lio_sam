@@ -56,7 +56,7 @@ mapping:
     # for add GNSS factor
     pose_cov_threshold: 0
     gnssValidInterval: 0.1
-    gpsCovThreshold: 2
+    gpsCovThreshold: 0.05
     useGpsElevation: true
 
     # for loop closure

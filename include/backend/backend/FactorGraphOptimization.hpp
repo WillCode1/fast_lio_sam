@@ -159,17 +159,15 @@ private:
             return;
         if (keyframe_pose6d_optimized->points.empty())
             return;
-        else if (pointDistance(keyframe_pose6d_optimized->front(), keyframe_pose6d_optimized->back()) < 5.0)
-            return;
         if (std::hypot(pose_covariance(3, 3), pose_covariance(4, 4)) < pose_cov_threshold)
             return;
-        // LOG_INFO("try to add GPS Factor!");
+
         GnssPose thisGPS;
         if (gnss->get_gnss_factor(thisGPS, this_pose6d.time, this_pose6d.z))
         {
-            auto gnss_time_interval_weight = 1.0;
+            auto gnss_weight = 1.0;
             gtsam::Vector Vector3(3);
-            Vector3 << max(thisGPS.covariance(0), gnss_time_interval_weight), max(thisGPS.covariance(1), gnss_time_interval_weight), max(thisGPS.covariance(2), 0.05);
+            Vector3 << max(thisGPS.covariance(0), gnss_weight), max(thisGPS.covariance(1), gnss_weight), max(thisGPS.covariance(2), 0.05);
             gtsam::noiseModel::Diagonal::shared_ptr gnss_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
             gtsam::GPSFactor gps_factor(keyframe_pose6d_optimized->size(), gtsam::Point3(thisGPS.lidar_pos_fix(0), thisGPS.lidar_pos_fix(1), thisGPS.lidar_pos_fix(2)), gnss_noise);
             gtsam_graph.add(gps_factor);
