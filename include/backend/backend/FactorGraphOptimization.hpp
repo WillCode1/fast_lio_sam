@@ -75,9 +75,7 @@ public:
         isam = new gtsam::ISAM2(parameters);
 
         // rpy(rad*rad), xyz(meter*meter)
-        prior_noise_indoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12).finished());
-        prior_noise_outdoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
-        // prior_noise_outdoor = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1, 1, 1e-12).finished());
+        prior_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
         odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
     }
 
@@ -119,7 +117,7 @@ private:
     {
         if (keyframe_pose6d_optimized->points.empty())
         {
-            gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise_outdoor));
+            gtsam_graph.add(gtsam::PriorFactor<gtsam::Pose3>(0, pclPointTogtsamPose3(this_pose6d), prior_noise));
             init_estimate.insert(0, pclPointTogtsamPose3(this_pose6d));
 
 #ifdef MAP_STITCH
@@ -128,7 +126,7 @@ private:
             factor.index_from = 0;
             factor.index_to = 0;
             factor.value = pclPointTogtsamPose3(this_pose6d);
-            factor.noise = prior_noise_outdoor->covariance().diagonal();
+            factor.noise = prior_noise->covariance().diagonal();
             gtsam_factors.emplace(factor);
             init_values[0] = factor.value;
 #endif
@@ -318,8 +316,7 @@ public:
     gtsam::Values init_estimate;
     gtsam::Values optimized_estimate;
     gtsam::ISAM2 *isam;
-    gtsam::noiseModel::Diagonal::shared_ptr prior_noise_indoor;
-    gtsam::noiseModel::Diagonal::shared_ptr prior_noise_outdoor;
+    gtsam::noiseModel::Diagonal::shared_ptr prior_noise;
     gtsam::noiseModel::Diagonal::shared_ptr odometry_noise;
     Eigen::MatrixXd pose_covariance;
 
