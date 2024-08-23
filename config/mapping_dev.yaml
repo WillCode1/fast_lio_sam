@@ -42,7 +42,7 @@ mapping:
     ikdtree_reconstruct_downsamp_size: 0.1
 
     # for add GNSS factor
-    pose_cov_threshold: 0
+    pose_cov_threshold: 0.
     gnssValidInterval: 0.1
     gpsCovThreshold: 0.05
     useGpsElevation: true
@@ -92,8 +92,8 @@ publish:
 official:
     ground_constraint_enable: false
     ground_constraint_angle: 5
-    save_globalmap_en: true
+    save_globalmap_en: false
     save_resolution: 0.2
-    save_keyframe_en: false
+    save_keyframe_en: true
     save_keyframe_descriptor_en: false
     # map_path: "/home/will/data/test_mapping/mapping1"
