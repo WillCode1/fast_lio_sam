@@ -7,14 +7,14 @@
 
 struct GnssPose
 {
-  GnssPose(const double &time = 0, const V3D &pos = ZERO3D, const QD &rot = EYEQD, const V3D &cov = ZERO3D)
+  GnssPose(const double &time = 0, const V3D &pos = ZERO3D, const QD &rot = EYEQD, const Eigen::VectorXd &cov = Eigen::VectorXd::Zero(6))
       : timestamp(time), gnss_position(pos), gnss_quat(rot.normalized()), covariance(cov) {}
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   double timestamp;
   V3D gnss_position;
   QD gnss_quat;
-  V3D covariance;
+  Eigen::VectorXd covariance;
 
   float current_gnss_interval;
   V3D lidar_pos_fix; // utm add extrinsic
@@ -47,8 +47,11 @@ public:
   void gnss_handler(const GnssPose &gnss_raw);
   bool get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_time, const double &odom_z);
 
+  int numsv = 20;
+  float rtk_age = 30;
+  vector<float> gpsCovThreshold;
+
   float gnssValidInterval = 0.2;
-  float gpsCovThreshold = 2;
   bool useGpsElevation = false;
   deque<GnssPose> gnss_buffer;
   Eigen::Matrix4d extrinsic_lidar2gnss;
@@ -119,10 +122,14 @@ bool GnssProcessor::get_gnss_factor(GnssPose &thisGPS, const double &lidar_end_t
   while (!gnss_buffer.empty())
   {
     const auto &header_msg = gnss_buffer.front();
-    if (header_msg.covariance(0) > gpsCovThreshold || header_msg.covariance(1) > gpsCovThreshold)
+    if (header_msg.covariance(0) > gpsCovThreshold[0] || header_msg.covariance(1) > gpsCovThreshold[1] ||
+        header_msg.covariance(2) > gpsCovThreshold[2] || header_msg.covariance(3) > gpsCovThreshold[3] ||
+        header_msg.covariance(4) > gpsCovThreshold[4] || header_msg.covariance(5) > gpsCovThreshold[5])
     {
-      LOG_WARN("GPS noise covariance is too large (%f, %f), threshold = %f, ignored!",
-               header_msg.covariance(0), header_msg.covariance(1), gpsCovThreshold);
+      LOG_WARN("GPS noise covariance is too large (%f, %f, %f, %f, %f, %f), ignored!",
+               header_msg.covariance(0), header_msg.covariance(1),
+               header_msg.covariance(2), header_msg.covariance(3),
+               header_msg.covariance(4), header_msg.covariance(5));
       gnss_buffer.pop_front();
     }
     else if (header_msg.timestamp < lidar_end_time - gnssValidInterval)

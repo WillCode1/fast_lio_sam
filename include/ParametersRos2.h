@@ -42,9 +42,11 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
 
     node->declare_parameter("keyframe_add_dist_threshold", 1.f);
     node->declare_parameter("keyframe_add_angle_threshold", 0.2f);
+    node->declare_parameter("numsv", 20);
+    node->declare_parameter("rtk_age", 30.f);
+    node->declare_parameter("gpsCovThreshold", vector<float>());
     node->declare_parameter("pose_cov_threshold", 25.f);
     node->declare_parameter("gnssValidInterval", 0.2f);
-    node->declare_parameter("gpsCovThreshold", 2.f);
     node->declare_parameter("useGpsElevation", false);
     node->declare_parameter("extrinsic_gnss_T", vector<double>());
     node->declare_parameter("extrinsic_gnss_R", vector<double>());
@@ -82,9 +84,11 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
 
     node->get_parameter("keyframe_add_dist_threshold", backend.backend->keyframe_add_dist_threshold);
     node->get_parameter("keyframe_add_angle_threshold", backend.backend->keyframe_add_angle_threshold);
+    node->get_parameter("numsv", backend.gnss->numsv);
+    node->get_parameter("rtk_age", backend.gnss->rtk_age);
+    node->get_parameter("gpsCovThreshold", backend.gnss->gpsCovThreshold);
     node->get_parameter("pose_cov_threshold", backend.backend->pose_cov_threshold);
     node->get_parameter("gnssValidInterval", backend.gnss->gnssValidInterval);
-    node->get_parameter("gpsCovThreshold", backend.gnss->gpsCovThreshold);
     node->get_parameter("useGpsElevation", backend.gnss->useGpsElevation);
 
     node->get_parameter("extrinsic_gnss_T", extrinT);

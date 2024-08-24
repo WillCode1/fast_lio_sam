@@ -131,23 +131,18 @@ void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
     if (msg->position_status != 4 || msg->heading_status != 4)
         return;
 
-    if (msg->numsv <= 20)
+    if (msg->numsv <= backend.gnss->numsv)
         return;
 
-    if (msg->rtk_age > 30)
+    if (msg->rtk_age > backend.gnss->rtk_age)
         return;
-
-    // if (msg->latitude_std > 0.05 || msg->longitude_std > 0.05 || msg->altitude_std > 0.1)
-    //     return;
-
-    // if (msg->roll_std > 0.05 || msg->pitch_std > 0.05 || msg->azimuth_std > 0.05)
-    //     return;
 
     QD rot = EigenMath::RPY2Quaternion(V3D(msg->roll, msg->pitch, msg->azimuth));
+    Eigen::VectorXd pose_std(6);
+    pose_std << msg->latitude_std, msg->longitude_std, msg->altitude_std, msg->roll_std, msg->pitch_std, msg->azimuth_std;
     backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(),
                                         V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude),
-                                        rot,
-                                        V3D(msg->latitude_std, msg->longitude_std, msg->altitude_std)));
+                                        rot, pose_std));
     backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
                                         V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude),
                                         rot);
