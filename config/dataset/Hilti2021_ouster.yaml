@@ -43,9 +43,12 @@ mapping:
     ikdtree_reconstruct_downsamp_size: 0.1
 
     # for add GNSS factor
-    pose_cov_threshold: 0
+    lla: [0, 0, 0]
+    numsv: 20
+    rtk_age: 30
+    gpsCovThreshold: [0.05, 0.05, 0.1, 0.05, 0.05, 0.05]
+    pose_cov_threshold: 0.
     gnssValidInterval: 0.1
-    gpsCovThreshold: 0.05
     useGpsElevation: true
 
     # for loop closure
