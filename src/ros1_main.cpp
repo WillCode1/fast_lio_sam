@@ -132,7 +132,7 @@ void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
         return;
 
     if (msg->numsv <= backend.gnss->numsv)
-        return;
+    return;
 
     if (msg->rtk_age > backend.gnss->rtk_age)
         return;
@@ -362,21 +362,23 @@ int main(int argc, char **argv)
     bool save_pgm = false;
     double pgm_resolution;
     float min_z, max_z;
+    std::vector<double> lla;
     // location_log = fopen(DEBUG_FILE_DIR("location.log").c_str(), "a");
 
     ros::param::param("showOptimizedPose", showOptimizedPose, true);
     ros::param::param("globalMapVisualizationSearchRadius", globalMapVisualizationSearchRadius, 1000.);
     ros::param::param("globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.);
     ros::param::param("globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.);
+    ros::param::param("mapping/lla", lla, std::vector<double>());
 
     load_ros_parameters(path_en, scan_pub_en, dense_pub_en, lidar_topic, imu_topic, gnss_topic, map_frame, body_frame, lidar_frame);
     load_parameters(frontend, backend, save_globalmap_en, lidar_type);
     load_pgm_parameters(save_pgm, pgm_resolution, min_z, max_z);
 
 #ifdef ENU
-    enu_coordinate::Earth::SetOrigin(V3D(31.4200590 , 120.6394099, 14.790));
+    enu_coordinate::Earth::SetOrigin(V3D(lla[0], lla[1], lla[2]));
 #else
-    utm_coordinate::SetUtmOrigin(V3D(31.4200590 , 120.6394099, 14.790));
+    utm_coordinate::SetUtmOrigin(V3D(lla[0], lla[1], lla[2]));
 #endif
 
 #ifdef EVO

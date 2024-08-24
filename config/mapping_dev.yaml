@@ -41,6 +41,7 @@ mapping:
     ikdtree_reconstruct_downsamp_size: 0.1
 
     # for add GNSS factor
+    lla: [31.4200590, 120.6394099, 14.790]
     numsv: 20
     rtk_age: 30
     gpsCovThreshold: [0.05, 0.05, 0.1, 0.05, 0.05, 0.05]
