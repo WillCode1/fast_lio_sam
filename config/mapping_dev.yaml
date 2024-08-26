@@ -35,6 +35,7 @@ mapping:
 
     # for backend
     keyframe_add_dist_threshold: 1
+    # keyframe_add_dist_threshold: 2
     keyframe_add_angle_threshold: 0.2
     recontruct_kdtree: true
     ikdtree_reconstruct_keyframe_num: 10
