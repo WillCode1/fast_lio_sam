@@ -2,7 +2,7 @@
 FILE *location_log = nullptr;
 
 void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc,
-                   int keyframe_cnt, int num_digits = 6, double max_dis = 500, double min_dis = 3)
+                   int keyframe_cnt, int num_digits = 6, double max_dis = 80, double min_dis = 3)
 {
     std::ostringstream out;
     out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt;
