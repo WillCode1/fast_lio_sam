@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     string param1, param2;
     if (argc == 2 || argc == 3)
         param1 = argv[1];
-    else if (argc == 3)
+    if (argc == 3)
         param2 = argv[2];
 
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d(new pcl::PointCloud<PointXYZIRPYT>());
