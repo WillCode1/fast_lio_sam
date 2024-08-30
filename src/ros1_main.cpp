@@ -35,6 +35,7 @@ Backend backend;
 std::string map_frame;
 std::string body_frame;
 std::string lidar_frame;
+ros::Publisher pubGpsIns;
 FILE *location_log = nullptr;
 
 bool flg_exit = false;
@@ -128,11 +129,28 @@ void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
     if (msg->ins_status != 0xFFFFFFFF)
         return;
 
+#if 0
+    geometry_msgs::Twist gps_pose;
+    V3D gnss_position = V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude);
+#ifdef ENU
+    gnss_position = enu_coordinate::Earth::LLH2ENU(gnss_position, true);
+#else
+    gnss_position = utm_coordinate::LLAtoUTM2(gnss_position);
+#endif
+    gps_pose.linear.x = gnss_position.x();
+    gps_pose.linear.y = gnss_position.y();
+    gps_pose.linear.z = gnss_position.z();
+    gps_pose.angular.x = RAD2DEG(msg->roll);
+    gps_pose.angular.y = RAD2DEG(msg->pitch);
+    gps_pose.angular.z = RAD2DEG(msg->azimuth);
+    pubGpsIns.publish(gps_pose);
+#endif
+
     if (msg->position_status != 4 || msg->heading_status != 4)
         return;
 
     if (msg->numsv <= backend.gnss->numsv)
-    return;
+        return;
 
     if (msg->rtk_age > backend.gnss->rtk_age)
         return;
@@ -411,6 +429,7 @@ int main(int argc, char **argv)
     std::thread visualizeMapThread = std::thread(&visualize_globalmap_thread, pubGlobalmap);
     ros::Subscriber sub_initpose = nh.subscribe("/initialpose", 1, initialPoseCallback);
     // ros::Publisher pubground_points = nh.advertise<sensor_msgs::PointCloud2>("/ground_points", 100000);
+    pubGpsIns = nh.advertise<geometry_msgs::Twist>("/gps_ins_pose", 100000);
 
     //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
