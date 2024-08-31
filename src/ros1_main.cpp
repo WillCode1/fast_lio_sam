@@ -109,18 +109,18 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
 
 void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
 {
-    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude)));
-    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), V3D(msg->latitude, msg->longitude, msg->altitude));
+    V3D gnss_position = backend.gnss->gnss_global2local(V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude));
+    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), gnss_position));
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), gnss_position);
 }
 
 void UrbanLoco_cbk(const nav_msgs::OdometryConstPtr &msg)
 {
-    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(),
-                                        V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+    V3D gnss_position = backend.gnss->gnss_global2local(V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z));
+    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), gnss_position,
                                         QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z),
                                         V3D(msg->pose.covariance[21], msg->pose.covariance[28], msg->pose.covariance[35])));
-    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
-                                                 V3D(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z),
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), gnss_position,
                                                  QD(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z));
 }
 
@@ -129,14 +129,10 @@ void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
     if (msg->ins_status != 0xFFFFFFFF)
         return;
 
+    V3D gnss_position = backend.gnss->gnss_global2local(V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude));
+
 #if 0
     geometry_msgs::Twist gps_pose;
-    V3D gnss_position = V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude);
-#ifdef ENU
-    gnss_position = enu_coordinate::Earth::LLH2ENU(gnss_position, true);
-#else
-    gnss_position = utm_coordinate::LLAtoUTM2(gnss_position);
-#endif
     gps_pose.linear.x = gnss_position.x();
     gps_pose.linear.y = gnss_position.y();
     gps_pose.linear.z = gnss_position.z();
@@ -158,12 +154,8 @@ void gnss_ins_cbk(const slam_interfaces::InsPvax::ConstPtr &msg)
     QD rot = EigenMath::RPY2Quaternion(V3D(msg->roll, msg->pitch, msg->azimuth));
     Eigen::VectorXd pose_std(6);
     pose_std << msg->latitude_std, msg->longitude_std, msg->altitude_std, msg->roll_std, msg->pitch_std, msg->azimuth_std;
-    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(),
-                                        V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude),
-                                        rot, pose_std));
-    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(),
-                                        V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude),
-                                        rot);
+    backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), gnss_position, rot, pose_std));
+    backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), gnss_position, rot);
 }
 
 void publish_cloud(const ros::Publisher &pubCloud, PointCloudType::Ptr cloud, const double& lidar_end_time, const std::string& frame_id)

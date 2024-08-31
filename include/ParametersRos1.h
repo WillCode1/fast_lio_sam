@@ -90,11 +90,6 @@ inline void load_parameters(FastlioOdometry &frontend, Backend &backend, bool &s
 
     if (false)
     {
-        ros::param::param("utm_origin/zone", backend.relocalization->utm_origin.zone, std::string("51N"));
-        ros::param::param("utm_origin/east", backend.relocalization->utm_origin.east, 0.);
-        ros::param::param("utm_origin/north", backend.relocalization->utm_origin.north, 0.);
-        ros::param::param("utm_origin/up", backend.relocalization->utm_origin.up, 0.);
-
         ros::param::param("mapping/extrinsicT_imu2gnss", extrinT, vector<double>());
         ros::param::param("mapping/extrinsicR_imu2gnss", extrinR, vector<double>());
         extrinT_eigen << VEC_FROM_ARRAY(extrinT);
