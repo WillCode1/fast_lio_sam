@@ -34,8 +34,8 @@ mapping:
     runtime_log_enable: 0
 
     # for backend
-    keyframe_add_dist_threshold: 1
-    # keyframe_add_dist_threshold: 2
+    # keyframe_add_dist_threshold: 1
+    keyframe_add_dist_threshold: 2.5
     keyframe_add_angle_threshold: 0.2
     recontruct_kdtree: true
     ikdtree_reconstruct_keyframe_num: 10
@@ -54,8 +54,8 @@ mapping:
     loop_closure_interval: 300
     loop_closure_enable_flag: true
     loop_keyframe_num_thld: 50
-    loop_closure_search_radius: 15
-    loop_closure_keyframe_interval: 30
+    loop_closure_search_radius: 40
+    loop_closure_keyframe_interval: 100
     keyframe_search_num: 20
     loop_closure_fitness_score_thld: 0.2
     icp_downsamp_size: 0.1
@@ -68,7 +68,7 @@ mapping:
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-    # lidar -> imu
+    # lidar -> imu = lidar->base * base->imu
     extrinsic_T: [ 1.43277653, 1.87324502, 0.04516174 ]
     extrinsic_R: [ -0.0033732, -0.99993922, -0.01048801,
                    0.99994804, -0.0034737, 0.00958088,

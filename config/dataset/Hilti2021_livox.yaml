@@ -80,7 +80,7 @@ mapping:
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic,
-    # lidar -> imu
+    # lidar -> imu = lidar->base * base->imu
     extrinsic_T: [ -0.003050707070885951, -0.021993853931529066, 0.15076415229379997 ]
     extrinsic_R: [ 0.9998300, 0.0170232, -0.0070793,
                    0.0171417, -0.9997082, 0.0170198,
