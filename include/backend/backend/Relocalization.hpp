@@ -14,7 +14,7 @@
 #include "GnssProcessor.hpp"
 #include "backend/global_localization/bnb3d.h"
 #include "backend/global_localization/scancontext/Scancontext.h"
-// #define gnss_with_direction
+#define gnss_with_direction
 
 class Relocalization
 {
