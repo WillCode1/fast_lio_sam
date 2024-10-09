@@ -150,8 +150,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 21.38045883178711
-            Min Value: -8.6498441696167
+            Max Value: 59.2781867980957
+            Min Value: -2.2501187324523926
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -167,7 +167,7 @@ Visualization Manager:
           Position Transformer: XYZ
           Queue Size: 1
           Selectable: true
-          Size (Pixels): 1
+          Size (Pixels): 2
           Size (m): 0.009999999776482582
           Style: Points
           Topic: /map_global
@@ -362,7 +362,8 @@ Visualization Manager:
       Marker Topic: /loop_closure_constraints
       Name: MarkerArray
       Namespaces:
-        {}
+        loop_edges: true
+        loop_nodes: true
       Queue Size: 1
       Value: true
     - Alpha: 1
