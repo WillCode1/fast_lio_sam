@@ -4,7 +4,7 @@
 	<arg name="rviz" default="true" />
 
     <!-- <rosparam file="$(find fast_lio_sam)/config/avia.yaml" command="load" /> -->
-    <!-- <rosparam file="$(find fast_lio_sam)/config/mid360.yaml" command="load" /> -->
+    <rosparam file="$(find fast_lio_sam)/config/mid360.yaml" command="load" />
     <!-- <rosparam file="$(find fast_lio_sam)/config/test_mid360.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/horizon.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/velodyne.yaml" command="load" /> -->
@@ -12,7 +12,7 @@
     <!-- <rosparam file="$(find fast_lio_sam)/config/vanji720_16.yaml" command="load" /> -->
 
     <!-- <rosparam file="$(find fast_lio_sam)/config/mapping_backup.yaml" command="load" /> -->
-    <rosparam file="$(find fast_lio_sam)/config/mapping_dev.yaml" command="load" />
+    <!-- <rosparam file="$(find fast_lio_sam)/config/mapping_dev.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/mapping_imu_backshaft.yaml" command="load" /> -->
     <!-- <rosparam file="$(find fast_lio_sam)/config/mapping_pointlio.yaml" command="load" /> -->
 
