@@ -135,6 +135,7 @@ public:
     static void SetOrigin(const Eigen::Vector3d pos, bool is_deg = true) {
         _origin = LLH2ECEF(pos, is_deg);
         _cne = Pos2Cne(pos, is_deg);
+        printf("lla_origin = (%.8f, %.8f, %.8f).\n", is_deg ? pos[0] : pos[0] / gl_deg, is_deg ? pos[1] : pos[1] / gl_deg, pos[2]);
         _origin_setted = true;
     }
 
@@ -155,12 +156,10 @@ public:
     }
 
     static Eigen::Vector3d LLH2ENU(const Eigen::Vector3d &pos, bool is_deg = false) {
-        if (_origin_setted) {
-            return _cne * (LLH2ECEF(pos, is_deg) - _origin);
-        } else {
-            std::cerr << "please set the origin first.\n";
-            return Eigen::Vector3d::Zero();
+        if (!_origin_setted) {
+            SetOrigin(pos, is_deg);
         }
+        return _cne * (LLH2ECEF(pos, is_deg) - _origin);
     }
 
     static Eigen::Vector3d ENU2LLH(const Eigen::Vector3d &pos, const Eigen::Vector3d &origin, bool is_deg = false) {

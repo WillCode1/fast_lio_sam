@@ -385,11 +385,14 @@ int main(int argc, char **argv)
     load_parameters(frontend, backend, save_globalmap_en, lidar_type);
     load_pgm_parameters(save_pgm, pgm_resolution, min_z, max_z);
 
+    if (lla.size() == 3 && lla[0] != 0)
+    {
 #ifdef ENU
-    enu_coordinate::Earth::SetOrigin(V3D(lla[0], lla[1], lla[2]));
+        enu_coordinate::Earth::SetOrigin(V3D(lla[0], lla[1], lla[2]));
 #else
-    utm_coordinate::SetUtmOrigin(V3D(lla[0], lla[1], lla[2]));
+        utm_coordinate::SetUtmOrigin(V3D(lla[0], lla[1], lla[2]));
 #endif
+    }
 
 #ifdef EVO
     evo_tool et(DEBUG_FILE_DIR("pose_trajectory.txt"));

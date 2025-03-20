@@ -264,6 +264,7 @@ namespace utm_coordinate
         lla.longitude = llh(1);
         lla.altitude = llh(2);
         utm_coordinate::LLAtoUTM(lla, utm_origin);
+        printf("lla_origin = (%.8f, %.8f, %.8f).\n", lla.latitude, lla.longitude, lla.altitude);
         origin_setted = true;
     }
 
@@ -271,8 +272,7 @@ namespace utm_coordinate
     {
         if (!origin_setted)
         {
-            std::cerr << "please set the origin first.\n";
-            return Eigen::Vector3d::Zero();
+            SetUtmOrigin(llh);
         }
 
         utm_point utm;
