@@ -61,6 +61,7 @@ mapping:
     rtk_age: 30
     gpsCovThreshold: [0.05, 0.05, 0.1, 0.05, 0.05, 0.05]
     pose_cov_threshold: 0.
+    gnss_weight: [1, 1, 0.1]
     gnssValidInterval: 0.1
     useGpsElevation: true
 
