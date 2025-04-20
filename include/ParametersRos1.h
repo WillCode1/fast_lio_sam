@@ -35,6 +35,7 @@ inline void load_parameters(FastlioOdometry &frontend, Backend &backend, bool &s
     ros::param::param("mapping/rtk_age", backend.gnss->rtk_age, 30.f);
     ros::param::param("mapping/gpsCovThreshold", backend.gnss->gpsCovThreshold, vector<float>());
     ros::param::param("mapping/pose_cov_threshold", backend.backend->pose_cov_threshold, 25.f);
+    ros::param::param("mapping/gnss_weight", backend.backend->gnss_weight, vector<double>());
     ros::param::param("mapping/gnssValidInterval", backend.gnss->gnssValidInterval, 0.2f);
     ros::param::param("mapping/useGpsElevation", backend.gnss->useGpsElevation, false);
 

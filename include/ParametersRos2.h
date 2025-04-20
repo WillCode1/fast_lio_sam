@@ -46,6 +46,7 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     node->declare_parameter("rtk_age", 30.f);
     node->declare_parameter("gpsCovThreshold", vector<float>());
     node->declare_parameter("pose_cov_threshold", 25.f);
+    node->declare_parameter("gnss_weight", vector<double>());
     node->declare_parameter("gnssValidInterval", 0.2f);
     node->declare_parameter("useGpsElevation", false);
     node->declare_parameter("extrinsic_gnss_T", vector<double>());
@@ -88,6 +89,7 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     node->get_parameter("rtk_age", backend.gnss->rtk_age);
     node->get_parameter("gpsCovThreshold", backend.gnss->gpsCovThreshold);
     node->get_parameter("pose_cov_threshold", backend.backend->pose_cov_threshold);
+    node->get_parameter("gnss_weight", backend.backend->gnss_weight);
     node->get_parameter("gnssValidInterval", backend.gnss->gnssValidInterval);
     node->get_parameter("useGpsElevation", backend.gnss->useGpsElevation);
 
