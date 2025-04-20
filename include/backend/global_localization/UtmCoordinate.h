@@ -264,7 +264,7 @@ namespace utm_coordinate
         lla.longitude = llh(1);
         lla.altitude = llh(2);
         utm_coordinate::LLAtoUTM(lla, utm_origin);
-        printf("lla_origin = (%.8f, %.8f, %.8f).\n", lla.latitude, lla.longitude, lla.altitude);
+        printf("\033[1;33mutm_lla_origin = (%.8f, %.8f, %.8f).\033[0m\n", lla.latitude, lla.longitude, lla.altitude);
         origin_setted = true;
     }
 

@@ -135,7 +135,7 @@ public:
     static void SetOrigin(const Eigen::Vector3d pos, bool is_deg = true) {
         _origin = LLH2ECEF(pos, is_deg);
         _cne = Pos2Cne(pos, is_deg);
-        printf("lla_origin = (%.8f, %.8f, %.8f).\n", is_deg ? pos[0] : pos[0] / gl_deg, is_deg ? pos[1] : pos[1] / gl_deg, pos[2]);
+        printf("\033[1;33menu_lla_origin = (%.8f, %.8f, %.8f).\033[0m\n", is_deg ? pos[0] : pos[0] / gl_deg, is_deg ? pos[1] : pos[1] / gl_deg, pos[2]);
         _origin_setted = true;
     }
 
