@@ -107,6 +107,9 @@ if(ROS_EDITION STREQUAL "ROS1")
   add_executable(merge_keyframe src/merge_keyframe.cpp)
   target_link_libraries(merge_keyframe ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
+  add_executable(generate_pgm src/generate_pgm.cpp)
+  target_link_libraries(generate_pgm ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
   add_executable(fastlio_sam_test_bag test/read_rosbag_test.cpp)
   target_link_libraries(fastlio_sam_test_bag ${PROJECT_NAME} ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
