@@ -53,7 +53,9 @@ mapping:
     loop_closure_search_radius: 3
     loop_closure_keyframe_interval: 30
     keyframe_search_num: 20
-    loop_closure_fitness_score_thld: 0.2
+    loop_closure_fitness_use_adaptability: true
+    loop_closure_fitness_score_thld_min: 0.2
+    loop_closure_fitness_score_thld_max: 0.3
     icp_downsamp_size: 0.1
     manually_loop_vaild_period: [0, 1]
     odom_loop_vaild_period: []

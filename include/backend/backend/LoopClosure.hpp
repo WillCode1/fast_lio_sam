@@ -1,5 +1,7 @@
 #pragma once
 #include <unordered_map>
+#include <condition_variable>
+#include <atomic>
 #include <pcl/search/kdtree.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/registration/gicp.h>
@@ -10,12 +12,13 @@
 class LoopClosure
 {
 public:
-    LoopClosure(const std::shared_ptr<ScanContext::SCManager> scManager)
+    LoopClosure(const std::shared_ptr<ScanContext::SCManager> scManager, std::condition_variable &cv, std::atomic<bool> &isABlocked)
+        : cv(cv), isABlocked(isABlocked)
     {
         copy_keyframe_pose6d.reset(new pcl::PointCloud<PointXYZIRPYT>());
         kdtree_history_keyframe_pose.reset(new pcl::KdTreeFLANN<PointXYZIRPYT>());
 
-        curKeyframeCloud.reset(new PointCloudType());
+        unused_result.reset(new PointCloudType());
         prevKeyframeCloud.reset(new PointCloudType());
 
         loop_vaild_period["odom"] = std::vector<double>();
@@ -68,18 +71,32 @@ public:
         // GICP match
         pcl::GeneralizedIterativeClosestPoint<PointType, PointType> gicp;
         gicp.setMaxCorrespondenceDistance(loop_closure_search_radius * 2);
-        gicp.setMaximumIterations(100);
-        gicp.setTransformationEpsilon(1e-6);
-        gicp.setEuclideanFitnessEpsilon(1e-6);
+        gicp.setMaximumIterations(1000);
+        gicp.setTransformationEpsilon(1e-8);
+        gicp.setEuclideanFitnessEpsilon(1e-8);
         gicp.setRANSACIterations(0);
 
         gicp.setInputSource(cur_keyframe_cloud);
         gicp.setInputTarget(ref_near_keyframe_cloud);
-        PointCloudType::Ptr unused_result(new PointCloudType());
         if (use_guess)
             gicp.align(*unused_result, init_guess);
         else
             gicp.align(*unused_result);
+
+        float loop_closure_fitness_score_thld = 0;
+        if (loop_closure_fitness_use_adaptability)
+        {
+            if (dartion_time - last_loop_time > 40)
+            {
+                loop_closure_fitness_score_thld = loop_closure_fitness_score_thld_max;
+            }
+            else
+            {
+                loop_closure_fitness_score_thld = loop_closure_fitness_score_thld_min + (loop_closure_fitness_score_thld_max - loop_closure_fitness_score_thld_min) * 0.025 * (dartion_time - last_loop_time);
+            }
+        }
+        else
+            loop_closure_fitness_score_thld = loop_closure_fitness_score_thld_min;
 
         if (gicp.hasConverged() == false || gicp.getFitnessScore() > loop_closure_fitness_score_thld)
         {
@@ -87,28 +104,37 @@ public:
             return;
         }
 
-        // publish corrected cloud
-        {
-            PointCloudType::Ptr corrected_cloud(new PointCloudType());
-            pcl::transformPointCloud(*cur_keyframe_cloud, *corrected_cloud, gicp.getFinalTransformation());
-            *curKeyframeCloud = *corrected_cloud;
-        }
-
+        bool reject_this_loop = false;
         float x, y, z, roll, pitch, yaw;
-        Eigen::Affine3f correctionLidarFrame;
+        Eigen::Affine3f correctionLidarFrame, posetransform, tuningLidarFrame;
+        tuningLidarFrame.setIdentity();
         correctionLidarFrame = gicp.getFinalTransformation();
         float noiseScore = gicp.getFitnessScore();
 
+#if 0
         if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["manually"]))
         {
-            pcl::getTranslationAndEulerAngles(correctionLidarFrame, trans_state[0], trans_state[1], trans_state[2], trans_state[3], trans_state[4], trans_state[5]);
-            noiseScore = manually_adjust_loop_closure(ref_near_keyframe_cloud, cur_keyframe_cloud, correctionLidarFrame);
+            // Get current frame wrong pose
+            Eigen::Affine3f tWrong = pclPointToAffine3f(copy_keyframe_pose6d->points[loop_key_cur]);
+            // Get current frame corrected pose
+            Eigen::Affine3f tCorrect = correctionLidarFrame * tWrong;
+
+            isABlocked.store(true);
+            noiseScore = mclc.manually_adjust_loop_closure(ref_near_keyframe_cloud, keyframe_scan[loop_key_cur], copy_keyframe_pose6d, tCorrect, tuningLidarFrame, reject_this_loop);
+            isABlocked.store(false);
+            cv.notify_one();
         }
+        if (reject_this_loop)
+        {
+            LOG_ERROR("dartion_time = %.2f. manually reject this loop closure! loop closure failed by %s!", dartion_time, type.c_str());
+            return;
+        }
+#endif
 
         // Get current frame wrong pose
         Eigen::Affine3f tWrong = pclPointToAffine3f(copy_keyframe_pose6d->points[loop_key_cur]);
         // Get current frame corrected pose
-        Eigen::Affine3f tCorrect = correctionLidarFrame * tWrong;
+        Eigen::Affine3f tCorrect = correctionLidarFrame * tWrong * tuningLidarFrame;
         pcl::getTranslationAndEulerAngles(tCorrect, x, y, z, roll, pitch, yaw);
         gtsam::Pose3 poseFrom = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
         // Get reference frame pose
@@ -116,6 +142,23 @@ public:
         gtsam::Vector Vector6(6);
         Vector6 << noiseScore, noiseScore, noiseScore, noiseScore, noiseScore, noiseScore;
         gtsam::noiseModel::Diagonal::shared_ptr constraintNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
+
+#if 1
+        if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["manually"]))
+        {
+            isABlocked.store(true);
+            noiseScore = mclc.manually_adjust_loop_closure(ref_near_keyframe_cloud, keyframe_scan[loop_key_cur], copy_keyframe_pose6d, tCorrect, tuningLidarFrame, reject_this_loop);
+            isABlocked.store(false);
+            cv.notify_one();
+        }
+        if (reject_this_loop)
+        {
+            LOG_ERROR("dartion_time = %.2f. manually reject this loop closure! loop closure failed by %s!", dartion_time, type.c_str());
+            return;
+        }
+#endif
+
+        last_loop_time = dartion_time;
 
         loop_mtx.lock();
         loop_constraint.loop_indexs.push_back(make_pair(loop_key_cur, loop_key_ref));
@@ -231,13 +274,18 @@ public:
     }
 
 public:
+    std::condition_variable &cv;
+    std::atomic<bool> &isABlocked;
+
     std::unordered_map<std::string, std::vector<double>> loop_vaild_period;
     std::mutex loop_mtx;
     int loop_keyframe_num_thld = 50;
     float loop_closure_search_radius = 10;
     int loop_closure_keyframe_interval = 30;
     int keyframe_search_num = 20;
-    float loop_closure_fitness_score_thld = 0.05;
+    bool loop_closure_fitness_use_adaptability = false;
+    float loop_closure_fitness_score_thld_min = 0.05;
+    float loop_closure_fitness_score_thld_max = 0.05;
     float icp_downsamp_size = 0.1;
 
     pcl::PointCloud<PointXYZIRPYT>::Ptr copy_keyframe_pose6d;
@@ -248,7 +296,9 @@ public:
     std::shared_ptr<ScanContext::SCManager> sc_manager; // scan context
 
     // for visualize
+    double last_loop_time = 0;
     double dartion_time;
-    PointCloudType::Ptr curKeyframeCloud;
+    PointCloudType::Ptr unused_result;
     PointCloudType::Ptr prevKeyframeCloud;
+    ManuallyCorrectLoopClosure mclc;
 };

@@ -169,8 +169,8 @@ private:
             gtsam::GPSFactor gps_factor(keyframe_pose6d_optimized->size(), gtsam::Point3(thisGPS.lidar_pos_fix(0), thisGPS.lidar_pos_fix(1), thisGPS.lidar_pos_fix(2)), gnss_noise);
             gtsam_graph.add(gps_factor);
             loop_is_closed = true;
-            LOG_WARN("dartion_time = %.2f.GPS Factor Added, current_gnss_interval = %.3f sec, noise = (%.3f, %.3f, %.3f).",
-                     thisGPS.timestamp - keyframe_pose6d_optimized->front().time, thisGPS.current_gnss_interval, Vector3(0), Vector3(1), Vector3(2));
+            LOG_WARN_COND(true, "dartion_time = %.2f.GPS Factor Added, current_gnss_interval = %.3f sec, noise = (%.3f, %.3f, %.3f).",
+                          thisGPS.timestamp - keyframe_pose6d_optimized->front().time, thisGPS.current_gnss_interval, Vector3(0), Vector3(1), Vector3(2));
             // LOG_INFO("fix_lidar_pos = (%.3f, %.3f, %.3f).", thisGPS.lidar_pos_fix(0), thisGPS.lidar_pos_fix(1), thisGPS.lidar_pos_fix(2));
 
 #ifdef MAP_STITCH
@@ -231,7 +231,7 @@ private:
             isam->update();
             isam->update();
             isam->update();
-            LOG_INFO("ISMA2 Update");
+            LOG_INFO_COND(false, "ISMA2 Update");
         }
         // update之后要清空一下保存的因子图，注：历史数据不会清掉，ISAM保存起来了
         gtsam_graph.resize(0);

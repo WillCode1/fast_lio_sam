@@ -54,13 +54,15 @@ find_package(PCL 1.8 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS serialization timer thread chrono)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(Pangolin REQUIRED)
 
 include_directories(
   ${EIGEN3_INCLUDE_DIR}
   ${PCL_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${GTSAM_INCLUDE_DIR}
-  ${OpenCV_INCLUDE_DIRS})
+  ${OpenCV_INCLUDE_DIRS}
+  ${Pangolin_INCLUDE_DIRS})
 
 if(ROS_EDITION STREQUAL "ROS1")
   find_package(catkin REQUIRED COMPONENTS
@@ -94,7 +96,7 @@ if(ROS_EDITION STREQUAL "ROS1")
     include/backend/global_localization/scancontext/Scancontext.cpp
     include/backend/global_localization/InitCoordinate.cpp
     include/backend/backend/Backend.hpp)
-  target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
+  target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam ${Pangolin_LIBRARIES})
 
   # add_executable(map_stitch 
   #   include/backend/global_localization/scancontext/Scancontext.cpp
@@ -169,7 +171,7 @@ else(ROS_EDITION STREQUAL "ROS2")
     include/frontend/ImuProcessor.cpp
     include/frontend/use-ikfom.cpp
     include/backend/backend/Backend.hpp)
-  target_link_libraries(fastlio_sam_ros2 stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
+  target_link_libraries(fastlio_sam_ros2 stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam ${Pangolin_LIBRARIES})
   ament_target_dependencies(fastlio_sam_ros2 rclcpp sensor_msgs nav_msgs visualization_msgs tf2_ros livox_ros_driver2)
 
   # add_executable(fastlio_sam_test_bag test/read_rosbag_test.cpp)

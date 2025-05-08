@@ -55,7 +55,9 @@ inline void load_parameters(FastlioOdometry &frontend, Backend &backend, bool &s
     ros::param::param("mapping/loop_closure_search_radius", backend.loopClosure->loop_closure_search_radius, 10.f);
     ros::param::param("mapping/loop_closure_keyframe_interval", backend.loopClosure->loop_closure_keyframe_interval, 30);
     ros::param::param("mapping/keyframe_search_num", backend.loopClosure->keyframe_search_num, 20);
-    ros::param::param("mapping/loop_closure_fitness_score_thld", backend.loopClosure->loop_closure_fitness_score_thld, 0.05f);
+    ros::param::param("mapping/loop_closure_fitness_use_adaptability", backend.loopClosure->loop_closure_fitness_use_adaptability, false);
+    ros::param::param("mapping/loop_closure_fitness_score_thld_min", backend.loopClosure->loop_closure_fitness_score_thld_min, 0.1f);
+    ros::param::param("mapping/loop_closure_fitness_score_thld_max", backend.loopClosure->loop_closure_fitness_score_thld_max, 0.3f);
     ros::param::param("mapping/icp_downsamp_size", backend.loopClosure->icp_downsamp_size, 0.1f);
     ros::param::param("mapping/manually_loop_vaild_period", backend.loopClosure->loop_vaild_period["manually"], vector<double>());
     ros::param::param("mapping/odom_loop_vaild_period", backend.loopClosure->loop_vaild_period["odom"], vector<double>());

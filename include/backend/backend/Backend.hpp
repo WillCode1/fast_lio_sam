@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <math.h>
 #include <thread>
+#include <mutex>
 #include "backend/Header.h"
 #include "FactorGraphOptimization.hpp"
 #include "Relocalization.hpp"
@@ -23,7 +24,8 @@ public:
 
         backend = std::make_shared<FactorGraphOptimization>(keyframe_pose6d_optimized, keyframe_scan, gnss);
         relocalization = make_shared<Relocalization>();
-        loopClosure = make_shared<LoopClosure>(relocalization->sc_manager);
+        isABlocked.store(false);
+        loopClosure = make_shared<LoopClosure>(relocalization->sc_manager, cv, isABlocked);
     }
 
     ~Backend()
@@ -42,6 +44,14 @@ public:
 
     void run(PointXYZIRPYT &this_pose6d, PointCloudType::Ptr &feats_undistort, PointCloudType::Ptr &submap_fix)
     {
+        {
+            std::unique_lock<std::mutex> lock(m);
+            while (isABlocked.load())
+            {
+                cv.wait(lock);
+            }
+        } // Mutex is released here
+
         this_pose6d.intensity = keyframe_pose6d_unoptimized->size();
         if (backend->is_keyframe(this_pose6d))
         {
@@ -356,6 +366,9 @@ public:
     std::thread loopthread;
     LoopConstraint loop_constraint;
     bool test_mode = false;
+    std::mutex m;
+    std::condition_variable cv;
+    std::atomic<bool> isABlocked;
 
     /*** keyframe config ***/
     bool save_keyframe_en = false;
