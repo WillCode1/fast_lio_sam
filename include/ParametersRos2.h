@@ -44,7 +44,7 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     node->declare_parameter("keyframe_add_angle_threshold", 0.2f);
     node->declare_parameter("numsv", 20);
     node->declare_parameter("rtk_age", 30.f);
-    node->declare_parameter("gpsCovThreshold", vector<float>());
+    node->declare_parameter("gpsCovThreshold", vector<double>());
     node->declare_parameter("pose_cov_threshold", 25.f);
     node->declare_parameter("gnss_weight", vector<double>());
     node->declare_parameter("gnssValidInterval", 0.2f);
@@ -60,7 +60,9 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     node->declare_parameter("loop_closure_search_radius", 10.f);
     node->declare_parameter("loop_closure_keyframe_interval", 30);
     node->declare_parameter("keyframe_search_num", 20);
-    node->declare_parameter("loop_closure_fitness_score_thld", 0.05);
+    node->declare_parameter("loop_closure_fitness_use_adaptability", 20);
+    node->declare_parameter("loop_closure_fitness_score_thld_min", 0.1);
+    node->declare_parameter("loop_closure_fitness_score_thld_max", 0.3);
     node->declare_parameter("icp_downsamp_size", 0.1);
     node->declare_parameter("manually_loop_vaild_period", vector<double>());
     node->declare_parameter("odom_loop_vaild_period", vector<double>());
@@ -109,7 +111,9 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     node->get_parameter("loop_closure_search_radius", backend.loopClosure->loop_closure_search_radius);
     node->get_parameter("loop_closure_keyframe_interval", backend.loopClosure->loop_closure_keyframe_interval);
     node->get_parameter("keyframe_search_num", backend.loopClosure->keyframe_search_num);
-    node->get_parameter("loop_closure_fitness_score_thld", backend.loopClosure->loop_closure_fitness_score_thld);
+    node->get_parameter("loop_closure_fitness_use_adaptability", backend.loopClosure->loop_closure_fitness_use_adaptability);
+    node->get_parameter("loop_closure_fitness_score_thld_min", backend.loopClosure->loop_closure_fitness_score_thld_min);
+    node->get_parameter("loop_closure_fitness_score_thld_max", backend.loopClosure->loop_closure_fitness_score_thld_max);
     node->get_parameter("icp_downsamp_size", backend.loopClosure->icp_downsamp_size);
     node->get_parameter("manually_loop_vaild_period", backend.loopClosure->loop_vaild_period["manually"]);
     node->get_parameter("odom_loop_vaild_period", backend.loopClosure->loop_vaild_period["odom"]);

@@ -50,7 +50,7 @@ public:
 
   int numsv = 20;
   float rtk_age = 30;
-  vector<float> gpsCovThreshold;
+  vector<double> gpsCovThreshold;
 
   float gnssValidInterval = 0.2;
   bool useGpsElevation = false;
