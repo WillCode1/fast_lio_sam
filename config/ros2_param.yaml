@@ -1,7 +1,7 @@
 fast_lio_sam:
     ros__parameters:
-        lidar_topic:  "/livox/lidar"
-        imu_topic:  "/livox/imu"
+        lidar_topic:  "/livox/lidar_192_168_1_10"
+        imu_topic:  "/livox/imu_192_168_1_10"
         gnss_topic:  "/gps/fix"
         map_frame:  "map"
         body_frame:  "body"
@@ -41,7 +41,7 @@ fast_lio_sam:
         rtk_age: 30.
         gpsCovThreshold: [0.05, 0.05, 0.1, 0.05, 0.05, 0.05]
         pose_cov_threshold: 0.
-        gnss_weight: [1, 1, 0.1]
+        gnss_weight: [1.0, 1.0, 0.1]
         gnssValidInterval: 0.1
         useGpsElevation: true
 

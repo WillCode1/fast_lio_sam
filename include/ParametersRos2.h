@@ -60,7 +60,7 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     node->declare_parameter("loop_closure_search_radius", 10.f);
     node->declare_parameter("loop_closure_keyframe_interval", 30);
     node->declare_parameter("keyframe_search_num", 20);
-    node->declare_parameter("loop_closure_fitness_use_adaptability", 20);
+    node->declare_parameter("loop_closure_fitness_use_adaptability", false);
     node->declare_parameter("loop_closure_fitness_score_thld_min", 0.1);
     node->declare_parameter("loop_closure_fitness_score_thld_max", 0.3);
     node->declare_parameter("icp_downsamp_size", 0.1);
