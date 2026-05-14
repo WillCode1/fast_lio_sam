@@ -6,7 +6,9 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/registration/gicp.h>
 #include "backend/Header.h"
+#ifdef USE_PANGOLIN
 #include "backend/utility/manually_correct_loop_closure.h"
+#endif
 #include "backend/global_localization/scancontext/Scancontext.h"
 
 class LoopClosure
@@ -111,6 +113,7 @@ public:
         correctionLidarFrame = gicp.getFinalTransformation();
         float noiseScore = gicp.getFitnessScore();
 
+#ifdef USE_PANGOLIN
 #if 0
         if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["manually"]))
         {
@@ -130,6 +133,7 @@ public:
             return;
         }
 #endif
+#endif
 
         // Get current frame wrong pose
         Eigen::Affine3f tWrong = pclPointToAffine3f(copy_keyframe_pose6d->points[loop_key_cur]);
@@ -143,6 +147,7 @@ public:
         Vector6 << noiseScore, noiseScore, noiseScore, noiseScore, noiseScore, noiseScore;
         gtsam::noiseModel::Diagonal::shared_ptr constraintNoise = gtsam::noiseModel::Diagonal::Variances(Vector6);
 
+#ifdef USE_PANGOLIN
 #if 1
         if (is_vaild_loop_time_period(dartion_time, loop_vaild_period["manually"]))
         {
@@ -156,6 +161,7 @@ public:
             LOG_ERROR("dartion_time = %.2f. manually reject this loop closure! loop closure failed by %s!", dartion_time, type.c_str());
             return;
         }
+#endif
 #endif
 
         last_loop_time = dartion_time;
@@ -300,5 +306,7 @@ public:
     double dartion_time;
     PointCloudType::Ptr unused_result;
     PointCloudType::Ptr prevKeyframeCloud;
+#ifdef USE_PANGOLIN
     ManuallyCorrectLoopClosure mclc;
+#endif
 };
