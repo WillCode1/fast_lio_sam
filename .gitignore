@@ -10,3 +10,5 @@ Log/*.log
 *.scd
 PCD/*.txt
 PCD/*.fg
+PCD/*.pgm
+PCD/*.yaml

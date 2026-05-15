@@ -1,7 +1,7 @@
 fast_lio_sam:
     ros__parameters:
-        lidar_topic:  "/livox/lidar_192_168_1_10"
-        imu_topic:  "/livox/imu_192_168_1_10"
+        lidar_topic:  "/livox/lidar"
+        imu_topic:  "/livox/imu"
         gnss_topic:  "/gps/fix"
         map_frame:  "map"
         body_frame:  "body"
@@ -88,7 +88,7 @@ fast_lio_sam:
         save_resolution: 0.2
         save_keyframe_en: true
         save_keyframe_descriptor_en: false
-        map_path: "/home/chery/tmp/"
+        # map_path: "/home/chery/tmp/"
 
         save_pgm: true
         pgm_resolution: 0.05
