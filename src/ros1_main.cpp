@@ -400,7 +400,7 @@ int main(int argc, char **argv)
 
     /*** ROS subscribe initialization ***/
     ros::Subscriber sub_pcl = lidar_type == AVIA ? nh.subscribe(lidar_topic, 200000, livox_pcl_cbk) : nh.subscribe(lidar_topic, 200000, standard_pcl_cbk);
-    ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
+    ros::Subscriber sub_imu = nh.subscribe(imu_topic, 2000000, imu_cbk);
 #ifdef UrbanLoco
     ros::Subscriber sub_gnss = nh.subscribe(gnss_topic, 200000, UrbanLoco_cbk);
 #elif defined(liosam)
