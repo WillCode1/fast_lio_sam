@@ -32,7 +32,7 @@
   <run_depend>tf</run_depend>
   <run_depend>pcl_ros</run_depend>
   <run_depend>livox_ros_driver</run_depend>
-  <run_depend>slam_interfaces</run_depend>
+  <!-- <run_depend>slam_interfaces</run_depend> -->
 
   <test_depend>rostest</test_depend>
   <test_depend>rosbag</test_depend>
