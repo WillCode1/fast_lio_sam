@@ -85,7 +85,7 @@ fast_lio_sam:
         dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
 
         ground_constraint_enable: false
-        ground_constraint_angle: 5
+        ground_constraint_angle: 5.
         save_globalmap_en: true
         save_resolution: 0.2
         save_keyframe_en: true

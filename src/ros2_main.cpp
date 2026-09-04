@@ -24,6 +24,10 @@ double globalMapVisualizationSearchRadius = 1000;
 double globalMapVisualizationPoseDensity = 10;
 double globalMapVisualizationLeafSize = 1;
 int lidar_type;
+bool save_globalmap_en = false;
+bool save_pgm = false;
+double pgm_resolution;
+float min_z, max_z;
 FastlioOdometry frontend;
 Backend backend;
 std::string map_frame;
@@ -34,8 +38,16 @@ FILE *location_log = nullptr;
 bool flg_exit = false;
 void SigHandle(int sig)
 {
-    flg_exit = true;
+    backend.save_trajectory();
+    backend.save_factor_graph();
+
+    if (save_globalmap_en)
+        backend.save_globalmap();
+
+    if (save_pgm)
+        backend.save_pgm(pgm_resolution, min_z, max_z);
     LOG_WARN("catch sig %d", sig);
+    flg_exit = true;
 }
 
 void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
@@ -339,13 +351,10 @@ int main(int argc, char **argv)
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("fast_lio_sam");
     bool pure_localization = false;
-    bool save_globalmap_en = false, path_en = true;
+    bool path_en = true;
     bool scan_pub_en = false, dense_pub_en = false;
     string lidar_topic, imu_topic, gnss_topic;
 
-    bool save_pgm = false;
-    double pgm_resolution;
-    float min_z, max_z;
     // location_log = fopen(DEBUG_FILE_DIR("location.log").c_str(), "a");
 
     node->declare_parameter("showOptimizedPose", true);
@@ -450,16 +459,8 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
-    backend.save_trajectory();
-    backend.save_factor_graph();
     // backend.save_trajectory_to_other_frame(frontend.get_state().offset_R_L_I, frontend.get_state().offset_T_L_I, "imu");
     // backend.save_trajectory_to_other_frame(QD(M3D(backend.gnss->extrinsic_lidar2gnss.topLeftCorner(3, 3))), backend.gnss->extrinsic_lidar2gnss.topLeftCorner(3, 1), "gnss");
-
-    if (save_globalmap_en)
-        backend.save_globalmap();
-
-    if (save_pgm)
-        backend.save_pgm(pgm_resolution, min_z, max_z);
 
     return 0;
 }
