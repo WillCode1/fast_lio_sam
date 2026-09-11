@@ -3,7 +3,7 @@
 #include "backend/Header.h"
 #include "backend/global_localization/UtmCoordinate.h"
 #include "backend/global_localization/EnuCoordinate.h"
-#define ENU
+// #define ENU
 
 struct GnssPose
 {

@@ -122,6 +122,7 @@ void imu_cbk(const sensor_msgs::Imu::ConstPtr &msg)
 void gnss_cbk(const sensor_msgs::NavSatFix::ConstPtr &msg)
 {
     V3D gnss_position = backend.gnss->gnss_global2local(V3D(RAD2DEG(msg->latitude), RAD2DEG(msg->longitude), msg->altitude));
+    // LOG_WARN("gnss_position (%f, %f, %f)!", gnss_position.x(), gnss_position.y(), gnss_position.z());
     backend.gnss->gnss_handler(GnssPose(msg->header.stamp.toSec(), gnss_position));
     backend.relocalization->gnss_pose = GnssPose(msg->header.stamp.toSec(), gnss_position);
 }
