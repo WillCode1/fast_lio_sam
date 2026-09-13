@@ -1,7 +1,7 @@
 fast_lio_sam:
     ros__parameters:
-        lidar_topic:  "/livox/lidar"
-        imu_topic:  "/livox/imu"
+        lidar_topic:  "/lidar/airy/points_raw"
+        imu_topic:  "/lidar/airy/imu"
         gnss_topic:  "/gps/fix"
         map_frame:  "map"
         body_frame:  "body"
@@ -9,18 +9,18 @@ fast_lio_sam:
 
         lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
         scan_line: 6
-        timestamp_unit: 3
+        timestamp_unit: 0
         blind: 1.                  # 0~0.1: blind, 0.1~0.2: distortion
         det_range: 70.0
 
         gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
-        gravity_init: [0., 0., -9.81]         # gravity to be aligned
+        gravity_init: [0., 0., 9.81]         # gravity to be aligned
         eular_init: [0., 0., 0.]             # imu init rotation, for fix imu measure
         frontend_type: 0                    # frontend type
 
         # fastlio
         point_skip_num: 4
-        space_down_sample: false
+        space_down_sample: true
         surf_frame_ds_res: 0.5
         max_iteration: 3
         ikdtree_resolution: 0.5
@@ -67,7 +67,7 @@ fast_lio_sam:
         b_gyr_cov: 0.0001
         extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
         # lidar -> imu = lidar->base * base->imu
-        extrinsic_T: [ -0.011, -0.02329, 0.04412 ]
+        extrinsic_T: [ 0.012, -0.005, 0.021 ]
         extrinsic_R: [ 1., 0., 0.,
                        0., 1., 0.,
                        0., 0., 1. ]

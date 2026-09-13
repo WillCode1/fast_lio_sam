@@ -167,6 +167,12 @@ public:
             measures->lidar = lidar_buffer.front();
             measures->lidar_beg_time = time_buffer.front();
             sort(measures->lidar->points.begin(), measures->lidar->points.end(), compare_timestamp);
+            static bool test_unit = false;
+            if (!test_unit)
+            {
+                test_unit = true;
+                LOG_WARN("test_unit lidar points offset = %lf.", measures->lidar->points.back().curvature - measures->lidar->points.front().curvature);
+            }
             lidar_end_time = measures->lidar_beg_time + measures->lidar->points.back().curvature / double(1000);
             // sort(measures->lidar->points.begin(), measures->lidar->points.end(), compare_timestamp);
             measures->lidar_end_time = lidar_end_time;
