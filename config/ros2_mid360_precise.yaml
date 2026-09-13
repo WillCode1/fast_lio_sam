@@ -21,9 +21,9 @@ fast_lio_sam:
         # fastlio
         point_skip_num: 4
         space_down_sample: false
-        surf_frame_ds_res: 0.1
+        surf_frame_ds_res: 0.2
         max_iteration: 3
-        ikdtree_resolution: 0.1
+        ikdtree_resolution: 0.2
         lidar_model_search_range: 0.5
         lidar_meas_cov: 0.001
         cube_side_length: 200.
@@ -90,7 +90,7 @@ fast_lio_sam:
         save_resolution: 0.2
         save_keyframe_en: true
         save_keyframe_descriptor_en: false
-        # map_path: "/home/chery/tmp/"
+        map_path: "/home/will/tmp/out_bag/"
 
         save_pgm: true
         pgm_resolution: 0.05

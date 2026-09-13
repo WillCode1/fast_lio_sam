@@ -6,7 +6,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    config = os.path.join(get_package_share_directory('fast_lio_sam'), 'config', 'ros2_param.yaml')
+    config = os.path.join(get_package_share_directory('fast_lio_sam'), 'config', 'ros2_mid360_precise.yaml')
     rviz_config = os.path.join(get_package_share_directory('fast_lio_sam'), 'rviz_cfg', 'map_ros2.rviz')
 
     fast_lio_sam = Node(package="fast_lio_sam", executable="fastlio_sam_ros2", prefix=['stdbuf -o L'], output='screen', 
