@@ -105,7 +105,7 @@ public:
             }
         }
         else
-            loop_closure_fitness_score_thld = loop_closure_fitness_score_thld_min;
+            loop_closure_fitness_score_thld = loop_closure_fitness_score_thld_max;
 
         if (gicp.hasConverged() == false || gicp.getFitnessScore() > loop_closure_fitness_score_thld)
         {
