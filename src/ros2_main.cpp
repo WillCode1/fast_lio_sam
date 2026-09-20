@@ -17,6 +17,7 @@
 #include "ParametersRos2.h"
 #include "backend/backend/Backend.hpp"
 #include "backend/utility/evo_tool.h"
+#include "std_msgs/msg/string.hpp"
 // #define EVO
 
 bool showOptimizedPose = true;
@@ -34,6 +35,7 @@ std::string map_frame;
 std::string body_frame;
 std::string lidar_frame;
 FILE *location_log = nullptr;
+rclcpp::Subscription<std_msgs::msg::String>::SharedPtr key_sub;
 
 bool flg_exit = false;
 void SigHandle(int sig)
@@ -48,6 +50,46 @@ void SigHandle(int sig)
         backend.save_pgm(pgm_resolution, min_z, max_z);
     LOG_WARN("catch sig %d", sig);
     flg_exit = true;
+}
+
+void keyCallback(const std_msgs::msg::String::ConstPtr &msg)
+{
+  if (msg->data.empty())
+    return;
+
+  char key = msg->data[0];
+
+  switch (key)
+  {
+  case 'z':
+    if (!backend.backend->z_axis_constraint_enable)
+    {
+      backend.backend->z_axis_constraint_enable = true;
+      backend.backend->update_height = true;
+      LOG_WARN("backend.backend->z_axis_constraint_enable = true");
+    }
+    else
+    {
+      backend.backend->z_axis_constraint_enable = false;
+      backend.backend->update_height = true;
+      LOG_WARN("backend.backend->z_axis_constraint_enable = false");
+    }
+    break;
+  case 's':
+    if (!backend.backend->update_height)
+    {
+      backend.backend->update_height = true;
+      LOG_WARN("backend.backend->update_height = true");
+    }
+    else
+    {
+      backend.backend->update_height = false;
+      LOG_WARN("backend.backend->update_height = false");
+    }
+    break;
+  default:
+    break;
+  }
 }
 
 void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
@@ -402,6 +444,7 @@ int main(int argc, char **argv)
     std::thread visualizeMapThread = std::thread(&visualize_globalmap_thread, pubGlobalmap);
     auto sub_initpose = node->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("/initialpose", 1, initialPoseCallback);
     // auto pubground_points = node->create_publisher<sensor_msgs::PointCloud2>("/ground_points", 1000);
+    key_sub = node->create_subscription<std_msgs::msg::String>("/key_input", 10, keyCallback);
 
     tf2_ros::TransformBroadcaster broadcaster(node);
     //------------------------------------------------------------------------------------------------------
@@ -423,6 +466,8 @@ int main(int argc, char **argv)
         {
             auto state = frontend.get_state();
             state2pose(this_pose6d, frontend.lidar_end_time, state);
+            if (backend.backend->update_height)
+                backend.backend->cur_height = this_pose6d.z;
             backend.run(this_pose6d, feats_undistort, submap_fix);
             if (submap_fix->size())
             {

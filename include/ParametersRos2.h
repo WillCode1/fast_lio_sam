@@ -279,10 +279,18 @@ inline void load_parameters(rclcpp::Node::SharedPtr &node, FastlioOdometry &fron
     frontend.set_extrinsic(extrinT_eigen, extrinR_eigen);
     frontend.init_estimator();
 
-    node->declare_parameter("ground_constraint_enable", false);
-    node->declare_parameter("ground_constraint_angle", 5.f);
-    node->get_parameter("ground_constraint_enable", frontend.ground_constraint_enable);
-    node->get_parameter("ground_constraint_angle", frontend.ground_constraint_angle);
+    node->declare_parameter("lio_ground_constraint_enable", false);
+    node->declare_parameter("lio_ground_constraint_angle", 5.f);
+    node->declare_parameter("gtsam_ground_constraint_enable", false);
+    node->declare_parameter("update_height", true);
+    node->declare_parameter("add_height_factor_threshold", 0.1);
+    node->declare_parameter("loop_closure_height_thld", 20.f);
+    node->get_parameter("lio_ground_constraint_enable", frontend.ground_constraint_enable);
+    node->get_parameter("lio_ground_constraint_angle", frontend.ground_constraint_angle);
+    node->get_parameter("gtsam_ground_constraint_enable", backend.backend->z_axis_constraint_enable);
+    node->get_parameter("update_height", backend.backend->update_height);
+    node->get_parameter("add_height_factor_threshold", backend.backend->add_height_factor_threshold);
+    node->get_parameter("loop_closure_height_thld", backend.loopClosure->loop_closure_height_thld);
     backend.init_system_mode();
 }
 

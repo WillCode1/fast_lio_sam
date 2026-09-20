@@ -55,6 +55,13 @@ public:
     void perform_loop_closure(const deque<PointCloudType::Ptr> &keyframe_scan, int loop_key_cur, int loop_key_ref,
                               const std::string &type, bool use_guess = false, const Eigen::Matrix4f &init_guess = Eigen::Matrix4f::Identity())
     {
+        float height_delta = copy_keyframe_pose6d->points[loop_key_ref].z - copy_keyframe_pose6d->points[loop_key_cur].z;
+        if (std::abs(height_delta) > loop_closure_height_thld)
+        {
+            LOG_WARN("loop closure failed by %s! height_delta = %.3f, height_thld = %.2f", type.c_str(), height_delta, loop_closure_height_thld);
+            return;
+        }
+
         // extract cloud
         PointCloudType::Ptr cur_keyframe_cloud(new PointCloudType());
         PointCloudType::Ptr ref_near_keyframe_cloud(new PointCloudType());
@@ -293,6 +300,7 @@ public:
     float loop_closure_fitness_score_thld_min = 0.05;
     float loop_closure_fitness_score_thld_max = 0.05;
     float icp_downsamp_size = 0.1;
+    float loop_closure_height_thld = 20;
 
     pcl::PointCloud<PointXYZIRPYT>::Ptr copy_keyframe_pose6d;
     pcl::KdTreeFLANN<PointXYZIRPYT>::Ptr kdtree_history_keyframe_pose;

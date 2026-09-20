@@ -185,6 +185,10 @@ else(ROS_EDITION STREQUAL "ROS2")
     include/backend/backend/Backend.hpp)
   target_link_libraries(fastlio_sam_ros2 stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
   ament_target_dependencies(fastlio_sam_ros2 rclcpp sensor_msgs nav_msgs visualization_msgs tf2_ros livox_ros_driver2)
+
+  add_executable(status_switch src/status_switch.cpp)
+  ament_target_dependencies(status_switch rclcpp std_msgs)
+
   if (BUILD_PANGOLIN)
     target_link_libraries(fastlio_sam_ros2 ${Pangolin_LIBRARIES})
   endif()
@@ -192,7 +196,7 @@ else(ROS_EDITION STREQUAL "ROS2")
   # add_executable(fastlio_sam_test_bag test/read_rosbag_test.cpp)
   # target_link_libraries(fastlio_sam_test_bag ${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-  install(TARGETS fastlio_sam_ros2
+  install(TARGETS fastlio_sam_ros2 status_switch
     DESTINATION lib/${PROJECT_NAME}
   )
   install(DIRECTORY launch config rviz_cfg

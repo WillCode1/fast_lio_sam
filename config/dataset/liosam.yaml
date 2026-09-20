@@ -89,7 +89,14 @@ publish:
     dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
 
 official:
-    ground_constraint_enable: false
+    # z axis constraint
+    lio_ground_constraint_enable: false
+    lio_ground_constraint_angle: 5.
+    gtsam_ground_constraint_enable: false
+    update_height: false
+    add_height_factor_threshold: 0.1
+    loop_closure_height_thld: 20.
+
     save_globalmap_en: false
     save_resolution: 0.2
     save_keyframe_en: false

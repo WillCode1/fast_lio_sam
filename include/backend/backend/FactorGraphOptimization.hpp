@@ -214,11 +214,45 @@ private:
         loop_is_closed = true;
     }
 
+    void add_height_factor(PointXYZIRPYT this_pose6d)
+    {
+        LOG_INFO("current kf index = %lu, height = %f, height_thld = %f.", keyframe_pose6d_optimized->size(), this_pose6d.z, cur_height);
+        odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-2).finished());
+
+        if (cur_height < -10000)
+            cur_height = this_pose6d.z;
+        if (update_height)
+            return;
+        if (std::abs(cur_height - this_pose6d.z) < add_height_factor_threshold)
+            return;
+
+        double sigma_z = 0.001;
+        gtsam::Vector6 sigmas;
+        sigmas << 1e8, 1e8, 1e8, 1e8, 1e8, sigma_z;
+        auto noise = gtsam::noiseModel::Diagonal::Sigmas(sigmas);
+
+        this_pose6d.z = cur_height;
+        if (!keyframe_pose6d_optimized->points.empty())
+        {
+            gtsam::Pose3 poseFrom = pclPointTogtsamPose3(keyframe_pose6d_optimized->points.back());
+            gtsam::Pose3 poseTo = pclPointTogtsamPose3(this_pose6d);
+            gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(),
+                                                               poseFrom.between(poseTo), noise));
+            loop_is_closed = true;
+            LOG_WARN("add_z_axis_constraint Update");
+        }
+    }
+
     void add_factor_and_optimize(LoopConstraint &loop_constraint, PointXYZIRPYT &this_pose6d)
     {
         add_odom_factor(this_pose6d);
 
         add_gnss_factor(this_pose6d);
+
+        if (z_axis_constraint_enable)
+        {
+            add_height_factor(this_pose6d);
+        }
 
         add_loop_factor(loop_constraint);
 
@@ -332,4 +366,9 @@ public:
     std::map<int, gtsam::Pose3> init_values;
     std::queue<GtsamFactor> gtsam_factors;
 #endif
+
+    bool z_axis_constraint_enable = false;
+    bool update_height = true;
+    double cur_height = -10000000;
+    double add_height_factor_threshold = 0.1;
 };

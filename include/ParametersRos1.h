@@ -178,8 +178,12 @@ inline void load_parameters(FastlioOdometry &frontend, Backend &backend, bool &s
     frontend.set_extrinsic(extrinT_eigen, extrinR_eigen);
     frontend.init_estimator();
 
-    ros::param::param("official/ground_constraint_enable", frontend.ground_constraint_enable, false);
-    ros::param::param("official/ground_constraint_angle", frontend.ground_constraint_angle, 5.f);
+    ros::param::param("official/lio_ground_constraint_enable", frontend.ground_constraint_enable, false);
+    ros::param::param("official/lio_ground_constraint_angle", frontend.ground_constraint_angle, 5.f);
+    ros::param::param("official/gtsam_ground_constraint_enable", backend.backend->z_axis_constraint_enable, false);
+    ros::param::param("official/update_height", backend.backend->update_height, true);
+    ros::param::param("official/add_height_factor_threshold", backend.backend->add_height_factor_threshold, 0.1);
+    ros::param::param("official/loop_closure_height_thld", backend.loopClosure->loop_closure_height_thld, 20.f);
     backend.init_system_mode();
 }
 
