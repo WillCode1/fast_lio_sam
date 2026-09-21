@@ -217,7 +217,7 @@ private:
     void add_height_factor(PointXYZIRPYT this_pose6d)
     {
         LOG_INFO("current kf index = %lu, height = %f, height_thld = %f.", keyframe_pose6d_optimized->size(), this_pose6d.z, cur_height);
-        odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-4, 1e-4, 1e-6, 1e-4, 1e-4, 1e-2).finished());
+        // odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-2).finished());
 
         if (cur_height < -10000)
             cur_height = this_pose6d.z;
