@@ -226,7 +226,7 @@ private:
         if (std::abs(cur_height - this_pose6d.z) < add_height_factor_threshold)
             return;
 
-        double sigma_z = 0.0005;
+        double sigma_z = 0.001;
         gtsam::Vector6 sigmas;
         sigmas << 1e8, 1e8, 1e8, 1e8, 1e8, sigma_z;
         auto noise = gtsam::noiseModel::Diagonal::Sigmas(sigmas);
