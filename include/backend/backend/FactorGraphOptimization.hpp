@@ -238,7 +238,7 @@ private:
             gtsam::Pose3 poseTo = pclPointTogtsamPose3(this_pose6d);
             gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(),
                                                                poseFrom.between(poseTo), noise));
-            loop_is_closed = true;
+            z_axis_is_constrained = true;
             LOG_WARN("add_z_axis_constraint Update");
         }
     }
@@ -248,17 +248,17 @@ private:
         add_odom_factor(this_pose6d);
 
         add_gnss_factor(this_pose6d);
+        
+        add_loop_factor(loop_constraint);
 
-        if (z_axis_constraint_enable)
+        if (!loop_is_closed && z_axis_constraint_enable)
         {
             add_height_factor(this_pose6d);
         }
 
-        add_loop_factor(loop_constraint);
-
         isam->update(gtsam_graph, init_estimate);
         isam->update();
-        if (loop_is_closed == true)
+        if (loop_is_closed || z_axis_is_constrained)
         {
             isam->update();
             isam->update();
@@ -286,6 +286,9 @@ private:
         keyframe_pose6d_optimized->push_back(this_pose6d);
         pose_mtx.unlock();
 
+        if (loop_is_closed)
+            cur_height = this_pose6d.z;
+
         pose_covariance = isam->marginalCovariance(optimized_estimate.size() - 1);
     }
 
@@ -308,7 +311,7 @@ private:
         if (keyframe_pose6d_optimized->points.empty())
             return;
 
-        if (loop_is_closed == true)
+        if (loop_is_closed || z_axis_is_constrained)
         {
             int numPoses = optimized_estimate.size();
             pose_mtx.lock();
@@ -329,6 +332,7 @@ private:
             pose_mtx.unlock();
             get_submap_fix(submap_fix);
             loop_is_closed = false;
+            z_axis_is_constrained = false;
         }
     }
 
@@ -343,6 +347,7 @@ public:
     std::vector<double> gnss_weight;
     shared_ptr<GnssProcessor> gnss;
     bool loop_is_closed = false;
+    bool z_axis_is_constrained = false;
 
     // gtsam
     gtsam::NonlinearFactorGraph gtsam_graph;
