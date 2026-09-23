@@ -89,7 +89,7 @@ fast_lio_sam:
         lio_ground_constraint_angle: 5.
         gtsam_ground_constraint_enable: false
         update_height: false
-        add_height_factor_threshold: 0.1
+        add_height_factor_threshold: 0.2
         loop_closure_height_thld: 20.
 
         save_globalmap_en: true
