@@ -50,7 +50,7 @@ fast_lio_sam:
         loop_closure_interval: 300
         loop_closure_enable_flag: true
         loop_keyframe_num_thld: 50
-        loop_closure_search_radius: 3.
+        loop_closure_search_radius: 5.
         loop_closure_keyframe_interval: 30
         keyframe_search_num: 20
         loop_closure_fitness_use_adaptability: false
@@ -90,7 +90,7 @@ fast_lio_sam:
         gtsam_ground_constraint_enable: false
         update_height: false
         add_height_factor_threshold: 0.2
-        loop_closure_height_thld: 20.
+        loop_closure_height_thld: 4.
 
         save_globalmap_en: true
         save_resolution: 0.2
