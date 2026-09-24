@@ -207,7 +207,7 @@ public:
                 break;
             }
         }
-        if (closest_id == -1 || latest_id == closest_id)
+        if (closest_id == -1 || abs(closest_id - latest_id) < loop_keyframe_num_thld)
             return;
 
         perform_loop_closure(keyframe_scan, latest_id, closest_id, "odom");
