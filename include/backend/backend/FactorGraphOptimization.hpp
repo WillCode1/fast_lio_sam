@@ -76,7 +76,7 @@ public:
 
         // rpy(rad*rad), xyz(meter*meter)
         prior_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-2, 1e-2, M_PI * M_PI, 1e8, 1e8, 1e8).finished());
-        odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+        odometry_noise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4).finished());
     }
 
     bool is_keyframe(const PointXYZIRPYT &this_pose6d)
@@ -226,18 +226,15 @@ private:
         if (std::abs(cur_height - this_pose6d.z) < add_height_factor_threshold)
             return;
 
-        double sigma_z = 0.001;
-        gtsam::Vector6 sigmas;
-        sigmas << 1e8, 1e8, 1e8, 1e8, 1e8, sigma_z;
-        auto noise = gtsam::noiseModel::Diagonal::Sigmas(sigmas);
-
+        double sigma_z = 0.05;
         this_pose6d.z = cur_height;
         if (!keyframe_pose6d_optimized->points.empty())
         {
-            gtsam::Pose3 poseFrom = pclPointTogtsamPose3(keyframe_pose6d_optimized->points.back());
-            gtsam::Pose3 poseTo = pclPointTogtsamPose3(this_pose6d);
-            gtsam_graph.add(gtsam::BetweenFactor<gtsam::Pose3>(keyframe_pose6d_optimized->size() - 1, keyframe_pose6d_optimized->size(),
-                                                               poseFrom.between(poseTo), noise));
+            gtsam::Vector Vector3(3);
+            Vector3 << 1e8, 1e8, sigma_z;
+            gtsam::noiseModel::Diagonal::shared_ptr height_noise = gtsam::noiseModel::Diagonal::Variances(Vector3);
+            gtsam::GPSFactor height_factor(keyframe_pose6d_optimized->size(), gtsam::Point3(this_pose6d.x, this_pose6d.y, this_pose6d.z), height_noise);
+            gtsam_graph.add(height_factor);
             z_axis_is_constrained = true;
             LOG_WARN("add_z_axis_constraint Update");
         }
