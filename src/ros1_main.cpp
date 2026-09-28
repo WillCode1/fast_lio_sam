@@ -46,7 +46,7 @@ bool flg_exit = false;
 void SigHandle(int sig)
 {
     backend.save_trajectory();
-    backend.save_factor_graph();
+    // backend.save_factor_graph();
 
     if (save_globalmap_en)
         backend.save_globalmap();
