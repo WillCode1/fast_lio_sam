@@ -147,8 +147,6 @@ public:
             LOG_WARN("loop closure failed by %s! height_delta = %.3f, height_thld = %.2f", type.c_str(), z - z0, loop_closure_height_thld);
             return;
         }
-            LOG_WARN("loop closure scc by %s! height_delta = %.3f, height_thld = %.2f", type.c_str(), z - z0, loop_closure_height_thld);
-
 
         gtsam::Pose3 poseFrom = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
         // Get reference frame pose
