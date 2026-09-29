@@ -55,13 +55,6 @@ public:
     void perform_loop_closure(const deque<PointCloudType::Ptr> &keyframe_scan, int loop_key_cur, int loop_key_ref,
                               const std::string &type, bool use_guess = false, const Eigen::Matrix4f &init_guess = Eigen::Matrix4f::Identity())
     {
-        float height_delta = copy_keyframe_pose6d->points[loop_key_ref].z - copy_keyframe_pose6d->points[loop_key_cur].z;
-        if (std::abs(height_delta) > loop_closure_height_thld)
-        {
-            LOG_WARN("loop closure failed by %s! height_delta = %.3f, height_thld = %.2f", type.c_str(), height_delta, loop_closure_height_thld);
-            return;
-        }
-
         // extract cloud
         PointCloudType::Ptr cur_keyframe_cloud(new PointCloudType());
         PointCloudType::Ptr ref_near_keyframe_cloud(new PointCloudType());
@@ -114,7 +107,7 @@ public:
         }
 
         bool reject_this_loop = false;
-        float x, y, z, roll, pitch, yaw;
+        float x, y, z, z0, roll, pitch, yaw;
         Eigen::Affine3f correctionLidarFrame, posetransform, tuningLidarFrame;
         tuningLidarFrame.setIdentity();
         correctionLidarFrame = gicp.getFinalTransformation();
@@ -144,9 +137,19 @@ public:
 
         // Get current frame wrong pose
         Eigen::Affine3f tWrong = pclPointToAffine3f(copy_keyframe_pose6d->points[loop_key_cur]);
+        pcl::getTranslationAndEulerAngles(tWrong, x, y, z0, roll, pitch, yaw);
         // Get current frame corrected pose
         Eigen::Affine3f tCorrect = correctionLidarFrame * tWrong * tuningLidarFrame;
         pcl::getTranslationAndEulerAngles(tCorrect, x, y, z, roll, pitch, yaw);
+
+        if (std::abs(z - z0) > loop_closure_height_thld)
+        {
+            LOG_WARN("loop closure failed by %s! height_delta = %.3f, height_thld = %.2f", type.c_str(), z - z0, loop_closure_height_thld);
+            return;
+        }
+            LOG_WARN("loop closure scc by %s! height_delta = %.3f, height_thld = %.2f", type.c_str(), z - z0, loop_closure_height_thld);
+
+
         gtsam::Pose3 poseFrom = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, yaw), gtsam::Point3(x, y, z));
         // Get reference frame pose
         gtsam::Pose3 poseTo = pclPointTogtsamPose3(copy_keyframe_pose6d->points[loop_key_ref]);
