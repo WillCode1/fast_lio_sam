@@ -1,7 +1,7 @@
 fast_lio_sam:
     ros__parameters:
-        lidar_topic:  "/lidar/airy/points_raw"
-        imu_topic:  "/lidar/airy/imu"
+        lidar_topic:  "/rslidar_points"
+        imu_topic:  "/rslidar_imu_data"
         gnss_topic:  "/gps/fix"
         map_frame:  "map"
         body_frame:  "body"
@@ -14,7 +14,7 @@ fast_lio_sam:
         det_range: 70.0
 
         gravity_align: true                 # true to align the z axis of world frame with the direction of gravity, and the gravity direction should be specified below
-        gravity_init: [0., 0., 9.81]         # gravity to be aligned
+        gravity_init: [0., 0., -9.81]         # gravity to be aligned
         eular_init: [0., 0., 0.]             # imu init rotation, for fix imu measure
         frontend_type: 0                    # frontend type
 
@@ -67,10 +67,10 @@ fast_lio_sam:
         b_gyr_cov: 0.0001
         extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
         # lidar -> imu = lidar->base * base->imu
-        extrinsic_T: [ 0.012, -0.005, 0.021 ]
-        extrinsic_R: [ 1., 0., 0.,
-                       0., 1., 0.,
-                       0., 0., 1. ]
+        extrinsic_T: [ 0.0042, -0.015, 0.011 ]
+        extrinsic_R: [ 0.0371031, -0.999192, 0.0154193,
+                       -0.999305, -0.037043, 0.00416679,
+                       -0.00359224, -0.0155632, -0.999872 ]
         # lidar -> gnss
         extrinsic_gnss_T: [ 0., 0., 0. ]
         extrinsic_gnss_R: [ 1., 0., 0., 
