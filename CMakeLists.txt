@@ -73,6 +73,14 @@ include_directories(
   ${GTSAM_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS})
 
+set(BACKEND_SOURCES
+  include/backend/backend/Backend.cpp
+  include/backend/backend/FactorGraphOptimization.cpp
+  include/backend/backend/GnssProcessor.cpp
+  include/backend/backend/LoopClosure.cpp
+  include/backend/backend/Relocalization.cpp
+  include/backend/utility/Pcd2Pgm.cpp)
+
 if(ROS_EDITION STREQUAL "ROS1")
   find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
@@ -104,7 +112,7 @@ if(ROS_EDITION STREQUAL "ROS1")
     include/frontend/use-ikfom.cpp
     include/backend/global_localization/scancontext/Scancontext.cpp
     include/backend/global_localization/InitCoordinate.cpp
-    include/backend/backend/Backend.hpp)
+    ${BACKEND_SOURCES})
   target_link_libraries(${PROJECT_NAME} stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
   if (BUILD_PANGOLIN)
     target_link_libraries(${PROJECT_NAME} ${Pangolin_LIBRARIES})
@@ -121,7 +129,8 @@ if(ROS_EDITION STREQUAL "ROS1")
   add_executable(merge_keyframe src/merge_keyframe.cpp)
   target_link_libraries(merge_keyframe ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
-  add_executable(generate_pgm src/generate_pgm.cpp)
+  add_executable(generate_pgm src/generate_pgm.cpp
+    include/backend/utility/Pcd2Pgm.cpp)
   target_link_libraries(generate_pgm ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
   add_executable(fastlio_sam_test_bag test/read_rosbag_test.cpp)
@@ -182,7 +191,7 @@ else(ROS_EDITION STREQUAL "ROS2")
     include/backend/global_localization/InitCoordinate.cpp
     include/frontend/ImuProcessor.cpp
     include/frontend/use-ikfom.cpp
-    include/backend/backend/Backend.hpp)
+    ${BACKEND_SOURCES})
   target_link_libraries(fastlio_sam_ros2 stdc++fs ${PCL_LIBRARIES} ${Boost_LIBRARIES} gtsam)
   ament_target_dependencies(fastlio_sam_ros2 rclcpp sensor_msgs nav_msgs visualization_msgs tf2_ros livox_ros_driver2)
 
