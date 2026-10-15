@@ -96,7 +96,8 @@ official:
     add_height_factor_threshold: 0.1
     loop_closure_height_thld: 20.
 
-    save_globalmap_en: false
+    save_globalmap_en: true
     save_resolution: 0.2
     save_keyframe_en: false
     save_keyframe_descriptor_en: false
+    map_path: "/home/will/tmp/out_bag/"

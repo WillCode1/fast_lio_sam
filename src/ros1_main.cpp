@@ -9,6 +9,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <std_msgs/String.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
 #include <livox_ros_driver/CustomMsg.h>
@@ -41,6 +42,7 @@ std::string body_frame;
 std::string lidar_frame;
 ros::Publisher pubGpsIns;
 FILE *location_log = nullptr;
+ros::Subscriber key_sub;
 
 bool flg_exit = false;
 void SigHandle(int sig)
@@ -55,6 +57,46 @@ void SigHandle(int sig)
         backend.save_pgm(pgm_resolution, min_z, max_z);
     LOG_WARN("catch sig %d", sig);
     flg_exit = true;
+}
+
+void keyCallback(const std_msgs::String::ConstPtr &msg)
+{
+  if (msg->data.empty())
+    return;
+
+  char key = msg->data[0];
+
+  switch (key)
+  {
+  case 'z':
+    if (!backend.backend->z_axis_constraint_enable)
+    {
+      backend.backend->z_axis_constraint_enable = true;
+      backend.backend->update_height = true;
+      LOG_WARN("backend.backend->z_axis_constraint_enable = true");
+    }
+    else
+    {
+      backend.backend->z_axis_constraint_enable = false;
+      backend.backend->update_height = true;
+      LOG_WARN("backend.backend->z_axis_constraint_enable = false");
+    }
+    break;
+  case 's':
+    if (!backend.backend->update_height)
+    {
+      backend.backend->update_height = true;
+      LOG_WARN("backend.backend->update_height = true");
+    }
+    else
+    {
+      backend.backend->update_height = false;
+      LOG_WARN("backend.backend->update_height = false");
+    }
+    break;
+  default:
+    break;
+  }
 }
 
 void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
@@ -435,6 +477,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_initpose = nh.subscribe("/initialpose", 1, initialPoseCallback);
     // ros::Publisher pubground_points = nh.advertise<sensor_msgs::PointCloud2>("/ground_points", 100000);
     pubGpsIns = nh.advertise<geometry_msgs::Twist>("/gps_ins_pose", 100000);
+    key_sub = nh.subscribe<std_msgs::String>("/key_input", 10, keyCallback);
 
     //------------------------------------------------------------------------------------------------------
     signal(SIGINT, SigHandle);
@@ -455,6 +498,8 @@ int main(int argc, char **argv)
         {
             auto state = frontend.get_state();
             state2pose(this_pose6d, frontend.lidar_end_time, state);
+            if (backend.backend->update_height)
+                backend.backend->cur_height = this_pose6d.z;
             backend.run(this_pose6d, feats_undistort, submap_fix);
             if (submap_fix->size())
             {
