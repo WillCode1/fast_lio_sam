@@ -328,7 +328,9 @@ public:
 
     virtual void set_pose(const state_ikfom &cur_state)
     {
+        auto dR = state.rot.inverse() * cur_state.rot;
         state = cur_state;
+        state.vel = dR * state.vel;
         kf.change_x(state);
     }
 

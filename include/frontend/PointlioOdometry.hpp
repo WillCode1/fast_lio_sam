@@ -551,16 +551,20 @@ public:
     {
         if (use_imu_as_input)
         {
+            auto dR = state_in.rot.inverse() * cur_state.rot;
             state_in = kf_input.get_x();
             state_in.pos = cur_state.pos;
             state_in.rot = cur_state.rot;
+            state_in.vel = dR * state_in.vel;
             kf_input.change_x(state_in);
         }
         else
         {
+            auto dR = state_out.rot.inverse() * cur_state.rot;
             state_out = kf_output.get_x();
             state_out.pos = cur_state.pos;
             state_out.rot = cur_state.rot;
+            state_out.vel = dR * state_out.vel;
             kf_output.change_x(state_out);
         }
     }
