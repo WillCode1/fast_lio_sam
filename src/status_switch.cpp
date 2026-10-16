@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     auto key_pub = node->create_publisher<std_msgs::msg::String>("/key_input", 10);
 
     RCLCPP_INFO(node->get_logger(),
-                "Keyboard Control Started. Press 'm' to switch mode, 's' to stop, 'q' to exit.");
+                "Keyboard Control Started. Press 'm' to switch mode, 's' to switch update_height, 'q' to exit.");
 
     rclcpp::executors::SingleThreadedExecutor executor;
     executor.add_node(node);
