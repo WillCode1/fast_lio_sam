@@ -55,6 +55,7 @@ enum LogLevel
                 printf("(%s, %d), ", fs::path(__FILE__).filename().string().c_str(), __LINE__);                \
             printf(__VA_ARGS__);                                                                               \
             printf("\033[0m\n");                                                                               \
+            fflush(stdout);                                                                                    \
         }                                                                                                      \
         if (location_log && level >= debug)                                                                     \
         {                                                                                                      \
