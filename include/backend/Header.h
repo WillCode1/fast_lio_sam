@@ -332,6 +332,49 @@ inline PointCloudType::Ptr pointcloudKeyframeToWorld(const PointCloudType::Ptr &
     return cloud_out;
 }
 
+/**
+ * @brief 关键帧点云“去倾斜 + 相对传感器高度切片”后转到世界系。
+ *
+ * 关键帧(keyframe/*.pcd)存的是雷达/机体原始坐标系下的扫描。雷达倾斜安装时，
+ * 直接在该坐标系里按 z 切片会沿倾斜方向切错。这里先施加该帧位姿的旋转
+ * R = RPY(roll, pitch, yaw)，把机体轴旋转到与世界系平行（z 轴竖直），此时
+ * 点云的 z 即“相对传感器原点的垂向高度”，再按 [min_z, max_z] 切片，最后
+ * 平移到世界系。这样即使雷达倾斜、载体俯仰变化，切片平面也始终水平。
+ *
+ * @param cloud_in 雷达/机体原始系的关键帧点云
+ * @param pose     该关键帧在世界系下的位姿（trajectory.pcd 中的一项）
+ * @param min_z/max_z 相对传感器原点的垂向高度切片范围（单位 m）
+ */
+inline PointCloudType::Ptr pointcloudKeyframeToWorldSliced(const PointCloudType::Ptr &cloud_in,
+                                                           const PointXYZIRPYT &pose,
+                                                           const float &min_z, const float &max_z)
+{
+    const QD state_rot = EigenMath::RPY2Quaternion(V3D(pose.roll, pose.pitch, pose.yaw)).normalized();
+    const V3D state_pos = V3D(pose.x, pose.y, pose.z);
+
+    PointCloudType::Ptr cloud_out(new PointCloudType());
+    cloud_out->points.reserve(cloud_in->points.size());
+
+    for (size_t i = 0; i < cloud_in->points.size(); ++i)
+    {
+        const V3D p_body(cloud_in->points[i].x, cloud_in->points[i].y, cloud_in->points[i].z);
+        const V3D p_level = state_rot * p_body; 
+        if (p_level.z() < min_z || p_level.z() > max_z)
+            continue;
+        const V3D p_global = p_level + state_pos; 
+
+        PointType point;
+        point.x = p_global(0);
+        point.y = p_global(1);
+        point.z = p_global(2);
+        point.intensity = cloud_in->points[i].intensity;
+        cloud_out->points.emplace_back(point);
+    }
+    cloud_out->width = cloud_out->points.size();
+    cloud_out->height = 1;
+    return cloud_out;
+}
+
 enum FrontendOdometryType
 {
     Fastlio,

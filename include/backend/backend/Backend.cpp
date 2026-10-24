@@ -88,6 +88,7 @@ void Backend::save_globalmap()
     LOG_WARN("Success save global map to %s.", globalmap_path.c_str());
 }
 
+// min_z/max_z: 去倾斜后、相对传感器原点的垂向高度切片范围（此时 z 轴已竖直）
 void Backend::save_pgm(const double &pgm_resolution, const float &min_z, const float &max_z)
 {
     pcl::PointCloud<PointXYZIRPYT>::Ptr keyframe_pose6d(new pcl::PointCloud<PointXYZIRPYT>());
@@ -96,9 +97,10 @@ void Backend::save_pgm(const double &pgm_resolution, const float &min_z, const f
     for (auto i = 0; i < keyframe_pose6d->size(); ++i)
     {
         PointCloudType::Ptr keyframe_pc(new PointCloudType());
-        load_keyframe(keyframe_path, keyframe_pc, i, 6, min_z, max_z);
+        load_keyframe(keyframe_path, keyframe_pc, i, 6);
         // octreeDownsampling(keyframe_pc, keyframe_pc, 0.1);
-        *global_map += *pointcloudKeyframeToWorld(keyframe_pc, (*keyframe_pose6d)[i]);
+        // 先按该帧位姿把机体轴旋转到与世界系平行（z 轴竖直，去倾斜），再按相对传感器高度切片，最后平移到世界系
+        *global_map += *pointcloudKeyframeToWorldSliced(keyframe_pc, (*keyframe_pose6d)[i], min_z, max_z);
     }
     Pcd2Pgm mg(pgm_resolution, map_path + "/map");
     mg.convert_from_pcd(global_map);
@@ -290,9 +292,10 @@ bool Backend::run_relocalization(PointCloudType::Ptr scan, const double &lidar_b
     return false;
 }
 
+// 读取关键帧原始点云（雷达/机体原始坐标系）。此处不再做高度切片，
+// 去倾斜与高度切片统一在 pointcloudKeyframeToWorldSliced() 中完成。
 void Backend::load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc,
-                   int keyframe_cnt, int num_digits,
-                   const float &min_z, const float &max_z)
+                            int keyframe_cnt, int num_digits)
 {
     std::ostringstream out;
     out << std::internal << std::setfill('0') << std::setw(num_digits) << keyframe_cnt;
@@ -302,9 +305,7 @@ void Backend::load_keyframe(const std::string &keyframe_path, PointCloudType::Pt
     pcl::io::loadPCDFile(keyframe_file, *tmp_pc);
     for (auto i = 0; i < tmp_pc->points.size(); ++i)
     {
-        if (tmp_pc->points[i].z < min_z || tmp_pc->points[i].z > max_z)
-            continue;
-        if (tmp_pc->points[i].x < 0)
+        if (tmp_pc->points[i].x < 0) // 保留原行为：丢弃雷达系后方(x<0)的点
             continue;
         PointType point;
         pcl::copyPoint(tmp_pc->points[i], point);

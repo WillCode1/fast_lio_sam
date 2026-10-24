@@ -22,7 +22,7 @@ public:
 
     void save_globalmap();
 
-    void save_pgm(const double &pgm_resolution, const float &min_z, const float &max_z);
+    void save_pgm(const double &pgm_resolution = 0.05, const float &min_z = -1.5, const float &max_z = 0.1);
 
     void save_trajectory();
 
@@ -37,8 +37,7 @@ public:
 
 private:
     void load_keyframe(const std::string &keyframe_path, PointCloudType::Ptr keyframe_pc,
-                       int keyframe_cnt, int num_digits = 6,
-                       const float &min_z = -1.5, const float &max_z = 0.1);
+                       int keyframe_cnt, int num_digits = 6);
 
     void save_keyframe(PointCloudType::Ptr &cloud, int keyframe_cnt, int num_digits = 6);
 
